@@ -201,6 +201,7 @@ export interface EarningsCalendarRow {
   session: "pre" | "post" | "during" | "unknown";
   eps_consensus: number | null;
   revenue_consensus: string | null;
+  asset_class?: AssetClass;
 }
 
 const CALENDAR_SCHEMA = {
@@ -256,7 +257,14 @@ export async function getEarningsCalendar(
   const raw = resp.choices?.[0]?.message?.content || "{}";
   try {
     const parsed = JSON.parse(raw) as { rows?: EarningsCalendarRow[] };
-    return parsed.rows || [];
+    const rows = parsed.rows || [];
+    // Attach asset_class from the input so the UI can click-through correctly.
+    const classByTicker = new Map<string, AssetClass>();
+    for (const t of tickers) classByTicker.set(t.ticker.toUpperCase(), t.asset_class);
+    for (const row of rows) {
+      if (!row.asset_class) row.asset_class = classByTicker.get(row.ticker.toUpperCase());
+    }
+    return rows;
   } catch {
     return [];
   }

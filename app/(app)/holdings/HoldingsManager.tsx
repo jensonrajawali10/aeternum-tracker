@@ -116,7 +116,15 @@ export function HoldingsManager() {
   }
 
   const items = data?.items || [];
-  const totalCost = items.reduce((s, h) => s + Number(h.avg_cost) * Number(h.quantity), 0);
+  const byCurrency: Record<string, number> = {};
+  for (const h of items) {
+    const ccy = h.cost_currency || "IDR";
+    byCurrency[ccy] = (byCurrency[ccy] || 0) + Number(h.avg_cost) * Number(h.quantity);
+  }
+  const totalsText = Object.entries(byCurrency)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([ccy, v]) => `${ccy} ${fmtNumber(v, 0)}`)
+    .join(" · ");
 
   return (
     <div>
@@ -206,8 +214,8 @@ export function HoldingsManager() {
 
       {items.length > 0 && (
         <div className="mb-3 text-[11px] text-muted">
-          {items.length} holding{items.length > 1 ? "s" : ""} · Total cost basis:{" "}
-          <span className="text-fg tabular-nums">{fmtNumber(totalCost, 0)}</span>
+          {items.length} holding{items.length > 1 ? "s" : ""} · Cost basis by currency:{" "}
+          <span className="text-fg tabular-nums">{totalsText}</span>
         </div>
       )}
 

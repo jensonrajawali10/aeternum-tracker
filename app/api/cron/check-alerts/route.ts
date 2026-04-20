@@ -177,12 +177,20 @@ export async function GET(req: NextRequest) {
           }),
         });
         if (ok) emailed++;
-        await supabase
+        // Update the history row we just inserted (latest for this alert).
+        const { data: latestFire } = await supabase
           .from("alert_history")
-          .update({ notified_email: ok })
+          .select("id")
           .eq("alert_id", a.id)
           .order("triggered_at", { ascending: false })
-          .limit(1);
+          .limit(1)
+          .maybeSingle();
+        if (latestFire?.id) {
+          await supabase
+            .from("alert_history")
+            .update({ notified_email: ok })
+            .eq("id", latestFire.id);
+        }
       }
     }
   }

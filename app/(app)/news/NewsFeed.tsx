@@ -13,6 +13,8 @@ interface NewsItem {
   summary?: string;
   symbols?: string[];
   urgency?: number;
+  score?: number;
+  reasons?: string[];
 }
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
@@ -77,9 +79,14 @@ export function NewsFeed() {
                 <span>{it.source}</span>
                 <span>·</span>
                 <span>{timeAgo(it.published)}</span>
-                {(it.urgency ?? 0) >= 2 && (
-                  <span className="ml-1 px-1 py-[1px] bg-red/20 text-red rounded text-[9px]">
+                {(it.urgency ?? 0) >= 3 && (
+                  <span className="ml-1 px-1 py-[1px] bg-red/20 text-red rounded text-[9px] font-bold">
                     BREAKING
+                  </span>
+                )}
+                {(it.urgency ?? 0) === 2 && (
+                  <span className="ml-1 px-1 py-[1px] bg-accent/20 text-accent rounded text-[9px] font-bold">
+                    HOT {it.score}
                   </span>
                 )}
                 {(it.symbols || []).slice(0, 4).map((s) => (

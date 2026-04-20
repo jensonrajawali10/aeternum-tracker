@@ -22,7 +22,10 @@ export async function POST(req: NextRequest) {
     if (!address) return NextResponse.json({ error: "invalid_address" }, { status: 400 });
     await admin
       .from("user_settings")
-      .upsert({ user_id: user.id, hyperliquid_address: address, updated_at: new Date().toISOString() });
+      .upsert(
+        { user_id: user.id, hyperliquid_address: address, updated_at: new Date().toISOString() },
+        { onConflict: "user_id" },
+      );
   } else {
     const { data } = await admin
       .from("user_settings")

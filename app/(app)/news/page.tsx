@@ -9,7 +9,7 @@ export default function NewsPage() {
     <>
       <TopHeader
         title="News"
-        subtitle="TradingView feed · merged across positions + watchlist"
+        subtitle="Yahoo Finance + Google News · merged across positions + watchlist · hotness-scored"
       />
       <Panel>
         <NewsFeed />

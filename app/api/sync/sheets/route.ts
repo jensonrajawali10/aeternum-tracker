@@ -16,10 +16,10 @@ function pick(rec: Record<string, unknown>, ...keys: string[]): unknown {
 
 export async function POST(req: NextRequest) {
   const auth = req.headers.get("authorization") || "";
-  const expected = `Bearer ${process.env.SHEETS_WEBHOOK_SECRET}`;
-  if (!process.env.SHEETS_WEBHOOK_SECRET || auth !== expected) {
+  if (!auth.startsWith("Bearer ")) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
+  const bearer = auth.slice(7);
 
   let body: {
     user_id?: string;
@@ -41,6 +41,20 @@ export async function POST(req: NextRequest) {
   }
 
   const supabase = supabaseAdmin();
+
+  // Per-user webhook secret (preferred) or global env fallback.
+  const { data: settings } = await supabase
+    .from("user_settings")
+    .select("sheets_webhook_secret")
+    .eq("user_id", user_id)
+    .maybeSingle();
+
+  const perUserSecret = settings?.sheets_webhook_secret;
+  const globalSecret = process.env.SHEETS_WEBHOOK_SECRET;
+  const valid = (perUserSecret && bearer === perUserSecret) || (globalSecret && bearer === globalSecret);
+  if (!valid) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
 
   const asset_type = String(pick(rec, "asset_type", "asset", "market", "asset_class") ?? "");
   const ticker = String(pick(rec, "ticker", "symbol") ?? "").toUpperCase().trim();

@@ -4,6 +4,8 @@
 // Yahoo:  https://feeds.finance.yahoo.com/rss/2.0/headline?s=<TICKER>&region=US&lang=en-US
 // Google: https://news.google.com/rss/search?q=<query>&hl=en-US&gl=US&ceid=US:en
 
+import { scoreHeadline } from "./hotness";
+
 export interface NewsItem {
   id: string;
   title: string;
@@ -12,7 +14,15 @@ export interface NewsItem {
   url: string;
   summary?: string;
   symbols?: string[];
-  urgency?: number;
+  urgency?: number; // 0..3, derived from hotness score
+  score?: number;   // 0..100
+  reasons?: string[];
+}
+
+function enrich(item: NewsItem): NewsItem {
+  const { score, reasons } = scoreHeadline(item.title, item.summary || "");
+  const urgency = score >= 80 ? 3 : score >= 60 ? 2 : score >= 40 ? 1 : 0;
+  return { ...item, score, reasons, urgency };
 }
 
 const UA = { "User-Agent": "Mozilla/5.0 (compatible; aeternum-tracker)" };
@@ -105,9 +115,9 @@ export async function getNewsForSymbol(
     // Yahoo's IDX coverage is sparse — fall back to Google News search
     const q = `${ticker.replace(/\.JK$/i, "")} IDX stock`;
     const gn = `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=en-ID&gl=ID&ceid=ID:en`;
-    return (await fetchRss(gn, "Google News")).slice(0, limit).map((x) => ({ ...x, symbols: [ticker] }));
+    return (await fetchRss(gn, "Google News")).slice(0, limit).map((x) => enrich({ ...x, symbols: [ticker] }));
   }
-  return items.slice(0, limit).map((x) => ({ ...x, symbols: [ticker] }));
+  return items.slice(0, limit).map((x) => enrich({ ...x, symbols: [ticker] }));
 }
 
 export async function getNewsForSymbols(
@@ -142,5 +152,5 @@ export async function getNewsFeed(
   const q = CATEGORY_QUERIES[category] || CATEGORY_QUERIES.markets;
   const url = `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=en-US&gl=US&ceid=US:en`;
   const items = await fetchRss(url, "Google News");
-  return items.slice(0, limit);
+  return items.slice(0, limit).map(enrich);
 }

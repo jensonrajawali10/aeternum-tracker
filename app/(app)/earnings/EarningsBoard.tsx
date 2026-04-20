@@ -12,6 +12,7 @@ interface CalendarRow {
   session: "pre" | "post" | "during" | "unknown";
   eps_consensus: number | null;
   revenue_consensus: string | null;
+  asset_class?: AssetClass;
 }
 
 interface Summary {
@@ -40,11 +41,28 @@ const SESSION_LABEL: Record<CalendarRow["session"], string> = {
   unknown: "—",
 };
 
+// Best-effort asset-class guess when the calendar row doesn't carry it.
+// IDX tickers are 4 chars and alphabetic. US tickers can be 1-5 chars.
+// This is a fallback only — the real answer is carried by the server in
+// `asset_class` on the CalendarRow.
+function inferAssetClass(ticker: string): AssetClass {
+  const t = ticker.toUpperCase().replace(/\.JK$/, "");
+  if (/\.JK$/i.test(ticker)) return "idx_equity";
+  // Well-known IDX 4-letter tickers that would otherwise look US:
+  const IDX_HINTS = new Set([
+    "BBRI", "BBCA", "BMRI", "BBNI", "TLKM", "ASII", "ADRO", "INCO", "ANTM", "PTBA",
+    "UNVR", "GGRM", "HMSP", "ICBP", "INDF", "KLBF", "SMGR", "UNTR", "MDKA", "MEDC",
+    "TINS", "EXCL", "TOWR", "TPIA", "CPIN", "JPFA", "GOTO", "BUKA", "AMRT", "ISAT",
+  ]);
+  if (IDX_HINTS.has(t)) return "idx_equity";
+  return "us_equity";
+}
+
 export function EarningsBoard() {
   const { data, isLoading } = useSWR<{ rows: CalendarRow[]; error?: string }>(
     "/api/earnings",
     fetcher,
-    { refreshInterval: 0, revalidateOnFocus: false },
+    { refreshInterval: 10 * 60_000, revalidateOnFocus: false },
   );
   const [selected, setSelected] = useState<{
     ticker: string;
@@ -111,9 +129,7 @@ export function EarningsBoard() {
                   onClick={() =>
                     setSelected({
                       ticker: r.ticker,
-                      assetClass: /^\d/.test(r.ticker) || r.ticker.length <= 4
-                        ? "us_equity"
-                        : "idx_equity",
+                      assetClass: r.asset_class || inferAssetClass(r.ticker),
                     })
                   }
                 >
