@@ -1,12 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { supabaseServer } from "@/lib/supabase/server";
-import { getTvNewsForSymbols, getTvNewsFeed } from "@/lib/news/tradingview";
+import { getNewsForSymbols, getNewsFeed } from "@/lib/news/feeds";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// Aggregate feed: merges news for the user's open positions + watchlist,
-// falling back to a category feed when they have no symbols yet.
 export async function GET(req: NextRequest) {
   const supabase = await supabaseServer();
   const {
@@ -42,10 +40,14 @@ export async function GET(req: NextRequest) {
   }
 
   if (!pairs.length) {
-    const items = await getTvNewsFeed(category, 40);
+    const items = await getNewsFeed(category, 40);
     return NextResponse.json({ items, fallback: "category" });
   }
 
-  const items = await getTvNewsForSymbols(pairs.slice(0, 24), 5);
+  const items = await getNewsForSymbols(pairs.slice(0, 24), 5);
+  if (items.length === 0) {
+    const fallback = await getNewsFeed(category, 40);
+    return NextResponse.json({ items: fallback, fallback: "category", symbols: pairs.length });
+  }
   return NextResponse.json({ items, symbols: pairs.length });
 }
