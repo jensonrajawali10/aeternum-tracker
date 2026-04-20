@@ -6,6 +6,7 @@ import { clsx } from "@/lib/format";
 
 const NAV = [
   { href: "/dashboard", label: "Dashboard" },
+  { href: "/holdings", label: "Holdings" },
   { href: "/positions", label: "Positions" },
   { href: "/benchmark", label: "Benchmarking" },
   { href: "/risk", label: "Risk" },
