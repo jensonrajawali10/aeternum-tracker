@@ -59,6 +59,26 @@ export function EarningsBoard() {
   });
 
   const rows = data?.rows || [];
+  const notConfigured = data?.error === "PERPLEXITY_API_KEY not configured";
+
+  if (notConfigured) {
+    return (
+      <div className="text-[12px] text-muted leading-relaxed space-y-2">
+        <div className="text-fg text-[13px] font-medium">Earnings feed not configured yet</div>
+        <p>
+          This page uses Perplexity's <span className="font-mono text-accent">sonar</span> model to pull
+          upcoming earnings dates and call summaries for your watchlist / holdings tickers.
+        </p>
+        <p>
+          To enable it, add <span className="font-mono text-accent">PERPLEXITY_API_KEY</span> to your Vercel
+          env (Settings → Environment Variables) and redeploy. A free tier key works fine.
+        </p>
+        <p className="text-muted-2 text-[11px]">
+          Alternatively I can swap this to a free Yahoo Finance calendar feed — ping me if you'd rather go that route.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-4">
@@ -68,11 +88,7 @@ export function EarningsBoard() {
         </div>
         {isLoading && <div className="text-muted text-[12px]">Loading calendar…</div>}
         {data?.error && (
-          <div className="text-[11px] text-red mb-2">
-            {data.error === "PERPLEXITY_API_KEY not configured"
-              ? "Set PERPLEXITY_API_KEY in Vercel env to enable earnings."
-              : data.error}
-          </div>
+          <div className="text-[11px] text-muted mb-2">{data.error}</div>
         )}
         <div className="overflow-x-auto">
           <table className="w-full text-[12px]">

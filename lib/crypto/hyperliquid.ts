@@ -84,6 +84,14 @@ export function getSpotClearinghouseState(address: string) {
   return hlInfo<HlSpotClearinghouseState>({ type: "spotClearinghouseState", user: address });
 }
 
+export function getAllMids() {
+  return hlInfo<Record<string, string>>({ type: "allMids" });
+}
+
+export function getSpotMeta() {
+  return hlInfo<{ tokens: { name: string; szDecimals: number; weiDecimals: number; index: number; tokenId: string; isCanonical: boolean }[]; universe: { name: string; tokens: [number, number]; index: number; isCanonical: boolean }[] }>({ type: "spotMeta" });
+}
+
 export function getUserFills(address: string, aggregateByTime = false) {
   return hlInfo<HlFill[]>({ type: "userFills", user: address, aggregateByTime });
 }
