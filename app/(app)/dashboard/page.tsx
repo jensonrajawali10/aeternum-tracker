@@ -12,6 +12,7 @@ import { RiskSnapshot } from "@/components/RiskSnapshot";
 import { SectorDoughnut } from "@/components/SectorDoughnut";
 import { StrategyMatrix } from "@/components/StrategyMatrix";
 import { SignalFeed } from "@/components/SignalFeed";
+import { FxTicker } from "@/components/FxTicker";
 import type { BookFilter } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -28,6 +29,7 @@ export default async function DashboardPage({
   return (
     <>
       <TopHeader title="Dashboard" subtitle="Live portfolio • IDR base • IDX + US + Crypto">
+        <FxTicker from="USD" to="IDR" />
         <BookSwitcher current={book} />
         <CurrencyToggle current={ccy} />
       </TopHeader>

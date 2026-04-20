@@ -17,12 +17,23 @@ export function Panel({
   padding?: boolean;
 }) {
   return (
-    <section className={clsx("bg-panel border border-border rounded-[4px]", className)}>
+    <section
+      className={clsx(
+        "panel-gradient panel-elev border border-border rounded-[6px] overflow-hidden",
+        className,
+      )}
+    >
       {(title || actions) && (
-        <header className="flex items-center justify-between px-4 py-3 border-b border-border">
+        <header className="flex items-center justify-between px-4 py-[10px] border-b border-border">
           <div>
-            {title && <h2 className="text-[12px] font-semibold tracking-[0.1em] uppercase text-fg">{title}</h2>}
-            {subtitle && <div className="text-[10px] text-muted tracking-wide mt-[2px]">{subtitle}</div>}
+            {title && (
+              <h2 className="text-[11px] font-semibold tracking-[0.14em] uppercase text-fg">
+                {title}
+              </h2>
+            )}
+            {subtitle && (
+              <div className="text-[10px] text-muted tracking-wide mt-[2px]">{subtitle}</div>
+            )}
           </div>
           {actions && <div className="flex items-center gap-2">{actions}</div>}
         </header>

@@ -12,12 +12,16 @@ export function TopHeader({
   children?: ReactNode;
 }) {
   return (
-    <div className="flex items-end justify-between pb-4 border-b border-border mb-5">
+    <div className="flex flex-wrap items-end justify-between gap-3 pb-4 border-b border-border mb-5">
       <div>
-        <h1 className="text-[18px] font-semibold tracking-wide text-fg">{title}</h1>
-        {subtitle && <div className="text-[11px] text-muted tracking-wide mt-1">{subtitle}</div>}
+        <h1 className="serif text-[24px] leading-tight text-fg">{title}</h1>
+        {subtitle && (
+          <div className="text-[11px] text-muted tracking-wide mt-[3px]">{subtitle}</div>
+        )}
       </div>
-      {children && <div className="flex items-center gap-2">{children}</div>}
+      {children && (
+        <div className="flex flex-wrap items-center gap-2">{children}</div>
+      )}
     </div>
   );
 }

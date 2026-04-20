@@ -20,15 +20,19 @@ export function Kpi({
   return (
     <div
       className={clsx(
-        "bg-panel border border-border rounded-[4px]",
-        compact ? "px-3 py-2" : "px-4 py-3",
+        "panel-gradient panel-elev border border-border rounded-[6px] transition-colors hover:border-border-2",
+        compact ? "px-3 py-2" : "px-4 py-[14px]",
       )}
     >
-      <div className="text-[10px] uppercase tracking-[0.14em] text-muted">{label}</div>
-      <div className="mt-[2px] text-[17px] font-semibold tabular-nums">{value}</div>
-      <div className="mt-[2px] flex items-center gap-2 text-[11px] text-muted tabular-nums">
+      <div className="text-[9.5px] uppercase tracking-[0.18em] text-muted font-medium">
+        {label}
+      </div>
+      <div className="mt-[4px] text-[20px] font-semibold tabular-nums leading-tight tracking-tight">
+        {value}
+      </div>
+      <div className="mt-[3px] flex items-center gap-2 text-[10.5px] text-muted tabular-nums">
         {hint && <span>{hint}</span>}
-        {delta && <span className={deltaClass}>{delta}</span>}
+        {delta && <span className={clsx("font-medium", deltaClass)}>{delta}</span>}
       </div>
     </div>
   );

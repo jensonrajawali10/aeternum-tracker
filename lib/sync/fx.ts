@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { yf } from "@/lib/prices/yahoo-client";
 
 export async function getFxRates(
   dates: string[],
@@ -22,21 +23,47 @@ export async function getFxRates(
   });
 
   const missing = uniqueDates.filter((d) => !(d in rates));
-  for (const d of missing) {
+
+  if (missing.length) {
+    const minDate = missing.reduce((a, b) => (a < b ? a : b));
+    const maxDate = missing.reduce((a, b) => (a > b ? a : b));
     try {
-      const resp = await fetch(`https://api.exchangerate.host/${d}?base=${from}&symbols=${to}`);
-      const j = (await resp.json()) as { rates?: Record<string, number> };
-      if (j?.rates?.[to]) {
-        rates[d] = j.rates[to];
-        await supabase.from("fx_snapshots").upsert({
-          snapshot_date: d,
-          base_currency: from,
-          quote_currency: to,
-          rate: j.rates[to],
-        });
+      const sym = `${from.toUpperCase()}${to.toUpperCase()}=X`;
+      const hist = await yf.historical(sym, {
+        period1: minDate,
+        period2: new Date(new Date(maxDate).getTime() + 86400_000),
+        interval: "1d",
+      });
+      const toUpsert: { snapshot_date: string; base_currency: string; quote_currency: string; rate: number }[] = [];
+      hist.forEach((h) => {
+        if (h.close == null) return;
+        const d = h.date.toISOString().slice(0, 10);
+        rates[d] = Number(h.close);
+        toUpsert.push({ snapshot_date: d, base_currency: from, quote_currency: to, rate: Number(h.close) });
+      });
+      if (toUpsert.length) {
+        await supabase.from("fx_snapshots").upsert(toUpsert);
       }
     } catch (e) {
-      console.error(`[fx] failed for ${d}:`, e);
+      console.error(`[fx] yahoo historical failed for ${from}/${to}, trying frankfurter:`, e);
+      for (const d of missing) {
+        if (d in rates) continue;
+        try {
+          const resp = await fetch(`https://api.frankfurter.app/${d}?from=${from}&to=${to}`);
+          const j = (await resp.json()) as { rates?: Record<string, number> };
+          if (j?.rates?.[to]) {
+            rates[d] = j.rates[to];
+            await supabase.from("fx_snapshots").upsert({
+              snapshot_date: d,
+              base_currency: from,
+              quote_currency: to,
+              rate: j.rates[to],
+            });
+          }
+        } catch (e2) {
+          console.error(`[fx] frankfurter ${d} failed:`, e2);
+        }
+      }
     }
   }
 
@@ -46,6 +73,7 @@ export async function getFxRates(
     for (const md of stillMissing) {
       const prev = sorted.filter(([d]) => d < md).pop();
       if (prev) rates[md] = prev[1];
+      else if (sorted.length) rates[md] = sorted[0][1];
     }
   }
 
