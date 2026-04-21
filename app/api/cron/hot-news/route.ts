@@ -29,6 +29,7 @@ interface UserSettingsRow {
   user_id: string;
   hot_news_email: boolean;
   hot_news_min_score: number;
+  cc_emails: string[] | null;
 }
 
 /**
@@ -75,7 +76,7 @@ async function runHotNews(onlyUserId: string | undefined, mode: Mode) {
 
   let settingsQuery = supabase
     .from("user_settings")
-    .select("user_id, hot_news_email, hot_news_min_score")
+    .select("user_id, hot_news_email, hot_news_min_score, cc_emails")
     .eq("hot_news_email", true);
   if (onlyUserId) settingsQuery = settingsQuery.eq("user_id", onlyUserId);
 
@@ -225,6 +226,7 @@ async function processUser(
 
     const send = await sendEmail({
       to: email,
+      cc: (s.cc_emails || []).filter(Boolean),
       subject,
       html: hotNewsEmailHtml({
         items: fresh.map((f) => ({

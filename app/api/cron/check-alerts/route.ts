@@ -184,10 +184,11 @@ export async function GET(req: NextRequest) {
 
     let emailOk = !a.notify_email; // if no email requested, treat as "delivered"
     if (a.notify_email) {
-      const { email } = await resolveUserEmail(a.user_id);
+      const { email, cc } = await resolveUserEmail(a.user_id);
       if (email) {
         const { ok } = await sendEmail({
           to: email,
+          cc,
           subject: `Aeternum — ${a.ticker} ${a.alert_type === "price_above" ? "≥" : "≤"} ${a.threshold}`,
           html: alertEmailHtml({
             ticker: a.ticker!,
@@ -241,10 +242,11 @@ export async function GET(req: NextRequest) {
 
     let emailOk = !a.notify_email;
     if (a.notify_email) {
-      const { email } = await resolveUserEmail(a.user_id);
+      const { email, cc } = await resolveUserEmail(a.user_id);
       if (email) {
         const { ok } = await sendEmail({
           to: email,
+          cc,
           subject: `Aeternum — Portfolio P&L threshold`,
           html: alertEmailHtml({
             ticker: "Portfolio",
@@ -300,8 +302,18 @@ async function insertFireHistory(
   return data?.id ?? null;
 }
 
-async function resolveUserEmail(userId: string): Promise<{ email: string | null }> {
+async function resolveUserEmail(
+  userId: string,
+): Promise<{ email: string | null; cc: string[] }> {
   const supabase = supabaseAdmin();
-  const { data } = await supabase.auth.admin.getUserById(userId);
-  return { email: data?.user?.email || null };
+  const [{ data: authData }, { data: settings }] = await Promise.all([
+    supabase.auth.admin.getUserById(userId),
+    supabase
+      .from("user_settings")
+      .select("cc_emails")
+      .eq("user_id", userId)
+      .maybeSingle(),
+  ]);
+  const cc = ((settings?.cc_emails as string[] | null | undefined) || []).filter(Boolean);
+  return { email: authData?.user?.email || null, cc };
 }

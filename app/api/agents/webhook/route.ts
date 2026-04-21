@@ -81,12 +81,21 @@ export async function POST(req: NextRequest) {
     .eq("id", matched.id);
 
   if (severity === "critical") {
-    const { data: userData } = await supabase.auth.admin.getUserById(matched.user_id);
+    const [{ data: userData }, { data: settings }] = await Promise.all([
+      supabase.auth.admin.getUserById(matched.user_id),
+      supabase
+        .from("user_settings")
+        .select("cc_emails")
+        .eq("user_id", matched.user_id)
+        .maybeSingle(),
+    ]);
     const email = userData?.user?.email;
+    const cc = ((settings?.cc_emails as string[] | null | undefined) || []).filter(Boolean);
     const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || "";
     if (email) {
       await sendEmail({
         to: email,
+        cc,
         subject: `Aeternum — [${severity.toUpperCase()}] ${title}`,
         html: signalEmailHtml({
           agent_slug: matched.agent_slug,

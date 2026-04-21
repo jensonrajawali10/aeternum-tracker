@@ -7,6 +7,8 @@ const client = apiKey ? new Resend(apiKey) : null;
 
 export async function sendEmail(opts: {
   to: string | string[];
+  cc?: string | string[];
+  bcc?: string | string[];
   subject: string;
   html: string;
   text?: string;
@@ -16,9 +18,14 @@ export async function sendEmail(opts: {
     return { ok: false, error: "no_api_key" };
   }
   try {
+    // Resend rejects empty arrays on cc/bcc — normalise to undefined.
+    const cc = Array.isArray(opts.cc) ? (opts.cc.length ? opts.cc : undefined) : opts.cc;
+    const bcc = Array.isArray(opts.bcc) ? (opts.bcc.length ? opts.bcc : undefined) : opts.bcc;
     const { data, error } = await client.emails.send({
       from: FROM,
       to: opts.to,
+      cc,
+      bcc,
       subject: opts.subject,
       html: opts.html,
       text: opts.text,
