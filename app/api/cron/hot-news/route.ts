@@ -215,14 +215,14 @@ async function processUser(
 
   let emailed = 0;
   if (email) {
-    // All subjects start with "Aeternum" so a single Gmail filter
-    // (subject:Aeternum) forwards the news stream to distribution list
-    // while price-alert subjects (containing ≥/≤/"Portfolio P&L") stay local.
+    // News-track subjects all start with "Aeternum News" so a single
+    // Gmail filter (subject:"Aeternum News") forwards the hot-news stream
+    // to the distribution list while Signal/Alert subjects stay local.
     const tickerSuffix = fresh[0].ticker ? ` · ${fresh[0].ticker}` : "";
     const plural = fresh.length === 1 ? "item" : "items";
     const subject = mode === "realtime"
-      ? `Aeternum ⚡ BREAKING — ${fresh[0].title.slice(0, 72)}${fresh.length > 1 ? ` (+${fresh.length - 1})` : ""}`
-      : `Aeternum — ${fresh.length} hot news ${plural}${tickerSuffix}`;
+      ? `Aeternum News ⚡ BREAKING — ${fresh[0].title.slice(0, 68)}${fresh.length > 1 ? ` (+${fresh.length - 1})` : ""}`
+      : `Aeternum News — ${fresh.length} hot ${plural}${tickerSuffix}`;
 
     const send = await sendEmail({
       to: email,
