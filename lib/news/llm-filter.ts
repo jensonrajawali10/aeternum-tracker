@@ -191,7 +191,35 @@ Every macro headline must connect to portfolio via: [macro event] → [first-ord
 - **3 = critical**: MSCI/FTSE/LQ45/IDX30 rebalance affecting any tracked name or IDX broadly · Fed/BI rate decision · US CPI/PPI print · major geopolitical shock · M&A/bankruptcy on tracked name · crypto ETF approval/rejection · oil >5% move · sovereign rating action · circuit breaker
 - **2 = material**: single-name earnings on tracked ticker · oil/gold/coal directional move · Fed speaker with fresh hawkish/dovish tilt · China stimulus signal · sector-wide regulatory shift · IDR >1% move · AI capex announcement
 - **1 = contextual**: background macro, analyst rating change, sector commentary reaching portfolio via correlation
-- **0 = noise**: celebrity, sports, opinion/clickbait, stale recap, non-market-moving filler`;
+- **0 = noise**: celebrity, sports, opinion/clickbait, stale recap, non-market-moving filler
+
+===== AGGRESSIVE NOISE REJECTION (label=noise, urgency=0) =====
+The fund has ZERO tolerance for market-recap/wrap-up filler. By the time a "stocks closed higher" headline hits the wire, the move is already in the price. These are retrospective descriptions, not catalysts. Mark as NOISE if the headline is any of:
+
+**Market recap / wrap / close patterns — always noise:**
+- "Asia/Europe/US/Wall Street stocks close/end/finish higher/lower/mixed/flat"
+- "S&P 500 / Nasdaq / Dow / IHSG / Nikkei close at record / snap streak / log best day / worst week"
+- "Markets end week/day/session higher on [vague reason]"
+- "Stocks rally / slump / edge / inch / tick / nudge higher / lower"
+- "[Index] climbs / slides / drops / rises / gains / loses N%"
+- "Global / regional / Asian / European markets wrap / recap / review"
+- "End-of-day / mid-day / morning / afternoon / opening / closing bell summary"
+- "Investors weigh / digest / await / brace for / eye / watch [Fed / data / earnings]" — this is narrative fluff with no new information
+- "Traders / investors turn cautious / optimistic / nervous / bullish / bearish"
+- Bond/FX recap: "Treasury yields ease/rise in thin trade", "dollar steady", "rupiah firms"
+- Commodity recap: "oil edges up on supply worries", "gold steady as traders await" — unless >5% move or structural supply event
+
+**The rule:** a headline is noise if it describes what PRICES DID rather than announcing a CATALYST, DECISION, NUMBER, or EVENT that will move prices. Past-tense description = noise. Forward-looking decision/release/announcement = not noise.
+
+Even if a recap mentions a tracked ticker ("BBCA gains 2% as banks rally"), it's still NOISE — the price already moved. Only flag as sector/market_moving if there's a CAUSE named that is itself material (earnings beat, rating upgrade, capital action, rebalance).
+
+**Exceptions — NOT noise even if phrased as recap:**
+- Circuit breaker / trading halt / suspension
+- Limit-up / limit-down moves on tracked name
+- IDR breaks through key level (16,500 / 16,800 / 17,000)
+- Commodity move >5% intraday
+- Index move >3% intraday
+- Any single-name move >10% on tracked ticker with cause specified`;
 
   const userMsg = `${contextBlock(ctx)}For each numbered headline, output a single line in this exact format:
 INDEX|LABEL|URGENCY|WHY

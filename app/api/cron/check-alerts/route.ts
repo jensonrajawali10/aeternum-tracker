@@ -189,7 +189,7 @@ export async function GET(req: NextRequest) {
         const { ok } = await sendEmail({
           to: email,
           cc,
-          subject: `Aeternum — ${a.ticker} ${a.alert_type === "price_above" ? "≥" : "≤"} ${a.threshold}`,
+          subject: `Aeternum Alert — ${a.ticker} ${a.alert_type === "price_above" ? "≥" : "≤"} ${a.threshold}`,
           html: alertEmailHtml({
             ticker: a.ticker!,
             message: msg,

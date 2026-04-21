@@ -215,13 +215,13 @@ async function processUser(
 
   let emailed = 0;
   if (email) {
-    // Realtime subjects are prefixed so Gmail/mobile pop them visually and
-    // include the top ticker when we have one.
-    const prefix = mode === "realtime" ? "⚡ BREAKING — " : "";
+    // All subjects start with "Aeternum" so a single Gmail filter
+    // (subject:Aeternum) forwards the news stream to distribution list
+    // while price-alert subjects (containing ≥/≤/"Portfolio P&L") stay local.
     const tickerSuffix = fresh[0].ticker ? ` · ${fresh[0].ticker}` : "";
     const plural = fresh.length === 1 ? "item" : "items";
     const subject = mode === "realtime"
-      ? `${prefix}${fresh[0].title.slice(0, 80)}${fresh.length > 1 ? ` (+${fresh.length - 1})` : ""}`
+      ? `Aeternum ⚡ BREAKING — ${fresh[0].title.slice(0, 72)}${fresh.length > 1 ? ` (+${fresh.length - 1})` : ""}`
       : `Aeternum — ${fresh.length} hot news ${plural}${tickerSuffix}`;
 
     const send = await sendEmail({

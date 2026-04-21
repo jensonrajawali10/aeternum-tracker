@@ -96,7 +96,7 @@ export async function POST(req: NextRequest) {
       await sendEmail({
         to: email,
         cc,
-        subject: `Aeternum — [${severity.toUpperCase()}] ${title}`,
+        subject: `Aeternum Signal — [${severity.toUpperCase()}] ${title}`,
         html: signalEmailHtml({
           agent_slug: matched.agent_slug,
           severity,
