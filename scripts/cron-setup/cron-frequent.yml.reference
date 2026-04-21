@@ -2,22 +2,28 @@
 # workers from GitHub Actions and have them hit our Bearer-protected endpoints.
 #
 # Setup required (one-time):
-#   1. Repo → Settings → Secrets and variables → Actions → New repository secret
+#   1. Repo -> Settings -> Secrets and variables -> Actions -> New repository secret
 #        CRON_SECRET = <same value as Vercel env CRON_SECRET>
-#   2. Same panel → New repository variable
+#   2. Same panel -> New repository variable
 #        APP_URL = https://aeternum-tracker-neon.vercel.app
 #
-# These workflows do nothing destructive — they just POST/GET the cron endpoints.
+# These workflows do nothing destructive - they just POST/GET the cron endpoints.
 # The backends are idempotent (dedup on news_id, alert_history natural key).
+#
+# Cadence (every 5 min):
+#   - /api/cron/check-alerts             -> every tick (price-level alerts + email)
+#   - /api/cron/hot-news?realtime=1      -> every tick (20-min window, urgency=3,
+#                                           score>=85, "BREAKING" subject prefix)
+#   - /api/cron/hot-news                 -> every 3 hours at :00 (broad sweep,
+#                                           mid-urgency news allowed through)
 
 name: cron-frequent
 
 on:
   schedule:
-    # check-alerts every 15 minutes (price-level alerts + email)
-    - cron: "*/15 * * * *"
-    # hot-news every 3 hours (MSCI/FTSE/macro classifier + email)
-    - cron: "0 */3 * * *"
+    # Every 5 minutes -> check-alerts + realtime hot-news pulse.
+    # Full hot-news sweep is gated by the shell condition below.
+    - cron: "*/5 * * * *"
   workflow_dispatch:  # allow manual triggering
 
 permissions:
@@ -40,25 +46,29 @@ jobs:
           fi
 
           # GitHub's schedule triggers don't tell us which schedule fired, so
-          # key off the current minute/hour instead:
-          #   - any :00/:15/:30/:45 tick → check-alerts
-          #   - every 3rd hour at :00   → also hot-news
+          # key off the current minute/hour instead.
           MINUTE=$(date -u +%-M)
           HOUR=$(date -u +%-H)
 
           curl_json() {
             local path="$1"
-            echo "→ POST $APP_URL$path"
+            echo "-> POST $APP_URL$path"
             curl -sS -X POST \
               -H "Authorization: Bearer $CRON_SECRET" \
               -w "\nHTTP %{http_code} in %{time_total}s\n" \
               "$APP_URL$path"
           }
 
-          # check-alerts every run
+          # Every tick: check-alerts (price triggers) and the realtime news pulse.
+          # Realtime pulse only considers headlines published in the last ~20 min
+          # and only emails on structural events (MSCI/FTSE/LQ45 rebalances, halts,
+          # Fed surprises, sovereign ratings, IDR breaks). The 5-min cadence with
+          # a 20-min window gives 4x overlap so nothing is lost to feed lag.
           curl_json "/api/cron/check-alerts" || echo "::warning::check-alerts failed"
+          curl_json "/api/cron/hot-news?realtime=1" || echo "::warning::hot-news realtime failed"
 
-          # hot-news only on the 3-hour marks (0, 3, 6, ..., 21 UTC at :00)
+          # Broad 3-hour sweep at :00 UTC (0, 3, 6, 9, 12, 15, 18, 21).
+          # Picks up mid-urgency stuff that didn't clear the realtime bar.
           if [ "$MINUTE" = "0" ] && [ $((HOUR % 3)) -eq 0 ]; then
-            curl_json "/api/cron/hot-news" || echo "::warning::hot-news failed"
+            curl_json "/api/cron/hot-news" || echo "::warning::hot-news full failed"
           fi

@@ -31,17 +31,33 @@ interface UserSettingsRow {
   hot_news_min_score: number;
 }
 
+/**
+ * Two modes:
+ * - "full"     : broad 3-hour sweep. User's `hot_news_min_score` threshold,
+ *                agent urgency >= 2, no recency cap.
+ * - "realtime" : every-5-min pulse. Only items published in the last 20 min,
+ *                higher bar (score >= 85 / agent urgency == 3), fires the
+ *                moment something structural hits the wire.
+ */
+type Mode = "full" | "realtime";
+
+function parseMode(req: NextRequest): Mode {
+  const m = req.nextUrl.searchParams.get("realtime");
+  return m === "1" || m === "true" ? "realtime" : "full";
+}
+
 export async function GET(req: NextRequest) {
   if (!isAuthorized(req)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
-  return runHotNews();
+  return runHotNews(undefined, parseMode(req));
 }
 
 // POST also supported so the Alerts page "Check now" button can hit it with the user's cookie.
 // When called via POST we require a valid user session and only process that one user.
 export async function POST(req: NextRequest) {
-  if (isAuthorized(req)) return runHotNews();
+  const mode = parseMode(req);
+  if (isAuthorized(req)) return runHotNews(undefined, mode);
 
   // Fall through to per-user on-demand
   const { supabaseServer } = await import("@/lib/supabase/server");
@@ -50,10 +66,10 @@ export async function POST(req: NextRequest) {
     data: { user },
   } = await sb.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  return runHotNews(user.id);
+  return runHotNews(user.id, mode);
 }
 
-async function runHotNews(onlyUserId?: string) {
+async function runHotNews(onlyUserId: string | undefined, mode: Mode) {
   const supabase = supabaseAdmin();
   const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || "";
 
@@ -65,12 +81,12 @@ async function runHotNews(onlyUserId?: string) {
 
   const { data: settings, error } = await settingsQuery;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  if (!settings?.length) return NextResponse.json({ users: 0, flagged: 0, emailed: 0 });
+  if (!settings?.length) return NextResponse.json({ users: 0, flagged: 0, emailed: 0, mode });
 
   const results: { user_id: string; flagged: number; emailed: number }[] = [];
 
   for (const s of settings as UserSettingsRow[]) {
-    const flagged = await processUser(supabase, s, appUrl);
+    const flagged = await processUser(supabase, s, appUrl, mode);
     results.push({ user_id: s.user_id, ...flagged });
   }
 
@@ -79,13 +95,14 @@ async function runHotNews(onlyUserId?: string) {
     { flagged: 0, emailed: 0 },
   );
 
-  return NextResponse.json({ users: results.length, ...totals, results });
+  return NextResponse.json({ users: results.length, mode, ...totals, results });
 }
 
 async function processUser(
   supabase: ReturnType<typeof supabaseAdmin>,
   s: UserSettingsRow,
   appUrl: string,
+  mode: Mode,
 ): Promise<{ flagged: number; emailed: number }> {
   // Collect user's tickers from positions + watchlist
   const [{ data: positions }, { data: watchlist }] = await Promise.all([
@@ -102,18 +119,25 @@ async function processUser(
     pairs.push({ ticker: row.ticker, asset_class: row.asset_class });
   }
 
+  // Realtime mode pulls fewer headlines per source — we only care about the
+  // freshest stuff and cut token cost on the Llama classifier.
+  const perSymbol = mode === "realtime" ? 3 : 6;
+  const feedSize = mode === "realtime"
+    ? { macro: 12, idx: 12, markets: 6, crypto: 6, economy: 6 }
+    : { macro: 30, idx: 25, markets: 15, crypto: 15, economy: 15 };
+
   let items: NewsItem[] = [];
   if (pairs.length) {
-    items = await getNewsForSymbols(pairs.slice(0, 24), 6);
+    items = await getNewsForSymbols(pairs.slice(0, 24), perSymbol);
   }
   // Pull broad macro/IDX/markets/crypto/economy topic feeds so the agent sees
   // the full set of stuff that transmits into the portfolio (oil, Fed, DXY, China, etc.).
   const [macroItems, idxItems, marketsItems, cryptoItems, economyItems] = await Promise.all([
-    getNewsFeed("macro", 30).catch(() => []),
-    getNewsFeed("idx", 25).catch(() => []),
-    getNewsFeed("markets", 15).catch(() => []),
-    getNewsFeed("crypto", 15).catch(() => []),
-    getNewsFeed("economy", 15).catch(() => []),
+    getNewsFeed("macro", feedSize.macro).catch(() => []),
+    getNewsFeed("idx", feedSize.idx).catch(() => []),
+    getNewsFeed("markets", feedSize.markets).catch(() => []),
+    getNewsFeed("crypto", feedSize.crypto).catch(() => []),
+    getNewsFeed("economy", feedSize.economy).catch(() => []),
   ]);
 
   const merged: (NewsItem & { ticker?: string | null })[] = [
@@ -127,22 +151,39 @@ async function processUser(
 
   // Deduplicate across sources
   const seenId = new Set<string>();
-  const dedup = merged.filter((m) => {
+  let dedup = merged.filter((m) => {
     if (seenId.has(m.id)) return false;
     seenId.add(m.id);
     return true;
   });
+
+  // Realtime: only consider headlines published in the last ~20 min. We run
+  // every 5 min so a 20-min window gives 4× overlap — any feed lag up to
+  // 15 min still gets caught on a subsequent tick, and the dedup table
+  // prevents double-sends.
+  if (mode === "realtime") {
+    const cutoff = Date.now() - 20 * 60 * 1000;
+    dedup = dedup.filter((m) => m.published >= cutoff);
+  }
+
+  if (dedup.length === 0) return { flagged: 0, emailed: 0 };
 
   // Agent reasons about cross-asset transmission paths relative to THIS portfolio.
   const ctx = {
     tickers: pairs.map((p) => p.ticker),
     asset_classes: Array.from(new Set(pairs.map((p) => p.asset_class))),
   };
-  const shortlisted = await agentShortlist(dedup, s.hot_news_min_score, 2, ctx);
+
+  // Realtime uses the tightest bar: only urgency-3 events and heuristic
+  // score >= 85 — MSCI/FTSE rebalances, halts, Fed surprises, IDR breaks,
+  // sovereign ratings. Medium-urgency stuff waits for the 3-hour sweep.
+  const effectiveMinScore = mode === "realtime" ? 85 : s.hot_news_min_score;
+  const effectiveMinUrgency = mode === "realtime" ? 3 : 2;
+  const shortlisted = await agentShortlist(dedup, effectiveMinScore, effectiveMinUrgency, ctx);
 
   type HotItem = NewsItem & { ticker?: string | null; score: number; reasons: string[] };
   const hotItems: HotItem[] = shortlisted.map((it) => {
-    const h = isHot(it, s.hot_news_min_score);
+    const h = isHot(it, effectiveMinScore);
     return {
       ...it,
       score: it.score ?? h.score,
@@ -163,7 +204,7 @@ async function processUser(
   const fresh = hotItems
     .filter((h) => !sentIds.has(h.id))
     .sort((a, b) => b.score - a.score)
-    .slice(0, 15);
+    .slice(0, mode === "realtime" ? 5 : 15);
 
   if (fresh.length === 0) return { flagged: hotItems.length, emailed: 0 };
 
@@ -173,9 +214,18 @@ async function processUser(
 
   let emailed = 0;
   if (email) {
+    // Realtime subjects are prefixed so Gmail/mobile pop them visually and
+    // include the top ticker when we have one.
+    const prefix = mode === "realtime" ? "⚡ BREAKING — " : "";
+    const tickerSuffix = fresh[0].ticker ? ` · ${fresh[0].ticker}` : "";
+    const plural = fresh.length === 1 ? "item" : "items";
+    const subject = mode === "realtime"
+      ? `${prefix}${fresh[0].title.slice(0, 80)}${fresh.length > 1 ? ` (+${fresh.length - 1})` : ""}`
+      : `Aeternum — ${fresh.length} hot news ${plural}${tickerSuffix}`;
+
     const send = await sendEmail({
       to: email,
-      subject: `Aeternum — ${fresh.length} hot news ${fresh.length === 1 ? "item" : "items"}${fresh[0].ticker ? ` · ${fresh[0].ticker}` : ""}`,
+      subject,
       html: hotNewsEmailHtml({
         items: fresh.map((f) => ({
           title: f.title,

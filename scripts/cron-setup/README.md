@@ -1,7 +1,11 @@
 # Frequent crons — GitHub Actions setup
 
-Vercel Hobby caps cron jobs at **once per day**. The audit fixes require
-`check-alerts` to run every 15 minutes and `hot-news` to run every 3 hours.
+Vercel Hobby caps cron jobs at **once per day**. We need:
+- `check-alerts` — every 5 min (price triggers)
+- `hot-news?realtime=1` — every 5 min (20-min window, urgency=3, score≥85,
+  "⚡ BREAKING" subject; fires the moment MSCI/FTSE/LQ45 rebalances, halts,
+  Fed surprises, IDR breaks, or sovereign ratings hit the wire)
+- `hot-news` — every 3 hours at :00 UTC (broad sweep for mid-urgency news)
 
 Vercel's `vercel.json` keeps the **daily snapshot only** (fits Hobby).
 The frequent crons run from GitHub Actions and curl our Bearer-protected
@@ -42,10 +46,13 @@ Watch the run log — it should POST to both endpoints and print HTTP 200.
 
 ## Why this architecture
 
-- **Idempotent endpoints**: the backends dedup (news_id, alert_history
-  natural key) so a double-fire (Vercel cron + GH Actions) is safe.
-- **Free tier**: GH Actions allows 2000 min/month free on public repos.
-  Each tick is ~5s, so 15-min cadence uses ~12 min/day.
+- **Idempotent endpoints**: the backends dedup (`news_alert_sent` on
+  `user_id,news_id`; alert_history natural key) so a double-fire is safe.
+- **Realtime window without duplicate emails**: the 5-min cadence + 20-min
+  `published` cutoff gives 4× overlap, so any feed lag up to 15 min still
+  gets caught on a subsequent tick. The dedup table prevents double-sends.
+- **Free tier**: GH Actions allows unlimited minutes on public repos.
+  Each tick is ~8–12s, so 5-min cadence uses ~50 min/day — comfortably
+  inside any quota.
 - **No external vendor lock-in**: if you upgrade to Vercel Pro later,
-  just move the schedules back into `vercel.json` and disable the
-  workflow.
+  move the schedules back into `vercel.json` and disable the workflow.
