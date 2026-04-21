@@ -14,14 +14,19 @@ interface Trade {
 
 function bucketConviction(v: string | null): "HIGH" | "MED" | "LOW" | "UNKNOWN" {
   if (!v) return "UNKNOWN";
-  const s = v.toLowerCase();
-  if (/high|strong|5|conviction|10/.test(s)) return "HIGH";
-  if (/low|weak|1|2|speculative/.test(s)) return "LOW";
-  if (/med|moderate|3|average/.test(s)) return "MED";
+  const s = v.toLowerCase().trim();
+  // Order matters: test most specific / "negative" signals first so that a
+  // string like "low conviction" isn't captured by a loose HIGH pattern.
+  // Also: "conviction" is just a column header word, not a signal — excluded.
+  if (/\b(low|weak|speculative|thin)\b/.test(s)) return "LOW";
+  if (/\b(med(ium)?|moderate|average|base[- ]?case)\b/.test(s)) return "MED";
+  if (/\b(high|strong|very strong|conviction-?high|top[- ]?conviction)\b/.test(s)) return "HIGH";
+  // Numeric fallback (1-10 scale). Do this last so it doesn't collide with
+  // word tests above.
   const n = Number(s.match(/\d+/)?.[0]);
   if (!isNaN(n)) {
-    if (n >= 4) return "HIGH";
-    if (n >= 2) return "MED";
+    if (n >= 7) return "HIGH";
+    if (n >= 4) return "MED";
     return "LOW";
   }
   return "UNKNOWN";

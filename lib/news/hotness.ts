@@ -54,6 +54,29 @@ const SIGNALS: HotSignal[] = [
   { pattern: /\b(right issue|rights issue|stock split|bonus (shares|issue)|buyback|tender offer)/i, score: 30, reason: "corp action" },
   { pattern: /\b(komisioner|direktur utama|dirut)\b/i, score: 30, reason: "IDX leadership" },
 
+  // Index rebalance & structural catalysts — MSCI adds/removes force passive
+  // flows into/out of IDX names overnight. Previously this scored ZERO, so the
+  // classifier missed MSCI Indonesia announcements entirely.
+  { pattern: /\bMSCI\b/i, score: 55, reason: "MSCI index event" },
+  { pattern: /\b(index )?(inclusion|exclusion|addition|deletion|removal)\b.*\b(index|msci|ftse|lq45|idx30|jii|kompas100)/i, score: 65, reason: "index rebalance" },
+  { pattern: /\b(lq45|lq ?45|idx30|idx ?30|jii\s?70?|kompas\s?100|idxbumn|idxhidiv|idxg30|idxsmallcap)\b/i, score: 45, reason: "IDX thematic index" },
+  { pattern: /\b(quarterly review|semi-?annual review|index review|rebalanc(e|ing))\b/i, score: 40, reason: "index review" },
+  { pattern: /\b(free[- ]?float|foreign ownership (limit|cap|rule)|float (adjustment|factor))\b/i, score: 35, reason: "float/foreign-ownership change" },
+  { pattern: /\bftse (russell|indonesia|all[- ]world)\b/i, score: 45, reason: "FTSE index event" },
+  { pattern: /\b(passive flow|etf rebalanc|benchmark (inclusion|add))\b/i, score: 40, reason: "passive flow trigger" },
+
+  // IDX-specific structural signals (KBMI bank classification, OJK regulation)
+  { pattern: /\bKBMI\s?[1-4]?\b/i, score: 40, reason: "KBMI bank tier" },
+  { pattern: /\b(OJK|POJK)\b.*\b(issue[sd]?|publish|regulation|rule|probe|sanction)/i, score: 40, reason: "OJK regulatory" },
+  { pattern: /\b(backdoor listing|reverse merger|injeksi|capital injection)\b/i, score: 45, reason: "structural catalyst" },
+  { pattern: /\b(akuisisi|pengambilalihan|divestasi|penawaran tender)\b/i, score: 40, reason: "IDX corporate action (id)" },
+
+  // Indonesia macro / BI / fiscal
+  { pattern: /\bBI (7\s?-?Day|repo|rate)\b/i, score: 35, reason: "BI policy" },
+  { pattern: /\b(USD\/IDR|IDR\/USD|rupiah)\b.*\b(record|all-time|crisis|intervention|breach|break(s|ing)? \d)/i, score: 40, reason: "IDR stress" },
+  { pattern: /\b(foreign (outflow|inflow|selling|buying)|net foreign|foreign flow)\b/i, score: 30, reason: "foreign flows" },
+  { pattern: /\b(sovereign (downgrade|upgrade|rating)|fitch|moodys|moody's|s&p).*\b(downgrade|upgrade|watch)/i, score: 55, reason: "sovereign rating" },
+
   // Dividends / capital returns (works for both USD and IDR wording)
   { pattern: /\bdividend (payout|hike|increase|cut|suspend|special|declared|announce)/i, score: 35, reason: "dividend" },
   { pattern: /\b(announces?|declares?) (a )?(special |interim |record )?dividend/i, score: 30, reason: "dividend" },

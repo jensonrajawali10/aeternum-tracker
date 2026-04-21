@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { timingSafeEqual } from "node:crypto";
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import { getQuote } from "@/lib/prices";
+import { getQuote, getUsdIdr } from "@/lib/prices";
 import { sendEmail, alertEmailHtml } from "@/lib/email/resend";
 import type { AlertType, AssetClass } from "@/lib/types";
 
@@ -38,12 +39,20 @@ interface NavRow {
 // Re-trigger guard: don't spam the same alert more than once per 6h.
 const RETRIGGER_MIN_MS = 6 * 60 * 60 * 1000;
 
+function safeEq(a: string, b: string): boolean {
+  const A = Buffer.from(a);
+  const B = Buffer.from(b);
+  if (A.length !== B.length) return false;
+  return timingSafeEqual(A, B);
+}
+
 function isAuthorized(req: NextRequest): boolean {
-  if (req.headers.get("x-vercel-cron")) return true;
+  // Vercel Cron sets this exact value — don't accept any truthy
+  if (req.headers.get("x-vercel-cron") === "1") return true;
   const secret = process.env.CRON_SECRET;
   if (!secret) return false;
-  const auth = req.headers.get("authorization");
-  return auth === `Bearer ${secret}`;
+  const auth = req.headers.get("authorization") || "";
+  return safeEq(auth, `Bearer ${secret}`);
 }
 
 export async function GET(req: NextRequest) {
@@ -54,6 +63,9 @@ export async function GET(req: NextRequest) {
   const supabase = supabaseAdmin();
   const now = Date.now();
   const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || "";
+  // USD positions carry `fx_rate_to_idr` from the sync, but when that's null we
+  // fall back to the live rate — NOT 1, which would under-count USD NAV by ~16,500×.
+  const liveUsdIdr = (await getUsdIdr()) ?? 16500;
 
   const { data: alerts } = await supabase
     .from("alerts")
@@ -90,7 +102,9 @@ export async function GET(req: NextRequest) {
         positions.map(async (p) => {
           const q = await getQuote(p.ticker, p.asset_class).catch(() => null);
           if (!q) return;
-          const fx = p.fx_rate_to_idr ?? 1;
+          // IDR positions keep fx=1; USD positions use saved fx or fall back to live USD/IDR
+          const isIdr = p.asset_class === "idx_equity";
+          const fx = isIdr ? 1 : p.fx_rate_to_idr ?? liveUsdIdr;
           const mv = q.price * p.position_size * fx;
           const cost = p.avg_entry_price * p.position_size * fx;
           nav += mv;
@@ -160,8 +174,9 @@ export async function GET(req: NextRequest) {
         ? `${a.ticker} crossed above ${a.threshold}.`
         : `${a.ticker} dropped below ${a.threshold}.`;
 
-    await recordFire(supabase, a, price, msg);
+    const historyId = await insertFireHistory(supabase, a, price, msg);
 
+    let emailOk = !a.notify_email; // if no email requested, treat as "delivered"
     if (a.notify_email) {
       const { email } = await resolveUserEmail(a.user_id);
       if (email) {
@@ -176,22 +191,24 @@ export async function GET(req: NextRequest) {
             app_url: appUrl,
           }),
         });
+        emailOk = ok;
         if (ok) emailed++;
-        // Update the history row we just inserted (latest for this alert).
-        const { data: latestFire } = await supabase
-          .from("alert_history")
-          .select("id")
-          .eq("alert_id", a.id)
-          .order("triggered_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        if (latestFire?.id) {
+        if (historyId) {
           await supabase
             .from("alert_history")
             .update({ notified_email: ok })
-            .eq("id", latestFire.id);
+            .eq("id", historyId);
         }
       }
+    }
+
+    // Only arm the 6h re-trigger guard if delivery actually succeeded (or wasn't needed).
+    // Otherwise the next run retries instead of silently backing off for 6 hours.
+    if (emailOk) {
+      await supabase
+        .from("alerts")
+        .update({ last_triggered_at: new Date().toISOString() })
+        .eq("id", a.id);
     }
   }
 
@@ -202,16 +219,21 @@ export async function GET(req: NextRequest) {
     const nav = userNav.get(a.user_id);
     if (!nav) continue;
     const value = a.alert_type === "pnl_abs" ? nav.pnl : nav.nav > 0 ? (nav.pnl / nav.nav) * 100 : 0;
-    const hit = value >= a.threshold;
+    // Sign-aware comparison: positive threshold = profit target (fire on >=),
+    // negative threshold = stop loss (fire on <=). The old >= check meant
+    // stop-loss alerts (the most important kind) never triggered.
+    const hit = a.threshold >= 0 ? value >= a.threshold : value <= a.threshold;
     if (!hit) continue;
 
     fired++;
+    const direction = a.threshold >= 0 ? "reached" : "dropped to";
     const msg =
       a.alert_type === "pnl_pct"
-        ? `Portfolio unrealized P&L reached ${value.toFixed(2)}% (threshold ${a.threshold}%).`
-        : `Portfolio unrealized P&L reached IDR ${value.toFixed(0)} (threshold ${a.threshold}).`;
-    await recordFire(supabase, a, value, msg);
+        ? `Portfolio unrealized P&L ${direction} ${value.toFixed(2)}% (threshold ${a.threshold}%).`
+        : `Portfolio unrealized P&L ${direction} IDR ${value.toFixed(0)} (threshold ${a.threshold}).`;
+    const historyId = await insertFireHistory(supabase, a, value, msg);
 
+    let emailOk = !a.notify_email;
     if (a.notify_email) {
       const { email } = await resolveUserEmail(a.user_id);
       if (email) {
@@ -226,8 +248,22 @@ export async function GET(req: NextRequest) {
             app_url: appUrl,
           }),
         });
+        emailOk = ok;
         if (ok) emailed++;
+        if (historyId) {
+          await supabase
+            .from("alert_history")
+            .update({ notified_email: ok })
+            .eq("id", historyId);
+        }
       }
+    }
+
+    if (emailOk) {
+      await supabase
+        .from("alerts")
+        .update({ last_triggered_at: new Date().toISOString() })
+        .eq("id", a.id);
     }
   }
 
@@ -238,23 +274,24 @@ export async function GET(req: NextRequest) {
   });
 }
 
-async function recordFire(
+async function insertFireHistory(
   supabase: ReturnType<typeof supabaseAdmin>,
   a: AlertRow,
   value: number,
   msg: string,
-) {
-  await supabase.from("alert_history").insert({
-    alert_id: a.id,
-    user_id: a.user_id,
-    trigger_value: value,
-    message: msg,
-    notified_email: false,
-  });
-  await supabase
-    .from("alerts")
-    .update({ last_triggered_at: new Date().toISOString() })
-    .eq("id", a.id);
+): Promise<string | null> {
+  const { data } = await supabase
+    .from("alert_history")
+    .insert({
+      alert_id: a.id,
+      user_id: a.user_id,
+      trigger_value: value,
+      message: msg,
+      notified_email: false,
+    })
+    .select("id")
+    .single();
+  return data?.id ?? null;
 }
 
 async function resolveUserEmail(userId: string): Promise<{ email: string | null }> {

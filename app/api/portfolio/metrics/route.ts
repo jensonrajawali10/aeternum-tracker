@@ -48,6 +48,11 @@ export async function GET(req: NextRequest) {
     .filter((r) => r.symbol === "^GSPC")
     .map((r) => ({ date: r.snapshot_date, value: Number(r.close) }));
 
-  const metrics = computeMetrics(portfolio, ihsg, spx);
+  // Crypto trades 24/7 → √365 annualization. Equity books → √252.
+  // For `all`, 252 is the honest pragmatic choice since IDX+US dominate the
+  // book and crypto noise on non-trading days is just the crypto book tracking
+  // itself (no forced weekend bias).
+  const periods = bookFilter === "crypto_trading" ? 365 : 252;
+  const metrics = computeMetrics(portfolio, ihsg, spx, new Date(), periods);
   return NextResponse.json(metrics);
 }

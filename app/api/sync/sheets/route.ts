@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { timingSafeEqual } from "node:crypto";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { deriveBook, normalizeAssetClass, derivePnlCurrency } from "@/lib/sync/book";
 import { numeric, parseDate, parseHoldTime, parseDirection, parseResult } from "@/lib/sync/parse";
@@ -12,6 +13,14 @@ function pick(rec: Record<string, unknown>, ...keys: string[]): unknown {
     if (rec[k] !== undefined && rec[k] !== null && rec[k] !== "") return rec[k];
   }
   return undefined;
+}
+
+/** Constant-time string compare — avoids length/equality timing leaks. */
+function safeEq(a: string, b: string): boolean {
+  const A = Buffer.from(a);
+  const B = Buffer.from(b);
+  if (A.length !== B.length) return false;
+  return timingSafeEqual(A, B);
 }
 
 export async function POST(req: NextRequest) {
@@ -42,7 +51,9 @@ export async function POST(req: NextRequest) {
 
   const supabase = supabaseAdmin();
 
-  // Per-user webhook secret (preferred) or global env fallback.
+  // Per-user webhook secret (preferred). Global env secret is ONLY a bootstrap
+  // fallback for users who haven't rotated yet — otherwise a leaked global
+  // secret would let anyone forge any user_id (cross-user impersonation).
   const { data: settings } = await supabase
     .from("user_settings")
     .select("sheets_webhook_secret")
@@ -51,7 +62,17 @@ export async function POST(req: NextRequest) {
 
   const perUserSecret = settings?.sheets_webhook_secret;
   const globalSecret = process.env.SHEETS_WEBHOOK_SECRET;
-  const valid = (perUserSecret && bearer === perUserSecret) || (globalSecret && bearer === globalSecret);
+
+  let valid = false;
+  if (perUserSecret) {
+    // Strong path: match the per-user secret only. Global secret cannot
+    // impersonate a user who has set their own secret.
+    valid = safeEq(bearer, perUserSecret);
+  } else if (globalSecret) {
+    // Bootstrap path: user hasn't configured per-user yet.
+    valid = safeEq(bearer, globalSecret);
+  }
+
   if (!valid) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }

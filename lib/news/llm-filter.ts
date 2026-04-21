@@ -143,32 +143,62 @@ export async function agentClassify(
   if (uncached.length === 0) return applyVerdicts(items);
 
   const lines = uncached.map((i, idx) => `${idx + 1}. [${i.source}] ${i.title}`).join("\n");
-  const systemMsg = `You are a sell-side analyst filter for an IDX-first concentrated fund. News is inherently cross-sensitive — judge each headline by its transmission path into the portfolio, not just surface topic. Reason about correlations, then output ONLY pipe-delimited lines. No preamble, no code fences.
+  const systemMsg = `You are Aeternum Research's three-lens news classifier for an IDX-first, commodity-aware, concentrated fund. For each headline, evaluate through THREE analyst lenses in parallel — alpha, macro, risk — and pick the urgency the MOST senior of the three would assign. Output ONLY pipe-delimited lines, no preamble, no code fences.
 
-Transmission paths you must track:
-- Oil/OPEC/WTI/Brent → coal proxies (ADRO/PTBA/ITMG), energy names, inflation, rupiah, EM FX
-- Fed/FOMC/US CPI/Treasury yields → USD, crypto risk-on/off, bonds, IDR, BI policy path, tech multiples
-- DXY/US dollar → gold, silver, EM equities broadly, Indonesian rupiah, commodity exporters
-- China PBOC/property/stimulus/Xi → iron ore, nickel, copper, coal, IDX materials (MDKA/INCO/ANTM/TINS)
-- Geopolitics (Middle East, Russia, Taiwan) → oil shock, defense, safe havens, risk-off flows
-- Single-name IDX: earnings, dividend, M&A, rights issue, regulatory, POJK, OJK, KBMI
-- VIX/credit spreads → risk regime, beta-heavy names
-- Nvidia/AI semis → global tech beta, Asia tech supply chain
-- Bitcoin/ETH/ETF flows → crypto names, risk appetite
-- Rupiah/IDR/BI rate → every IDX name via cost of capital + foreign flows
+===== ALPHA LENS (structural catalysts, variant perception) =====
+HIGHEST priority — these force flows or re-rate single names.
 
-Urgency scale:
-- 3 = breaking: rate decision, CPI print, major geopolitical shock, IDX name M&A/ratings/regulatory action, crypto ETF approval, oil >5% move
-- 2 = material: single-name earnings beat/miss of tracked ticker, oil/gold directional move, Fed speaker with new hawkish/dovish tilt, China stimulus signal
-- 1 = contextual: background macro, analyst upgrades, sector commentary relevant via correlation
-- 0 = noise: celebrity, sports, clickbait, opinion columns, stale recaps, non-market-moving filler`;
+**Index-rebalance concept (generalise, do not gate on a fixed provider list):** ANY major passive benchmark announcing a review, rebalance, inclusion, exclusion, addition, removal, weight change, float revision, or methodology change is a structural catalyst. Passive ETFs + index funds are forced buyers/sellers on the effective date. If an IDX-listed name appears in the announcement, urgency is 3. If the benchmark covers EM broadly (or contains Indonesia sleeve) and direction is known, urgency is 2–3.
+
+Major benchmark families (non-exhaustive — reason about any you recognise as a major passive benchmark):
+- Global/EM: MSCI (ACWI, EM, World, All-Country, EM IMI, Indonesia, Indonesia IMI, Frontier)
+- Global/EM: FTSE Russell (All-World, EM, FTSE Indonesia, GEIS, GBI, FTSE Russell quarterly review)
+- Global/EM: S&P Dow Jones (S&P 500, S&P Global BMI, S&P Emerging BMI, DJ Sustainability)
+- Regional: STOXX (Europe 600), Nikkei 225, CSI 300/500, KOSPI 200, Nifty 50, SENSEX
+- Indonesia domestic: LQ45, IDX30, IDX80, IDXBUMN20, IDXHIDIV20, JII, JII70, Kompas100, IDX Composite, SMinfra18, IDX G30, IDX ESG Leaders
+- ETF-driven: iShares, Vanguard, SPDR any "Indonesia" sleeve; EIDO specifically
+
+Mechanism to name in WHY: "review → passive rebalance → forced buy/sell on effective date → short-term demand/supply pressure for affected names."
+
+Other alpha catalysts:
+- **KBMI bank tier changes** (KBMI 1/2/3/4 reclassification) — material for BBRI/BBCA/BMRI/BBNI/BRIS
+- **Structural events**: backdoor listing, reverse merger, capital injection, rights issue, stock split, tender offer, bonus shares, treasury buyback
+- **Free-float / foreign ownership rule changes** — mechanical rebalance trigger even without index action
+- **Management**: Dirut/Komisaris changes in tracked names, insider buying/selling (POJK 62)
+- **Earnings surprise >±15% vs consensus** on tracked ticker
+- **Regulatory action on single name**: OJK probe, POJK-driven action, sanction, license revocation, delisting warning
+
+===== MACRO LENS (Indonesia transmission mapping) =====
+Every macro headline must connect to portfolio via: [macro event] → [first-order] → [Indonesia: IDR/BI/commodity/flows/fiscal] → [sector] → [name]
+- **Oil / OPEC / Brent / WTI** → coal proxies (ADRO/PTBA/ITMG), energy names, inflation pass-through, IDR
+- **Fed / FOMC / US CPI / Treasury yields** → DXY, EM risk, crypto, tech multiples, IDR path, BI 7DRR trajectory
+- **DXY / US dollar** → gold/silver, EM equities, IDR, commodity exporters
+- **China PBOC / property / stimulus / Xi** → iron ore, nickel, copper, coal → MDKA/INCO/ANTM/TINS/HRUM
+- **Geopolitics** (Mideast, Russia/Ukraine, Taiwan/SCS) → oil shock, defense, risk-off, safe havens
+- **VIX / credit spreads / HY OAS** → risk regime, beta-heavy IDX names
+- **Nvidia / AI semi / hyperscaler capex** → Asia tech supply chain, TSMC/Samsung/BARI exposure
+- **Rupiah / IDR / BI rate / FX reserves** → every IDX name via cost of capital + foreign flows
+- **Indonesia fiscal** (APBN, subsidy/BBM cuts, SOE dividend policy) → sector-wide implications
+- **Bitcoin / ETH / ETF flows** → crypto book + risk appetite proxy
+
+===== RISK LENS (Dalio/Marks/Soros) =====
+- **Dalio cycle check**: credit-cycle position signal? Late-expansion vs contraction trigger? Deleveraging pressure?
+- **Marks second-level / permanent capital loss**: forced-selling catalyst? Liquidity evaporation? Asymmetric downside without offsetting reward?
+- **Soros reflexivity**: does this complete a self-reinforcing loop? Key IDX loop: IDR depreciates → foreign outflows → IDR weaker → BI tightens → earnings compression → more outflows
+- **Tail events**: >3% single-day IDR move, IDX circuit breaker, bank run signal, sovereign rating action, commodity shock >5%, large bankruptcy in supply chain
+
+===== URGENCY SCALE =====
+- **3 = critical**: MSCI/FTSE/LQ45/IDX30 rebalance affecting any tracked name or IDX broadly · Fed/BI rate decision · US CPI/PPI print · major geopolitical shock · M&A/bankruptcy on tracked name · crypto ETF approval/rejection · oil >5% move · sovereign rating action · circuit breaker
+- **2 = material**: single-name earnings on tracked ticker · oil/gold/coal directional move · Fed speaker with fresh hawkish/dovish tilt · China stimulus signal · sector-wide regulatory shift · IDR >1% move · AI capex announcement
+- **1 = contextual**: background macro, analyst rating change, sector commentary reaching portfolio via correlation
+- **0 = noise**: celebrity, sports, opinion/clickbait, stale recap, non-market-moving filler`;
 
   const userMsg = `${contextBlock(ctx)}For each numbered headline, output a single line in this exact format:
 INDEX|LABEL|URGENCY|WHY
 - INDEX: the number from the list
 - LABEL: market_moving | sector | noise
 - URGENCY: 0..3 per the scale above
-- WHY: <=14 words, plain English — name the transmission path (e.g. "oil up → coal proxies ADRO/PTBA via thermal pricing"). Use "noise" if label=noise.
+- WHY: ≤20 words. Start with the LENS in brackets: [alpha], [macro], or [risk]. Then name the mechanism and which tracked name it hits. Example: "[alpha] MSCI review likely adds ADRO → forced passive buying from EM ETFs" or "[macro] Brent +4% → coal re-rate proxies ADRO/PTBA/ITMG via thermal spread" or "[risk] IDR breach 16,600 → reflexive outflow loop, beta-heavy IDX names at risk". Use "noise" only if label=noise.
 
 Headlines:
 ${lines}`;

@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { timingSafeEqual } from "node:crypto";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { getNewsForSymbols, getNewsFeed, type NewsItem } from "@/lib/news/feeds";
 import { isHot } from "@/lib/news/hotness";
@@ -9,12 +10,19 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
+function safeEq(a: string, b: string): boolean {
+  const A = Buffer.from(a);
+  const B = Buffer.from(b);
+  if (A.length !== B.length) return false;
+  return timingSafeEqual(A, B);
+}
+
 function isAuthorized(req: NextRequest): boolean {
-  if (req.headers.get("x-vercel-cron")) return true;
+  if (req.headers.get("x-vercel-cron") === "1") return true;
   const secret = process.env.CRON_SECRET;
   if (!secret) return false;
-  const auth = req.headers.get("authorization");
-  return auth === `Bearer ${secret}`;
+  const auth = req.headers.get("authorization") || "";
+  return safeEq(auth, `Bearer ${secret}`);
 }
 
 interface UserSettingsRow {
@@ -33,9 +41,7 @@ export async function GET(req: NextRequest) {
 // POST also supported so the Alerts page "Check now" button can hit it with the user's cookie.
 // When called via POST we require a valid user session and only process that one user.
 export async function POST(req: NextRequest) {
-  const authHeader = req.headers.get("authorization");
-  const isCron = authHeader === `Bearer ${process.env.CRON_SECRET}` || req.headers.get("x-vercel-cron");
-  if (isCron) return runHotNews();
+  if (isAuthorized(req)) return runHotNews();
 
   // Fall through to per-user on-demand
   const { supabaseServer } = await import("@/lib/supabase/server");

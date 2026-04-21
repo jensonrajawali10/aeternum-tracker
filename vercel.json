@@ -7,11 +7,11 @@
     },
     {
       "path": "/api/cron/check-alerts",
-      "schedule": "0 1 * * *"
+      "schedule": "*/15 * * * *"
     },
     {
       "path": "/api/cron/hot-news",
-      "schedule": "30 1 * * *"
+      "schedule": "0 */3 * * *"
     }
   ]
 }

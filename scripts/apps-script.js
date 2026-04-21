@@ -1,11 +1,20 @@
 // ============================================================
-// AETERNUM TRACKER — Google Sheets Sync (Custom for Trade Log)
-// Paste this into Extensions → Apps Script, delete Untitled.gs
+// AETERNUM TRACKER — Google Sheets Sync (template reference)
+//
+// DO NOT paste this file verbatim. The Settings page in the web app
+// renders a pre-filled copy with your WEBHOOK_URL / WEBHOOK_SECRET /
+// USER_ID already injected — copy from there instead.
+//
+// This file is checked into git as a canonical reference only; it must
+// NEVER contain real secret values. If you're reading this to rotate:
+// the source of truth for the rendered template is
+// app/(app)/settings/apps-script-template.ts
 // ============================================================
 
-const WEBHOOK_URL    = "https://aeternum-tracker-neon.vercel.app/api/sync/sheets";
-const WEBHOOK_SECRET = "605ba376e4e43d792930d64f283cae72903009b717a6dfbf977a6c7c38621cea";
-const USER_ID        = "0f8ec0fd-b5c3-41c4-b110-1258d3601d47";
+// --- CONFIG PLACEHOLDERS (replaced by Settings page at render time) ---
+const WEBHOOK_URL    = "<WEBHOOK_URL>";     // e.g. https://your-app.vercel.app/api/sync/sheets
+const WEBHOOK_SECRET = "<WEBHOOK_SECRET>";  // per-user secret from Settings
+const USER_ID        = "<USER_ID>";         // your Supabase auth user id
 
 // Your journal config
 const SHEET_NAME      = "Trade Log";

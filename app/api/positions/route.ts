@@ -230,10 +230,16 @@ export async function GET(req: NextRequest) {
     combined = enriched;
   }
 
-  const totalMV = combined.reduce((a, p) => a + (p.market_value_idr || 0), 0);
+  // Use absolute MV so shorts (negative MV) count toward gross exposure
+  // instead of canceling out longs — a short position should show as ~X% of
+  // NAV, not as a negative percentage that implies it's shrinking total size.
+  const totalMV = combined.reduce((a, p) => a + Math.abs(p.market_value_idr || 0), 0);
   const withPct = combined.map((p) => ({
     ...p,
-    pct_of_nav: totalMV > 0 && p.market_value_idr != null ? (p.market_value_idr / totalMV) * 100 : null,
+    pct_of_nav:
+      totalMV > 0 && p.market_value_idr != null
+        ? (Math.abs(p.market_value_idr) / totalMV) * 100
+        : null,
   }));
 
   return NextResponse.json({

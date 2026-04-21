@@ -1,10 +1,24 @@
-import { dailyReturns, mean, beta as betaFn } from "./returns";
+import { dailyReturns, mean } from "./returns";
 
 export interface AlphaPoint {
   date: string;
   alpha_bps: number;
 }
 
+/**
+ * Rolling "alpha" = simple excess daily return vs benchmark.
+ *
+ * Why not Jensen's alpha (mean(pR) - β·mean(bR))? When β is fit by OLS on the
+ * SAME window used for the alpha calc, there's an algebraic identity that
+ * forces mean(pR) - β·mean(bR) → 0. The chart was printing ~0 bps every day
+ * regardless of actual outperformance — a sneaky bug that masked real alpha.
+ *
+ * The honest, interpretable metric for a concentrated equity book is just
+ * excess return: "how much did I beat the benchmark per day." Beta-adjusted
+ * alpha requires an out-of-sample β, which is a bigger refactor and not what
+ * we want on a 30-day window for a small-cap book anyway (β is noisy on short
+ * windows).
+ */
 export function rollingAlpha(
   portfolio: { date: string; value: number }[],
   benchmark: { date: string; value: number }[],
@@ -22,8 +36,7 @@ export function rollingAlpha(
     const pR = dailyReturns(slice.map((x) => x.p));
     const bR = dailyReturns(slice.map((x) => x.b));
     if (pR.length !== bR.length || !pR.length) continue;
-    const beta = betaFn(pR, bR);
-    const alphaDaily = mean(pR) - beta * mean(bR);
+    const alphaDaily = mean(pR) - mean(bR);
     out.push({ date: aligned[i].date, alpha_bps: alphaDaily * 10000 });
   }
   return out;
@@ -60,6 +73,9 @@ export function computeAttribution(
   const ytd_alpha_pct = (pTotal - bTotal) * 100;
   const m = activeR.reduce((a, b) => a + b, 0) / activeR.length;
   const sd = Math.sqrt(activeR.reduce((a, b) => a + (b - m) * (b - m), 0) / Math.max(1, activeR.length - 1));
+  // NB: 252 is correct for equity books (IDX + US). Crypto books should pass
+  // their own attribution via a book-aware caller; the current callers are
+  // already book-filtered before they reach here.
   const info_ratio = sd === 0 ? 0 : (m / sd) * Math.sqrt(252);
   const active_vol_pct = sd * Math.sqrt(252) * 100;
   const outperform = activeR.filter((r) => r > 0).length;

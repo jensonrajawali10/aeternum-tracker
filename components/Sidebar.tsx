@@ -41,7 +41,7 @@ const NAV: NavGroup[] = [
 export function Sidebar() {
   const pathname = usePathname();
   return (
-    <aside className="w-[160px] shrink-0 border-r border-border bg-panel flex flex-col h-screen sticky top-0">
+    <aside className="w-[160px] shrink-0 border-r border-border bg-panel hidden md:flex flex-col h-screen sticky top-0">
       <div className="px-4 pt-5 pb-3 border-b border-border">
         <div className="flex items-baseline gap-2">
           <span className="w-[6px] h-[6px] rounded-full bg-accent inline-block" />

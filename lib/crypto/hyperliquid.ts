@@ -130,16 +130,48 @@ export function normalizeAddress(addr: string): string | null {
   return t;
 }
 
+// `fill.dir` is the authoritative direction string from HL:
+//   "Open Long" | "Open Short" | "Close Long" | "Close Short" | "Long > Short" | "Short > Long"
+//   (the latter two are flips; treat them as a close of the old side).
+// `fill.side` is order-side ("B" buy / "A" ask), which is NOT the position direction
+// for a short close (closing a short is a BUY order) — using it misclassifies flips.
+function deriveDirection(dir: string): "LONG" | "SHORT" {
+  const d = dir.toLowerCase();
+  if (/long/.test(d)) return "LONG";
+  if (/short/.test(d)) return "SHORT";
+  return "LONG"; // fallback for odd strings like spot fills
+}
+
+// Convert ms timestamp to Asia/Jakarta (WIB) calendar date so trade_date lines
+// up with Jenson's local day and journal rollups don't drift across midnight.
+function toWibDate(ms: number): string {
+  const fmt = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Jakarta",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  return fmt.format(new Date(ms)); // en-CA yields YYYY-MM-DD
+}
+
 export function fillToTrade(fill: HlFill, userId: string) {
-  const direction = fill.side === "B" ? "LONG" : "SHORT";
+  const direction = deriveDirection(fill.dir);
   const sz = parseFloat(fill.sz);
   const px = parseFloat(fill.px);
   const fee = parseFloat(fill.fee || "0");
   const closedPnl = parseFloat(fill.closedPnl || "0");
-  const trade_date = new Date(fill.time).toISOString().slice(0, 10);
+  const trade_date = toWibDate(fill.time);
 
-  const isClose = /Close|Long>|Short>/.test(fill.dir);
-  const isOpen = /Open/.test(fill.dir);
+  const isClose = /close|>/i.test(fill.dir);
+  const isOpen = /open/i.test(fill.dir);
+
+  // `entry_price` is NOT NULL in the schema. The `v_open_positions` view filters
+  // `WHERE exit_price IS NULL`, so close fills (which have exit_price set) are
+  // excluded from the avg_entry weighted-average math — 0 is safe here.
+  const entry_price = isOpen ? px : 0;
+
+  // DB enum for `result` is WIN | LOSS | BE (not BREAKEVEN).
+  const result = isClose ? (closedPnl > 0 ? "WIN" : closedPnl < 0 ? "LOSS" : "BE") : null;
 
   return {
     user_id: userId,
@@ -152,7 +184,7 @@ export function fillToTrade(fill: HlFill, userId: string) {
     direction,
     strategy: "hyperliquid_fill",
     book: "crypto_trading" as const,
-    entry_price: isOpen ? px : 0,
+    entry_price,
     exit_price: isClose ? px : null,
     position_size: sz,
     leverage: 1,
@@ -160,7 +192,7 @@ export function fillToTrade(fill: HlFill, userId: string) {
     pnl_currency: "USD" as const,
     commission_native: fee,
     net_pnl_native: isClose ? closedPnl - fee : null,
-    result: isClose ? (closedPnl > 0 ? "WIN" : closedPnl < 0 ? "LOSS" : "BREAKEVEN") : null,
+    result,
     notes: `HL ${fill.dir} · tid ${fill.tid}`,
     synced_at: new Date().toISOString(),
   };

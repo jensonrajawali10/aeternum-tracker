@@ -81,7 +81,9 @@ export function KpiRow({
         label="30D VaR (95%)"
         value={metrics ? fmtPct(metrics.var_30d_95_pct, 2) : "—"}
         hint={metrics ? `Vol ${fmtPct(metrics.vol_30d_annualized_pct, 1)}` : "—"}
-        deltaClass="neg"
+        // VaR carries its own sign — let fmtPct convey it instead of forcing red
+        // on the label (would paint red on "—" during data-loading states)
+        deltaClass={metrics && metrics.var_30d_95_pct < 0 ? "neg" : undefined}
       />
     </div>
   );

@@ -20,8 +20,9 @@ function rangeStart(range: Range): string {
 }
 
 /**
- * Rebase a possibly-sparse series to 100 on its first non-null/non-NaN value.
- * Null and NaN stay null (so Chart.js can skip or span them).
+ * Rebase a possibly-sparse series to 100 on its first non-null/non-NaN/non-zero value.
+ * Null, NaN, and 0 stay null (Chart.js skips them; 0 is treated as a missing sentinel
+ * because a rebased 0 would anchor a division-by-zero and produce misleading infinities).
  */
 function rebaseSparse(series: (number | null)[]): (number | null)[] {
   let base: number | null = null;
@@ -32,24 +33,28 @@ function rebaseSparse(series: (number | null)[]): (number | null)[] {
     }
   }
   if (base == null) return series.map(() => null);
-  return series.map((v) => (v == null || !isFinite(v) ? null : (v / base!) * 100));
+  return series.map((v) =>
+    v == null || !isFinite(v) || v === 0 ? null : (v / base!) * 100,
+  );
 }
 
 /**
  * Forward-fill a series of (number | null) so the line is continuous.
  * Used for IHSG / S&P where we want a dense curve across weekends & gaps.
+ * Zero is treated as "no data" — a stale 0 mid-series would otherwise poison
+ * the forward-fill and flatline subsequent rebased points.
  */
 function forwardFill(series: (number | null)[]): (number | null)[] {
   const out = [...series];
   let last: number | null = null;
-  // First pass: find the first real value so leading nulls stay null
-  // (don't forward-fill before the series actually starts)
   for (let i = 0; i < out.length; i++) {
-    if (out[i] != null && isFinite(out[i] as number)) {
-      last = out[i] as number;
+    const v = out[i];
+    if (v != null && isFinite(v) && v !== 0) {
+      last = v;
     } else if (last != null) {
       out[i] = last;
     }
+    // else: leading null region — keep null so rebase skips it
   }
   return out;
 }

@@ -194,17 +194,33 @@ export async function GET(req: NextRequest) {
   let net_mv: number;
   let unrealized: number;
   if (bookFilter === "crypto_trading") {
-    gross_mv = hlIdr;
-    net_mv = hlIdr;
-    // HL's accountValue already captures unrealized — don't stack sheet on top
-    unrealized = hlIdr > 0 ? hlUnrealIdr : sheetUnrealAll;
+    if (hlIdr > 0) {
+      // HL is the source of truth — accountValue already captures unrealized
+      gross_mv = hlIdr;
+      net_mv = hlIdr;
+      unrealized = hlUnrealIdr;
+    } else {
+      // HL unavailable — fall back to sheet-based crypto positions
+      // (enriched is already filtered to crypto book here)
+      gross_mv = sheetMvAll;
+      net_mv = sheetNetAll;
+      unrealized = sheetUnrealAll;
+    }
   } else if (bookFilter === "all") {
-    const unrealNonCrypto = enriched
-      .filter((p) => p.book !== "crypto_trading")
-      .reduce((a, p) => a + p.unrealIdr, 0);
-    gross_mv = sheetMvNonCrypto + hlIdr;
-    net_mv = sheetNetNonCrypto + hlIdr;
-    unrealized = unrealNonCrypto + (hlIdr > 0 ? hlUnrealIdr : 0);
+    if (hlIdr > 0) {
+      const unrealNonCrypto = enriched
+        .filter((p) => p.book !== "crypto_trading")
+        .reduce((a, p) => a + p.unrealIdr, 0);
+      gross_mv = sheetMvNonCrypto + hlIdr;
+      net_mv = sheetNetNonCrypto + hlIdr;
+      unrealized = unrealNonCrypto + hlUnrealIdr;
+    } else {
+      // HL down or no address configured — use full sheet data, including crypto,
+      // so the dashboard doesn't silently drop crypto exposure/unrealized
+      gross_mv = sheetMvAll;
+      net_mv = sheetNetAll;
+      unrealized = sheetUnrealAll;
+    }
   } else {
     gross_mv = sheetMvAll;
     net_mv = sheetNetAll;

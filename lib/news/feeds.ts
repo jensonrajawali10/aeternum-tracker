@@ -190,6 +190,16 @@ const CATEGORY_QUERIES: Record<string, string[]> = {
     "rupiah USD exchange rate",
     "Indonesia economy inflation",
     "Jakarta composite index",
+    // Structural-catalyst queries — these used to be missing, which is why
+    // MSCI Indonesia rebalance announcements never surfaced in the feed.
+    "MSCI Indonesia index review",
+    "MSCI rebalance Indonesia add remove",
+    "LQ45 IDX30 index review",
+    "Kompas100 JII70 index rebalance",
+    "IDX index inclusion exclusion announcement",
+    "OJK POJK Indonesia regulation",
+    "Indonesia KBMI bank classification",
+    "IDX rights issue backdoor listing",
   ],
 };
 

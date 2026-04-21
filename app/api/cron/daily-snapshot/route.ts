@@ -12,7 +12,12 @@ import type { AssetClass, BookType } from "@/lib/types";
 
 const STABLES = new Set(["USDC", "USDT", "USDE", "DAI", "FDUSD", "USDB"]);
 
-async function getHyperliquidAccountValueUsd(address: string): Promise<number> {
+interface HlSnapshot {
+  accountValueUsd: number;
+  unrealizedUsd: number;
+}
+
+async function getHyperliquidSnapshot(address: string): Promise<HlSnapshot> {
   try {
     const [perp, spot, mids, spotMeta] = await Promise.all([
       getClearinghouseState(address).catch(() => null),
@@ -44,9 +49,15 @@ async function getHyperliquidAccountValueUsd(address: string): Promise<number> {
       }
     }
     const perpAccountValue = perp ? parseFloat(perp.marginSummary.accountValue) : 0;
-    return perpAccountValue + spotValueUsd;
+    const perpUnrealized = perp
+      ? perp.assetPositions.reduce((a, ap) => a + parseFloat(ap.position.unrealizedPnl), 0)
+      : 0;
+    return {
+      accountValueUsd: perpAccountValue + spotValueUsd,
+      unrealizedUsd: perpUnrealized,
+    };
   } catch {
-    return 0;
+    return { accountValueUsd: 0, unrealizedUsd: 0 };
   }
 }
 
@@ -102,7 +113,15 @@ async function run(req: NextRequest) {
   if (!checkAuth(req)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const supabase = supabaseAdmin();
-  const today = new Date().toISOString().slice(0, 10);
+  // Cron runs at 22:00 UTC (05:00 WIB next day). UTC-stamping the snapshot
+  // labels it with the PREVIOUS WIB day, so today's P&L shows up under
+  // yesterday's date in the journal. Stamp in Asia/Jakarta instead.
+  const today = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Jakarta",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
   const usdIdr = (await getUsdIdr()) ?? 16500;
 
   await supabase.from("fx_snapshots").upsert(
@@ -183,9 +202,12 @@ async function snapshotUser(
     .not("exit_price", "is", null);
   const realized = (realizedRows || []) as RealizedRow[];
 
-  // Live Hyperliquid value for crypto book (if address configured)
-  const hlUsd = hyperliquidAddress ? await getHyperliquidAccountValueUsd(hyperliquidAddress) : 0;
-  const hlIdr = hlUsd * usdIdr;
+  // Live Hyperliquid snapshot for crypto book (if address configured)
+  const hl = hyperliquidAddress
+    ? await getHyperliquidSnapshot(hyperliquidAddress)
+    : { accountValueUsd: 0, unrealizedUsd: 0 };
+  const hlIdr = hl.accountValueUsd * usdIdr;
+  const hlUnrealIdr = hl.unrealizedUsd * usdIdr;
 
   const books: BookType[] = ["investing", "idx_trading", "crypto_trading", "other"];
 
@@ -208,14 +230,21 @@ async function snapshotUser(
         : enriched.filter((p) => p.book === filterBook);
     let mv = sheetForMv.reduce((a, p) => a + Math.abs(p.mvIdr), 0);
     let netMv = sheetForMv.reduce((a, p) => a + p.mvIdr, 0);
-    const unreal = sheetForMv.reduce((a, p) => a + p.unrealIdr, 0);
+    // Sheet-side unrealized. For crypto_trading / all with HL, we replace or
+    // augment below so the HL perp unrealized is actually represented in
+    // nav_history.unrealized_pnl_idr (previously it was dropped on the floor).
+    let unreal = sheetForMv.reduce((a, p) => a + p.unrealIdr, 0);
 
     if (filterBook === "crypto_trading" && hlIdr > 0) {
       mv = hlIdr;
       netMv = hlIdr;
+      // HL accountValue already reflects crypto drift — use HL's explicit
+      // perp unrealized number, not sheet (sheet is empty for crypto now).
+      unreal = hlUnrealIdr;
     } else if (filterBook === "all" && hlIdr > 0) {
       mv += hlIdr;
       netMv += hlIdr;
+      unreal += hlUnrealIdr;
     }
 
     // --- Realized for display (KPI line) ---------------------------------

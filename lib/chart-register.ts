@@ -32,8 +32,9 @@ export function registerCharts() {
     Legend,
     Filler,
   );
-  Chart.defaults.color = "#7a8699";
-  Chart.defaults.borderColor = "#1f2a38";
+  // Match the violet/dark palette in globals.css (--color-muted, --color-border)
+  Chart.defaults.color = "#A1A1AA";
+  Chart.defaults.borderColor = "#242428";
   Chart.defaults.font.family = "-apple-system, BlinkMacSystemFont, 'SF Pro Display', Inter, sans-serif";
   Chart.defaults.font.size = 11;
   registered = true;

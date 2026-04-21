@@ -35,7 +35,8 @@ export function MoodScatter() {
           label: "Trades",
           data: (data?.points || []).map((p) => ({ x: p.mood, y: p.pnl_pct ?? 0 })),
           backgroundColor: (data?.points || []).map((p) =>
-            (p.pnl_pct ?? 0) >= 0 ? "rgba(74,222,128,0.6)" : "rgba(248,113,113,0.6)",
+            // Palette-consistent muted tokens: --color-success / --color-loss at 70% alpha
+            (p.pnl_pct ?? 0) >= 0 ? "rgba(74,157,124,0.7)" : "rgba(184,104,104,0.7)",
           ),
           pointRadius: 4,
         },
@@ -51,14 +52,14 @@ export function MoodScatter() {
       plugins: { legend: { display: false } },
       scales: {
         x: {
-          title: { display: true, text: "Mood (1-10)", color: "#7a8699" },
+          title: { display: true, text: "Mood (1-10)", color: "#A1A1AA" },
           min: 0,
           max: 10,
-          grid: { color: "rgba(31,42,56,0.4)" },
+          grid: { color: "rgba(36,36,40,0.6)" },
         },
         y: {
-          title: { display: true, text: "Trade P&L (%)", color: "#7a8699" },
-          grid: { color: "rgba(31,42,56,0.4)" },
+          title: { display: true, text: "Trade P&L (%)", color: "#A1A1AA" },
+          grid: { color: "rgba(36,36,40,0.6)" },
           ticks: { callback: (v: number | string) => `${Number(v).toFixed(0)}%` },
         },
       },

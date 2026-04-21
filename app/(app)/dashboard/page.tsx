@@ -18,9 +18,17 @@ import type { BookFilter } from "@/lib/types";
 export const dynamic = "force-dynamic";
 
 function greeting(): string {
-  const h = new Date().getHours();
-  if (h < 12) return "Good morning, Jenson";
-  if (h < 18) return "Good afternoon, Jenson";
+  // Server renders in UTC on Vercel — pin greeting to WIB (Asia/Jakarta, UTC+7)
+  // so Jenson sees "morning/afternoon/evening" against his actual local time.
+  const hour = Number(
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: "Asia/Jakarta",
+      hour: "2-digit",
+      hour12: false,
+    }).format(new Date()),
+  );
+  if (hour < 12) return "Good morning, Jenson";
+  if (hour < 18) return "Good afternoon, Jenson";
   return "Good evening, Jenson";
 }
 
