@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { getEarningsSummary } from "@/lib/earnings/perplexity";
+import { getEarningsSummary } from "@/lib/earnings/yahoo";
 import type { AssetClass } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -14,9 +14,6 @@ export async function GET(
   const sp = req.nextUrl.searchParams;
   const assetClass = (sp.get("asset_class") || "idx_equity") as AssetClass;
 
-  if (!process.env.PERPLEXITY_API_KEY) {
-    return NextResponse.json({ error: "PERPLEXITY_API_KEY not configured" }, { status: 503 });
-  }
   try {
     const summary = await getEarningsSummary(ticker.toUpperCase(), assetClass);
     return NextResponse.json(summary);

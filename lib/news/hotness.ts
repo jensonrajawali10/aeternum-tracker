@@ -51,15 +51,26 @@ const SIGNALS: HotSignal[] = [
 
   // Indonesia-specific
   { pattern: /\b(idx|ihsg|bei|rupiah|jkse)/i, score: 10, reason: "IDX context" },
-  { pattern: /\b(right issue|rights issue|stock split|bonus (shares|issue)|buyback)/i, score: 30, reason: "corp action" },
-  { pattern: /\b(komisioner|direktur utama|ceo (step|resign|fire|ouster))/i, score: 40, reason: "leadership change" },
+  { pattern: /\b(right issue|rights issue|stock split|bonus (shares|issue)|buyback|tender offer)/i, score: 30, reason: "corp action" },
+  { pattern: /\b(komisioner|direktur utama|dirut)\b/i, score: 30, reason: "IDX leadership" },
+
+  // Dividends / capital returns (works for both USD and IDR wording)
+  { pattern: /\bdividend (payout|hike|increase|cut|suspend|special|declared|announce)/i, score: 35, reason: "dividend" },
+  { pattern: /\b(announces?|declares?) (a )?(special |interim |record )?dividend/i, score: 30, reason: "dividend" },
 
   // CEO / leadership
-  { pattern: /\bceo (resign|step(s|ped) down|fired|ouster|replaced)/i, score: 50, reason: "CEO change" },
+  { pattern: /\bceo (resign|step(s|ped) down|fired|ouster|replaced|departs?)/i, score: 50, reason: "CEO change" },
+
+  // Profit warnings / going concern / strong results
+  { pattern: /\bprofit warning\b/i, score: 45, reason: "profit warning" },
+  { pattern: /\bgoing concern\b/i, score: 55, reason: "going concern" },
+  { pattern: /\b(soars?|jumps?|surges?) \d+%/i, score: 15, reason: "quantified surge" },
 ];
 
 const MIN_PERCENT_MOVE = /\b([1-9]\d|\d{3,})\s?%/; // 10% or more
 const DOLLAR_BIG = /\$([1-9]\d{0,2}(?:\.\d+)?\s?(billion|trillion|b|t)\b)/i;
+// Rp / IDR large figures (e.g. "Rp 15 trillion", "Rp 2T", "IDR 5 triliun")
+const IDR_BIG = /\b(rp|idr)\s?[1-9]\d{0,2}(?:[.,]\d+)?\s?(triliun|trillion|billion|miliar|t|b)\b/i;
 
 export interface Hotness {
   score: number;
@@ -83,6 +94,10 @@ export function scoreHeadline(title: string, summary = ""): Hotness {
   if (DOLLAR_BIG.test(title)) {
     score += 10;
     reasons.push("large $ figure");
+  }
+  if (IDR_BIG.test(text)) {
+    score += 15;
+    reasons.push("large IDR figure");
   }
   if (score > 100) score = 100;
   return { score, reasons: Array.from(new Set(reasons)) };

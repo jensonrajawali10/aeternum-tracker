@@ -2,7 +2,7 @@
 
 import useSWR from "swr";
 import { Kpi } from "./Kpi";
-import { fmtCurrency, fmtPct, fmtBps, signClass } from "@/lib/format";
+import { fmtCurrency, fmtPct, signClass } from "@/lib/format";
 
 interface NavResp {
   nav_idr: number;
@@ -50,7 +50,7 @@ export function KpiRow({
     : null;
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-5">
+    <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
       <Kpi
         label="Portfolio NAV"
         value={navValue != null ? fmtCurrency(navValue, currency) : "—"}
@@ -67,13 +67,13 @@ export function KpiRow({
         deltaClass={signClass(nav?.unrealized_pnl_idr)}
       />
       <Kpi
-        label="YTD Return"
+        label="YTD return"
         value={metrics ? fmtPct(metrics.ytd_return_pct, 2, true) : "—"}
         hint={ytdValue != null ? fmtCurrency(ytdValue, currency) : "—"}
         deltaClass={signClass(metrics?.ytd_return_pct)}
       />
       <Kpi
-        label="Gross Exposure"
+        label="Gross exposure"
         value={nav ? fmtPct(nav.gross_exposure_pct, 1) : "—"}
         hint={nav ? `Net ${fmtPct(nav.net_exposure_pct, 1, true)}` : "—"}
       />

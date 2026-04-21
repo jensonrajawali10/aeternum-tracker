@@ -16,14 +16,14 @@ export function CurrencyToggle({ current }: { current: "IDR" | "USD" }) {
   }
 
   return (
-    <div className="flex items-center rounded border border-border bg-panel overflow-hidden">
+    <div className="flex items-center rounded-[6px] border border-border bg-panel overflow-hidden">
       {(["IDR", "USD"] as const).map((c) => (
         <button
           key={c}
           onClick={() => set(c)}
           className={clsx(
-            "px-3 py-[5px] text-[11px] tracking-wider transition-colors",
-            current === c ? "bg-accent text-bg font-semibold" : "text-muted hover:text-fg hover:bg-hover",
+            "mono px-3 h-[28px] text-[11px] transition-colors",
+            current === c ? "bg-elevated text-fg" : "text-muted hover:text-fg hover:bg-elevated",
           )}
         >
           {c}

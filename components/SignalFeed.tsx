@@ -28,24 +28,24 @@ export function SignalFeed({ limit = 10 }: { limit?: number }) {
   return (
     <div className="divide-y divide-border">
       {signals.length === 0 && (
-        <div className="py-4 text-muted text-[12px] text-center">No signals yet</div>
+        <div className="py-6 text-muted text-[12px] text-center">No signals yet</div>
       )}
       {signals.map((s) => {
         const sev = (s.severity === "warn" ? "warning" : s.severity) as Severity;
         return (
-          <div key={s.id} className="py-2">
+          <div key={s.id} className="py-3 hover:bg-elevated -mx-4 px-4 transition-colors">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 min-w-0">
+                <span className="mono text-[11px] text-muted">{s.agent_slug}</span>
+                {s.ticker && <span className="mono text-[11px] text-fg">{s.ticker}</span>}
                 <SeverityBadge sev={sev} />
-                {s.ticker && <span className="text-accent text-[11px] font-medium">{s.ticker}</span>}
-                <span className="text-[10px] uppercase tracking-wider text-muted">{s.agent_slug}</span>
               </div>
-              <span className="text-[10px] text-muted shrink-0">
+              <span className="mono text-[10.5px] text-muted-2 shrink-0">
                 {fmtDate(s.created_at, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
               </span>
             </div>
-            <div className="mt-1 text-[12px]">{s.title}</div>
-            {s.body && <div className="mt-1 text-[11px] text-muted line-clamp-2">{s.body}</div>}
+            <div className="mt-[4px] text-[13px] text-fg leading-snug">{s.title}</div>
+            {s.body && <div className="mt-[2px] text-[11.5px] text-muted line-clamp-2">{s.body}</div>}
           </div>
         );
       })}

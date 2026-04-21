@@ -21,17 +21,17 @@ export function FxTicker({ from = "USD", to = "IDR" }: { from?: string; to?: str
   );
 
   return (
-    <div className="flex items-center gap-2 px-3 py-[5px] rounded border border-border bg-panel text-[11px]">
-      <span className="text-muted tracking-[0.12em] uppercase">{from}/{to}</span>
-      <span className="font-semibold tabular-nums">
+    <div className="flex items-center gap-2 px-3 h-[28px] rounded-[6px] border border-border bg-panel mono text-[11px]">
+      <span className="text-muted">{from}/{to}</span>
+      <span className="text-fg">
         {isLoading || !data?.rate ? "…" : fmtNumber(data.rate, to === "IDR" ? 0 : 4)}
       </span>
       {data?.day_change_pct != null && (
-        <span className={`tabular-nums text-[10px] ${signClass(data.day_change_pct)}`}>
+        <span className={`text-[10.5px] ${signClass(data.day_change_pct)}`}>
           {fmtPct(data.day_change_pct, 2, true)}
         </span>
       )}
-      <span className="w-[6px] h-[6px] rounded-full bg-accent/70 animate-pulse" title="Live" />
+      <span className="live-dot ml-[2px]" title="Live" />
     </div>
   );
 }

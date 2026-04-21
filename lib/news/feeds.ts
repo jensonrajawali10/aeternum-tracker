@@ -138,19 +138,84 @@ export async function getNewsForSymbols(
   return merged;
 }
 
-const CATEGORY_QUERIES: Record<string, string> = {
-  markets: "stock market",
-  stock: "stocks earnings",
-  crypto: "cryptocurrency bitcoin",
-  economy: "economy federal reserve inflation",
+// Category queries. Each category fans out across several sub-queries so we
+// get broad coverage of the stuff that actually moves markets — no "just
+// stock market today" single-query feed.
+const CATEGORY_QUERIES: Record<string, string[]> = {
+  markets: [
+    "stock market today",
+    "Wall Street",
+    "S&P 500 Nasdaq Dow",
+    "US markets close",
+  ],
+  stock: [
+    "US stocks earnings report",
+    "large cap movers",
+    "tech stocks Nvidia Apple Microsoft",
+    "analyst upgrade downgrade",
+  ],
+  crypto: [
+    "bitcoin ethereum price",
+    "crypto market sentiment",
+    "crypto ETF spot",
+    "stablecoin USDT USDC",
+    "solana XRP altcoin",
+  ],
+  economy: [
+    "federal reserve rate decision",
+    "US CPI inflation report",
+    "jobs report nonfarm payrolls",
+    "treasury yields 10 year",
+    "consumer spending retail sales",
+  ],
+  macro: [
+    "federal reserve interest rate",
+    "FOMC decision",
+    "US CPI inflation",
+    "oil price OPEC",
+    "dollar index DXY",
+    "China PBOC stimulus",
+    "commodities iron ore coal nickel",
+    "geopolitics middle east russia",
+    "bank Indonesia rupiah",
+    "ECB rate decision",
+    "Japan yen BOJ",
+    "gold silver price",
+  ],
+  idx: [
+    "IHSG Indonesia stock exchange",
+    "Bank Indonesia policy rate",
+    "Indonesia coal nickel export",
+    "IDX listed companies earnings",
+    "rupiah USD exchange rate",
+    "Indonesia economy inflation",
+    "Jakarta composite index",
+  ],
 };
 
+export type NewsCategory = keyof typeof CATEGORY_QUERIES;
+
 export async function getNewsFeed(
-  category: "markets" | "stock" | "crypto" | "economy" = "markets",
+  category: NewsCategory = "markets",
   limit = 40,
 ): Promise<NewsItem[]> {
-  const q = CATEGORY_QUERIES[category] || CATEGORY_QUERIES.markets;
-  const url = `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=en-US&gl=US&ceid=US:en`;
-  const items = await fetchRss(url, "Google News");
-  return items.slice(0, limit).map(enrich);
+  const queries = CATEGORY_QUERIES[category] || CATEGORY_QUERIES.markets;
+  const region = category === "idx" ? "ID" : "US";
+  const lists = await Promise.all(
+    queries.map((q) => {
+      const url = `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=en-${region}&gl=${region}&ceid=${region}:en`;
+      return fetchRss(url, "Google News");
+    }),
+  );
+  const seen = new Set<string>();
+  const merged: NewsItem[] = [];
+  for (const list of lists) {
+    for (const item of list) {
+      if (seen.has(item.id)) continue;
+      seen.add(item.id);
+      merged.push(item);
+    }
+  }
+  merged.sort((a, b) => b.published - a.published);
+  return merged.slice(0, limit).map(enrich);
 }

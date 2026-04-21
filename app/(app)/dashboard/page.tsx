@@ -17,6 +17,13 @@ import type { BookFilter } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
+function greeting(): string {
+  const h = new Date().getHours();
+  if (h < 12) return "Good morning, Jenson";
+  if (h < 18) return "Good afternoon, Jenson";
+  return "Good evening, Jenson";
+}
+
 export default async function DashboardPage({
   searchParams,
 }: {
@@ -28,7 +35,7 @@ export default async function DashboardPage({
 
   return (
     <>
-      <TopHeader title="Dashboard" subtitle="Live portfolio • IDR base • IDX + US + Crypto">
+      <TopHeader title="Dashboard" subtitle={greeting()}>
         <FxTicker from="USD" to="IDR" />
         <BookSwitcher current={book} />
         <CurrencyToggle current={ccy} />
@@ -36,42 +43,47 @@ export default async function DashboardPage({
 
       <KpiRow book={book} currency={ccy} />
 
-      <div className="grid grid-cols-1 xl:grid-cols-[2fr_1fr] gap-4 mb-4">
-        <Panel title="NAV vs Benchmarks" subtitle="Rebased to 100">
-          <NavVsBenchmarkChart book={book} />
-        </Panel>
-        <Panel title="Recent Signals" subtitle="Agent feed">
+      {/* Benchmark chart folded into dashboard — replaces standalone /benchmark page */}
+      <Panel
+        title="NAV vs benchmarks"
+        subtitle="Rebased to 100"
+        className="mb-5"
+      >
+        <NavVsBenchmarkChart book={book} height={240} />
+      </Panel>
+
+      <div className="grid grid-cols-1 xl:grid-cols-[1.2fr_1fr] gap-4 mb-5">
+        <Panel title="Recent signals" subtitle="Agent feed">
           <SignalFeed limit={8} />
+        </Panel>
+        <Panel title="Open positions" subtitle="Live marks · sorted by weight">
+          <PositionsTable book={book} currency={ccy} limit={10} />
         </Panel>
       </div>
 
-      <Panel title="Open Positions" subtitle="Live marks • sorted by weight" className="mb-4">
-        <PositionsTable book={book} currency={ccy} limit={15} />
-      </Panel>
-
-      <div className="grid grid-cols-1 xl:grid-cols-[2fr_1fr] gap-4 mb-4">
-        <Panel title="Rolling 30D Alpha" subtitle="vs IHSG and S&P 500">
+      <div className="grid grid-cols-1 xl:grid-cols-[2fr_1fr] gap-4 mb-5">
+        <Panel title="Rolling 30D alpha" subtitle="vs JCI and S&P 500">
           <AlphaDecompositionChart book={book} />
         </Panel>
-        <Panel title="Alpha Attribution" subtitle="YTD">
+        <Panel title="Alpha attribution" subtitle="YTD">
           <AlphaAttribution book={book} />
         </Panel>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-        <Panel title="Exposure Breakdown">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-5">
+        <Panel title="Exposure breakdown">
           <ExposureBars book={book} />
         </Panel>
-        <Panel title="Sector Concentration">
+        <Panel title="Sector concentration">
           <SectorDoughnut book={book} />
         </Panel>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr] gap-4">
-        <Panel title="Risk Snapshot">
+        <Panel title="Risk snapshot">
           <RiskSnapshot book={book} />
         </Panel>
-        <Panel title="Strategy Matrix" subtitle="Win rate, expectancy, hold time">
+        <Panel title="Strategy matrix" subtitle="Win rate, expectancy, hold time">
           <StrategyMatrix />
         </Panel>
       </div>

@@ -17,9 +17,26 @@ interface NewsItem {
   reasons?: string[];
 }
 
+interface FeedResp {
+  items: NewsItem[];
+  fallback?: string;
+  agent?: boolean;
+  category?: string;
+  symbols?: number;
+}
+
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
-const CATEGORIES = ["markets", "stock", "crypto", "economy"] as const;
+const CATEGORIES = ["all", "macro", "idx", "stock", "crypto", "markets", "economy"] as const;
 type Category = (typeof CATEGORIES)[number];
+const CATEGORY_LABEL: Record<Category, string> = {
+  all: "All",
+  macro: "Macro",
+  idx: "IDX",
+  stock: "Stocks",
+  crypto: "Crypto",
+  markets: "Markets",
+  economy: "Economy",
+};
 
 function timeAgo(ms: number): string {
   const diff = Date.now() - ms;
@@ -32,18 +49,23 @@ function timeAgo(ms: number): string {
 }
 
 export function NewsFeed() {
-  const [category, setCategory] = useState<Category>("markets");
-  const { data, isLoading } = useSWR<{ items: NewsItem[]; fallback?: string }>(
+  const [category, setCategory] = useState<Category>("all");
+  const [hideNoise, setHideNoise] = useState(true);
+  const { data, isLoading } = useSWR<FeedResp>(
     `/api/news?category=${category}`,
     fetcher,
-    { refreshInterval: 120_000 },
+    { refreshInterval: 180_000 },
   );
 
-  const items = data?.items || [];
+  const raw = data?.items || [];
+  // When agent is on, hide items it flagged noise (urgency 0) by default.
+  const items = hideNoise && data?.agent
+    ? raw.filter((i) => (i.urgency ?? 0) >= 1)
+    : raw;
 
   return (
     <div>
-      <div className="flex items-center gap-2 mb-3">
+      <div className="flex items-center gap-2 mb-3 flex-wrap">
         {CATEGORIES.map((c) => (
           <button
             key={c}
@@ -54,15 +76,39 @@ export function NewsFeed() {
                 : "bg-panel-2 text-muted hover:text-fg"
             }`}
           >
-            {c}
+            {CATEGORY_LABEL[c]}
           </button>
         ))}
-        {data?.fallback === "category" && (
-          <span className="text-[10px] text-muted ml-2">
-            no positions yet — showing {category} feed
-          </span>
+        <div className="flex-1" />
+        <span
+          className={`px-2 py-[3px] rounded text-[9px] uppercase tracking-wider border ${
+            data?.agent
+              ? "bg-accent/15 text-accent border-accent/40"
+              : "bg-panel-2 text-muted border-border"
+          }`}
+          title={data?.agent ? "Llama 3.3 70B re-ranks headlines and labels what matters" : "Agent not configured — showing raw feed"}
+        >
+          {data?.agent ? "agent · llama 3.3" : "agent off"}
+        </span>
+        {data?.agent && (
+          <button
+            onClick={() => setHideNoise((v) => !v)}
+            className={`px-2 py-[3px] rounded text-[9px] uppercase tracking-wider border ${
+              hideNoise
+                ? "bg-panel-2 text-fg border-border"
+                : "bg-panel-2 text-muted border-border hover:text-fg"
+            }`}
+          >
+            {hideNoise ? "hiding noise" : "showing all"}
+          </button>
         )}
       </div>
+
+      {data?.symbols != null && (
+        <div className="text-[10px] text-muted mb-2">
+          Merged: {data.symbols} tracked tickers + macro + IDX + US markets + crypto · {items.length} shown
+        </div>
+      )}
 
       {isLoading && <div className="text-muted text-[12px]">Loading feed…</div>}
 
@@ -86,7 +132,12 @@ export function NewsFeed() {
                 )}
                 {(it.urgency ?? 0) === 2 && (
                   <span className="ml-1 px-1 py-[1px] bg-accent/20 text-accent rounded text-[9px] font-bold">
-                    HOT {it.score}
+                    HOT
+                  </span>
+                )}
+                {(it.urgency ?? 0) === 1 && (
+                  <span className="ml-1 px-1 py-[1px] bg-panel-2 text-muted rounded text-[9px]">
+                    context
                   </span>
                 )}
                 {(it.symbols || []).slice(0, 4).map((s) => (
@@ -96,14 +147,23 @@ export function NewsFeed() {
                 ))}
               </div>
               <div className="text-[13px] leading-snug">{it.title}</div>
-              {it.summary && (
+              {it.reasons && it.reasons.length > 0 && (
+                <div className="text-[10px] text-accent mt-1">
+                  {it.reasons.slice(0, 2).join(" · ")}
+                </div>
+              )}
+              {it.summary && !it.reasons?.length && (
                 <div className="text-[11px] text-muted mt-1 line-clamp-2">{it.summary}</div>
               )}
             </a>
           </li>
         ))}
         {!items.length && !isLoading && (
-          <li className="py-8 text-center text-muted">No news</li>
+          <li className="py-8 text-center text-muted">
+            {hideNoise && data?.agent && raw.length > 0
+              ? "Agent filtered everything as noise. Try 'showing all' or switch to Macro/IDX tab."
+              : "No news"}
+          </li>
         )}
       </ul>
     </div>

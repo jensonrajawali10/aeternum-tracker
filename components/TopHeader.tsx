@@ -14,9 +14,11 @@ export function TopHeader({
   return (
     <div className="flex flex-wrap items-end justify-between gap-3 pb-4 border-b border-border mb-5">
       <div>
-        <h1 className="serif text-[24px] leading-tight text-fg">{title}</h1>
+        <h1 className="text-[18px] font-medium tracking-[-0.01em] text-fg leading-tight">
+          {title}
+        </h1>
         {subtitle && (
-          <div className="text-[11px] text-muted tracking-wide mt-[3px]">{subtitle}</div>
+          <div className="serif italic text-[13px] text-muted mt-[3px]">{subtitle}</div>
         )}
       </div>
       {children && (

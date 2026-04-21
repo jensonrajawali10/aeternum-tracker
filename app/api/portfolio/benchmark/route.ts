@@ -46,15 +46,30 @@ export async function GET(req: NextRequest) {
     .gte("snapshot_date", start)
     .order("snapshot_date", { ascending: true });
 
-  const dates = (navRows || []).map((r) => r.snapshot_date);
-  const navSeries = (navRows || []).map((r) => Number(r.nav_idr));
-
   const ihsgMap = new Map<string, number>();
   const spxMap = new Map<string, number>();
   (benchRows || []).forEach((r) => {
     if (r.symbol === "^JKSE") ihsgMap.set(r.snapshot_date, Number(r.close));
     else if (r.symbol === "^GSPC") spxMap.set(r.snapshot_date, Number(r.close));
   });
+
+  // If the user has NAV history, use those dates. If not, fall back to the
+  // union of benchmark dates so the chart at least shows IHSG and S&P.
+  let dates: string[];
+  let navSeries: number[];
+  let navEmpty = false;
+  if ((navRows || []).length > 0) {
+    dates = (navRows || []).map((r) => r.snapshot_date);
+    navSeries = (navRows || []).map((r) => Number(r.nav_idr));
+  } else {
+    navEmpty = true;
+    const all = new Set<string>();
+    for (const d of ihsgMap.keys()) all.add(d);
+    for (const d of spxMap.keys()) all.add(d);
+    dates = Array.from(all).sort();
+    navSeries = [];
+  }
+
   const ihsgSeries = dates.map((d) => ihsgMap.get(d) ?? NaN);
   const spxSeries = dates.map((d) => spxMap.get(d) ?? NaN);
 
@@ -64,6 +79,7 @@ export async function GET(req: NextRequest) {
     nav: rebaseToHundred(navSeries),
     ihsg: rebaseToHundred(fillNaN(ihsgSeries)),
     spx: rebaseToHundred(fillNaN(spxSeries)),
+    nav_empty: navEmpty,
   });
 }
 

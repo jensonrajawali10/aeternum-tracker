@@ -7,7 +7,7 @@ import { clsx } from "@/lib/format";
 const BOOKS: { value: BookFilter; label: string }[] = [
   { value: "all", label: "All" },
   { value: "investing", label: "Investing" },
-  { value: "idx_trading", label: "IDX Trading" },
+  { value: "idx_trading", label: "IDX trades" },
   { value: "crypto_trading", label: "Crypto" },
 ];
 
@@ -24,14 +24,16 @@ export function BookSwitcher({ current }: { current: BookFilter }) {
   }
 
   return (
-    <div className="flex items-center rounded border border-border bg-panel overflow-hidden">
+    <div className="flex items-center rounded-[6px] border border-border bg-panel overflow-hidden">
       {BOOKS.map((b) => (
         <button
           key={b.value}
           onClick={() => setBook(b.value)}
           className={clsx(
-            "px-3 py-[5px] text-[11px] tracking-wider transition-colors",
-            current === b.value ? "bg-accent text-bg font-semibold" : "text-muted hover:text-fg hover:bg-hover",
+            "px-3 h-[28px] text-[11.5px] transition-colors",
+            current === b.value
+              ? "bg-elevated text-fg border-l border-r first:border-l-0 last:border-r-0 border-accent"
+              : "text-muted hover:text-fg hover:bg-elevated",
           )}
         >
           {b.label}

@@ -33,24 +33,25 @@ export function AlphaDecompositionChart({ book }: { book: string }) {
       labels: sorted,
       datasets: [
         {
-          label: "vs IHSG",
+          label: "vs JCI",
           data: sorted.map((d) => ihsgMap.get(d) ?? null),
-          borderColor: "#60a5fa",
-          backgroundColor: "rgba(96,165,250,0.1)",
-          fill: true,
+          borderColor: "#E4E4E7",
+          backgroundColor: "transparent",
+          fill: false,
           pointRadius: 0,
-          borderWidth: 1.5,
-          tension: 0.2,
+          borderWidth: 1.3,
+          tension: 0.18,
         },
         {
           label: "vs S&P 500",
           data: sorted.map((d) => spxMap.get(d) ?? null),
-          borderColor: "#4ade80",
-          backgroundColor: "rgba(74,222,128,0.05)",
+          borderColor: "#A1A1AA",
+          borderDash: [4, 3],
+          backgroundColor: "transparent",
           fill: false,
           pointRadius: 0,
-          borderWidth: 1.5,
-          tension: 0.2,
+          borderWidth: 1,
+          tension: 0.18,
         },
       ],
     };
@@ -62,8 +63,23 @@ export function AlphaDecompositionChart({ book }: { book: string }) {
       maintainAspectRatio: false,
       interaction: { mode: "index" as const, intersect: false },
       plugins: {
-        legend: { labels: { usePointStyle: true, boxWidth: 8, color: "#7a8699" } },
+        legend: {
+          labels: {
+            usePointStyle: true,
+            boxWidth: 8,
+            color: "#A1A1AA",
+            font: { family: "JetBrains Mono", size: 10 },
+          },
+        },
         tooltip: {
+          backgroundColor: "#141418",
+          borderColor: "#242428",
+          borderWidth: 1,
+          padding: 10,
+          titleColor: "#E4E4E7",
+          bodyColor: "#A1A1AA",
+          titleFont: { family: "JetBrains Mono", size: 10 },
+          bodyFont: { family: "JetBrains Mono", size: 11 },
           callbacks: {
             label: (ctx: { dataset: { label?: string }; parsed: { y: number | null } }) =>
               `${ctx.dataset.label}: ${ctx.parsed.y?.toFixed(1) ?? "—"} bps`,
@@ -71,10 +87,19 @@ export function AlphaDecompositionChart({ book }: { book: string }) {
         },
       },
       scales: {
-        x: { grid: { color: "rgba(31,42,56,0.4)" }, ticks: { maxTicksLimit: 8 } },
+        x: {
+          grid: { display: false },
+          border: { color: "#242428" },
+          ticks: { color: "#6B6B73", maxTicksLimit: 8, font: { family: "JetBrains Mono", size: 10 } },
+        },
         y: {
-          grid: { color: "rgba(31,42,56,0.4)" },
-          ticks: { callback: (v: number | string) => `${Number(v).toFixed(0)}bps` },
+          grid: { display: false },
+          border: { display: false },
+          ticks: {
+            color: "#6B6B73",
+            callback: (v: number | string) => `${Number(v).toFixed(0)}bps`,
+            font: { family: "JetBrains Mono", size: 10 },
+          },
         },
       },
     }),

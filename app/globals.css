@@ -1,28 +1,42 @@
 @import "tailwindcss";
 
 @theme {
-  --color-bg: #0a0e13;
-  --color-bg-2: #0d1219;
-  --color-panel: #111820;
-  --color-panel-2: #161f2a;
-  --color-border: #1f2a38;
-  --color-border-2: #273548;
-  --color-text: #e8ecf2;
-  --color-fg: #e8ecf2;
-  --color-muted: #7a8699;
-  --color-muted-2: #5a6475;
-  --color-accent: #d4a64a;
-  --color-accent-dim: #b08a38;
-  --color-accent-2: #a78bfa;
-  --color-hover: #1a2432;
-  --color-green: #4ade80;
-  --color-red: #f87171;
-  --color-blue: #60a5fa;
-  --color-teal: #6ee7b7;
-  --color-orange: #f59e0b;
-  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
-  --font-serif: "Playfair Display", "Tinos", "Times New Roman", Georgia, serif;
-  --font-mono: "JetBrains Mono", "SF Mono", "Menlo", monospace;
+  /* Base surfaces */
+  --color-bg: #0A0A0B;
+  --color-bg-2: #0A0A0B;
+  --color-panel: #141418;
+  --color-surface: #141418;
+  --color-panel-2: #1A1A1E;
+  --color-elevated: #1A1A1E;
+  --color-border: #242428;
+  --color-border-2: #2E2E34;
+
+  /* Text tiers */
+  --color-text: #E4E4E7;
+  --color-fg: #E4E4E7;
+  --color-muted: #A1A1AA;
+  --color-muted-2: #6B6B73;
+  --color-tertiary: #6B6B73;
+
+  /* Accent — violet-500, used sparingly */
+  --color-accent: #8B5CF6;
+  --color-accent-dim: #7C4DF1;
+  --color-accent-2: #A78BFA;
+  --color-accent-text: #B794F6;
+
+  /* Muted status */
+  --color-green: #4A9D7C;
+  --color-success: #4A9D7C;
+  --color-red: #B86868;
+  --color-loss: #B86868;
+
+  /* Hover */
+  --color-hover: #1A1A1E;
+
+  /* Fonts */
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-serif: "Source Serif 4", "Charter", Georgia, serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
 }
 
 :root {
@@ -30,62 +44,35 @@
 }
 
 html, body {
-  background:
-    radial-gradient(1200px 600px at 20% -10%, rgba(212, 166, 74, 0.035), transparent 60%),
-    radial-gradient(900px 500px at 100% 100%, rgba(167, 139, 250, 0.025), transparent 60%),
-    var(--color-bg);
-  background-attachment: fixed;
+  background: var(--color-bg);
   color: var(--color-text);
   font-family: var(--font-sans);
+  font-weight: 400;
   font-size: 13px;
   line-height: 1.5;
   font-feature-settings: "tnum" 1, "cv11" 1, "ss01" 1;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  letter-spacing: -0.005em;
+  letter-spacing: 0;
 }
 
-body {
-  min-height: 100vh;
-}
+body { min-height: 100vh; }
+* { box-sizing: border-box; }
 
-* {
-  box-sizing: border-box;
-}
+/* Typography helpers */
+.tabular-nums { font-variant-numeric: tabular-nums; }
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.serif { font-family: var(--font-serif); font-feature-settings: "liga" 1; letter-spacing: -0.01em; }
 
-.tabular-nums {
-  font-variant-numeric: tabular-nums;
-}
+/* P&L colors — raised specificity to beat higher-specificity number selectors */
+.pos, span.pos, div.pos, td.pos, .num.pos, .delta.pos { color: var(--color-success) !important; }
+.neg, span.neg, div.neg, td.neg, .num.neg, .delta.neg { color: var(--color-loss) !important; }
 
-.serif {
-  font-family: var(--font-serif);
-  font-feature-settings: "liga" 1, "dlig" 1;
-  letter-spacing: -0.015em;
-}
+/* Legacy wrappers — now flat, no shadows, no gradients */
+.panel-elev { box-shadow: none; }
+.panel-gradient { background: var(--color-panel); }
 
-.pos { color: var(--color-green); }
-.neg { color: var(--color-red); }
-
-.panel-elev {
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.02) inset,
-    0 1px 2px rgba(0, 0, 0, 0.4),
-    0 8px 24px -12px rgba(0, 0, 0, 0.5);
-}
-
-.panel-gradient {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.012) 0%, transparent 40%),
-    var(--color-panel);
-}
-
-.accent-underline {
-  background-image: linear-gradient(90deg, var(--color-accent) 0%, transparent 70%);
-  background-size: 100% 1px;
-  background-repeat: no-repeat;
-  background-position: 0 100%;
-}
-
+/* Focus */
 button:focus-visible,
 a:focus-visible,
 input:focus-visible,
@@ -95,13 +82,15 @@ textarea:focus-visible {
   outline-offset: 2px;
 }
 
+/* Form inputs */
 input, select, textarea, button {
   font-family: inherit;
   font-size: inherit;
   transition: border-color 150ms ease, background-color 150ms ease, color 150ms ease;
 }
 
-input[type="text"], input[type="email"], input[type="password"], input[type="number"], input[type="date"], select, textarea {
+input[type="text"], input[type="email"], input[type="password"],
+input[type="number"], input[type="date"], select, textarea {
   background: var(--color-panel-2);
   border: 1px solid var(--color-border);
   color: var(--color-text);
@@ -109,28 +98,37 @@ input[type="text"], input[type="email"], input[type="password"], input[type="num
   border-radius: 4px;
 }
 
-input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focus, input[type="number"]:focus, input[type="date"]:focus, select:focus, textarea:focus {
+input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focus,
+input[type="number"]:focus, input[type="date"]:focus, select:focus, textarea:focus {
   border-color: var(--color-accent);
   background: var(--color-panel);
   outline: none;
 }
 
-input::placeholder {
-  color: var(--color-muted-2);
-}
+input::placeholder { color: var(--color-muted-2); }
 
-button {
-  transition: all 150ms ease;
-}
+button { transition: all 150ms ease; }
+a { transition: color 150ms ease; }
 
-a {
-  transition: color 150ms ease;
-}
-
-::-webkit-scrollbar { width: 8px; height: 8px; }
+/* Scrollbar — narrow and muted */
+::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 4px; }
+::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--color-border-2); }
 
+/* Tables */
 table { border-collapse: collapse; }
 th, td { padding-top: 6px; padding-bottom: 6px; }
+
+/* Live dot for "live" indicators */
+.live-dot {
+  display: inline-block;
+  width: 6px; height: 6px;
+  background: var(--color-success);
+  border-radius: 50%;
+}
+
+/* Chart canvas line style bindings — used by Chart.js registrars but we also expose for inline SVG */
+.chart-nav { stroke: var(--color-text); }
+.chart-jci { stroke: var(--color-muted); }
+.chart-spx { stroke: var(--color-tertiary); }

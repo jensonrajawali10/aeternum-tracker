@@ -19,40 +19,36 @@ const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 const BOOK_LABEL: Record<BookType, string> = {
   investing: "Investing",
-  idx_trading: "IDX Trading",
+  idx_trading: "IDX trades",
   crypto_trading: "Crypto",
   other: "Other",
 };
 
 const ASSET_LABEL: Record<AssetClass, string> = {
-  idx_equity: "IDX Equity",
-  us_equity: "US Equity",
+  idx_equity: "IDX equity",
+  us_equity: "US equity",
   crypto: "Crypto",
   fx: "FX",
   other: "Other",
 };
 
-const COLORS: Record<string, string> = {
-  investing: "bg-teal-500",
-  idx_trading: "bg-blue-500",
-  crypto_trading: "bg-amber-500",
-  other: "bg-slate-500",
-  idx_equity: "bg-blue-500",
-  us_equity: "bg-green-500",
-  crypto: "bg-amber-500",
-  fx: "bg-purple-500",
-  IDR: "bg-blue-500",
-  USD: "bg-green-500",
-};
+/* Monochrome bars. Largest slice gets violet accent, the rest cascade through
+   the elevated/muted greys to preserve visual hierarchy without palette noise. */
+const BAR_TIERS = [
+  "bg-accent",   // #8B5CF6 — top bar
+  "bg-[#A1A1AA]", // muted — second
+  "bg-[#6B6B73]", // tertiary — third
+  "bg-border-2",  // #2E2E34 — fourth
+];
 
 function Row({ label, pct, color }: { label: string; pct: number; color: string }) {
   return (
     <div>
       <div className="flex items-center justify-between text-[11px] mb-1">
         <span className="text-muted">{label}</span>
-        <span className="tabular-nums">{fmtPct(pct, 1)}</span>
+        <span className="mono text-fg">{fmtPct(pct, 1)}</span>
       </div>
-      <div className="h-[6px] bg-panel-2 rounded overflow-hidden">
+      <div className="h-[4px] bg-elevated rounded-[2px] overflow-hidden">
         <div className={`h-full ${color}`} style={{ width: `${Math.min(100, pct)}%` }} />
       </div>
     </div>
@@ -67,13 +63,14 @@ export function ExposureBars({ book }: { book: string }) {
   const positions = data?.positions ?? [];
   const total = positions.reduce((a, p) => a + Math.abs(p.market_value_idr || 0), 0);
 
-  const groupBy = <K extends string>(fn: (p: Position) => K): Record<K, number> => {
-    const out = {} as Record<K, number>;
+  const groupBy = <K extends string>(fn: (p: Position) => K): [K, number][] => {
+    const out = new Map<K, number>();
     positions.forEach((p) => {
       const k = fn(p);
-      out[k] = (out[k] || 0) + Math.abs(p.market_value_idr || 0);
+      out.set(k, (out.get(k) || 0) + Math.abs(p.market_value_idr || 0));
     });
-    return out;
+    // sort largest first so tier 0 (violet) always goes to biggest slice
+    return [...out.entries()].sort((a, b) => b[1] - a[1]);
   };
 
   const byBook = groupBy((p) => p.book);
@@ -83,37 +80,42 @@ export function ExposureBars({ book }: { book: string }) {
   return (
     <div className="grid gap-4">
       <div>
-        <div className="text-[11px] uppercase tracking-wider text-muted mb-2">By Book</div>
+        <div className="text-[11px] text-muted mb-2">By book</div>
         <div className="space-y-2">
-          {Object.entries(byBook).map(([k, v]) => (
+          {byBook.map(([k, v], i) => (
             <Row
               key={k}
               label={BOOK_LABEL[k as BookType] || k}
               pct={total > 0 ? (v / total) * 100 : 0}
-              color={COLORS[k] || "bg-slate-500"}
+              color={BAR_TIERS[i] || BAR_TIERS[BAR_TIERS.length - 1]}
             />
           ))}
           {!positions.length && <div className="text-muted text-[11px]">No exposure</div>}
         </div>
       </div>
       <div>
-        <div className="text-[11px] uppercase tracking-wider text-muted mb-2">By Asset Class</div>
+        <div className="text-[11px] text-muted mb-2">By asset class</div>
         <div className="space-y-2">
-          {Object.entries(byAsset).map(([k, v]) => (
+          {byAsset.map(([k, v], i) => (
             <Row
               key={k}
               label={ASSET_LABEL[k as AssetClass] || k}
               pct={total > 0 ? (v / total) * 100 : 0}
-              color={COLORS[k] || "bg-slate-500"}
+              color={BAR_TIERS[i] || BAR_TIERS[BAR_TIERS.length - 1]}
             />
           ))}
         </div>
       </div>
       <div>
-        <div className="text-[11px] uppercase tracking-wider text-muted mb-2">By Currency</div>
+        <div className="text-[11px] text-muted mb-2">By currency</div>
         <div className="space-y-2">
-          {Object.entries(byCcy).map(([k, v]) => (
-            <Row key={k} label={k} pct={total > 0 ? (v / total) * 100 : 0} color={COLORS[k] || "bg-slate-500"} />
+          {byCcy.map(([k, v], i) => (
+            <Row
+              key={k}
+              label={k}
+              pct={total > 0 ? (v / total) * 100 : 0}
+              color={BAR_TIERS[i] || BAR_TIERS[BAR_TIERS.length - 1]}
+            />
           ))}
         </div>
       </div>

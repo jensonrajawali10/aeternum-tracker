@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { getNewsForSymbols, getNewsFeed, type NewsItem } from "@/lib/news/feeds";
 import { isHot } from "@/lib/news/hotness";
+import { agentShortlist } from "@/lib/news/llm-filter";
 import { sendEmail, hotNewsEmailHtml } from "@/lib/email/resend";
 
 export const runtime = "nodejs";
@@ -99,22 +100,49 @@ async function processUser(
   if (pairs.length) {
     items = await getNewsForSymbols(pairs.slice(0, 24), 6);
   }
-  // Also pull global markets feed so the user gets macro-level hot news
-  const macroItems = await getNewsFeed("markets", 30).catch(() => []);
-  const macroHot = macroItems.filter((m) => isHot(m, s.hot_news_min_score).hot);
+  // Pull broad macro/IDX/markets/crypto/economy topic feeds so the agent sees
+  // the full set of stuff that transmits into the portfolio (oil, Fed, DXY, China, etc.).
+  const [macroItems, idxItems, marketsItems, cryptoItems, economyItems] = await Promise.all([
+    getNewsFeed("macro", 30).catch(() => []),
+    getNewsFeed("idx", 25).catch(() => []),
+    getNewsFeed("markets", 15).catch(() => []),
+    getNewsFeed("crypto", 15).catch(() => []),
+    getNewsFeed("economy", 15).catch(() => []),
+  ]);
 
   const merged: (NewsItem & { ticker?: string | null })[] = [
     ...items.map((i) => ({ ...i, ticker: i.symbols?.[0] || null })),
-    ...macroHot.map((m) => ({ ...m, ticker: null })),
+    ...macroItems.map((m) => ({ ...m, ticker: null })),
+    ...idxItems.map((m) => ({ ...m, ticker: null })),
+    ...marketsItems.map((m) => ({ ...m, ticker: null })),
+    ...cryptoItems.map((m) => ({ ...m, ticker: null })),
+    ...economyItems.map((m) => ({ ...m, ticker: null })),
   ];
 
-  // Score + filter
+  // Deduplicate across sources
+  const seenId = new Set<string>();
+  const dedup = merged.filter((m) => {
+    if (seenId.has(m.id)) return false;
+    seenId.add(m.id);
+    return true;
+  });
+
+  // Agent reasons about cross-asset transmission paths relative to THIS portfolio.
+  const ctx = {
+    tickers: pairs.map((p) => p.ticker),
+    asset_classes: Array.from(new Set(pairs.map((p) => p.asset_class))),
+  };
+  const shortlisted = await agentShortlist(dedup, s.hot_news_min_score, 2, ctx);
+
   type HotItem = NewsItem & { ticker?: string | null; score: number; reasons: string[] };
-  const hotItems: HotItem[] = [];
-  for (const it of merged) {
+  const hotItems: HotItem[] = shortlisted.map((it) => {
     const h = isHot(it, s.hot_news_min_score);
-    if (h.hot) hotItems.push({ ...it, score: h.score, reasons: h.reasons });
-  }
+    return {
+      ...it,
+      score: it.score ?? h.score,
+      reasons: it.reasons?.length ? it.reasons : h.reasons,
+    };
+  });
 
   if (hotItems.length === 0) return { flagged: 0, emailed: 0 };
 

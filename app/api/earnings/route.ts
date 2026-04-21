@@ -1,11 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { supabaseServer } from "@/lib/supabase/server";
-import { getEarningsCalendar } from "@/lib/earnings/perplexity";
+import { getEarningsCalendar } from "@/lib/earnings/yahoo";
 import type { AssetClass } from "@/lib/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-// Perplexity can take 10-20s; give this endpoint headroom.
 export const maxDuration = 60;
 
 export async function GET(req: NextRequest) {
@@ -46,17 +45,9 @@ export async function GET(req: NextRequest) {
 
   if (!pairs.length) return NextResponse.json({ rows: [] });
 
-  if (!process.env.PERPLEXITY_API_KEY) {
-    return NextResponse.json(
-      { rows: [], error: "PERPLEXITY_API_KEY not configured" },
-      { status: 200 },
-    );
-  }
-
   try {
     const rows = await getEarningsCalendar(pairs.slice(0, 20));
-    rows.sort((a, b) => a.date.localeCompare(b.date));
-    return NextResponse.json({ rows });
+    return NextResponse.json({ rows, source: "yahoo" });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     return NextResponse.json({ rows: [], error: msg }, { status: 200 });

@@ -20,7 +20,9 @@ interface PositionsResp {
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
-const COLORS = ["#d4a64a", "#60a5fa", "#4ade80", "#a78bfa", "#f59e0b", "#6ee7b7", "#f87171", "#e879f9"];
+/* Monochrome doughnut: top slice is violet, the rest cascade through
+   text/muted/tertiary/border tones. No colorful wheel. */
+const COLORS = ["#8B5CF6", "#E4E4E7", "#A1A1AA", "#6B6B73", "#4A4A50", "#3A3A3E", "#2E2E34", "#242428"];
 
 export function SectorDoughnut({ book }: { book: string }) {
   const bookParam = book === "all" ? "" : `?book=${book}`;
@@ -48,8 +50,8 @@ export function SectorDoughnut({ book }: { book: string }) {
         {
           data: values,
           backgroundColor: labels.map((_, i) => COLORS[i % COLORS.length]),
-          borderColor: "#111820",
-          borderWidth: 2,
+          borderColor: "#141418",
+          borderWidth: 1,
         },
       ],
     };
@@ -60,8 +62,24 @@ export function SectorDoughnut({ book }: { book: string }) {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: { position: "right" as const, labels: { color: "#7a8699", boxWidth: 10, padding: 8, font: { size: 11 } } },
+        legend: {
+          position: "right" as const,
+          labels: {
+            color: "#A1A1AA",
+            boxWidth: 8,
+            padding: 8,
+            font: { family: "JetBrains Mono", size: 11 },
+          },
+        },
         tooltip: {
+          backgroundColor: "#141418",
+          borderColor: "#242428",
+          borderWidth: 1,
+          padding: 10,
+          titleColor: "#E4E4E7",
+          bodyColor: "#A1A1AA",
+          titleFont: { family: "JetBrains Mono", size: 10 },
+          bodyFont: { family: "JetBrains Mono", size: 11 },
           callbacks: {
             label: (ctx: { label: string; parsed: number; dataset: { data: number[] } }) => {
               const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
@@ -71,7 +89,7 @@ export function SectorDoughnut({ book }: { book: string }) {
           },
         },
       },
-      cutout: "65%",
+      cutout: "68%",
     }),
     [],
   );

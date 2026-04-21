@@ -19,20 +19,20 @@ export function Panel({
   return (
     <section
       className={clsx(
-        "panel-gradient panel-elev border border-border rounded-[6px] overflow-hidden",
+        "bg-panel border border-border rounded-[10px] overflow-hidden",
         className,
       )}
     >
       {(title || actions) && (
-        <header className="flex items-center justify-between px-4 py-[10px] border-b border-border">
+        <header className="flex items-center justify-between px-4 py-3 border-b border-border">
           <div>
             {title && (
-              <h2 className="text-[11px] font-semibold tracking-[0.14em] uppercase text-fg">
+              <h2 className="text-[13px] font-medium tracking-[-0.01em] text-fg">
                 {title}
               </h2>
             )}
             {subtitle && (
-              <div className="text-[10px] text-muted tracking-wide mt-[2px]">{subtitle}</div>
+              <div className="text-[11px] text-muted mt-[2px]">{subtitle}</div>
             )}
           </div>
           {actions && <div className="flex items-center gap-2">{actions}</div>}

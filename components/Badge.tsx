@@ -2,25 +2,28 @@ import type { ReactNode } from "react";
 import type { AssetClass, BookType, Severity } from "@/lib/types";
 import { clsx } from "@/lib/format";
 
+/* New language: chips are monochrome (elevated bg, muted text) with violet-accent
+   reserved for the primary semantic state and success/loss for P&L-like meaning. */
+
 const ASSET_STYLE: Record<AssetClass, string> = {
-  idx_equity: "bg-blue-900/30 text-blue-300 border-blue-900/60",
-  us_equity: "bg-green-900/30 text-green-300 border-green-900/60",
-  crypto: "bg-amber-900/30 text-amber-300 border-amber-900/60",
-  fx: "bg-purple-900/30 text-purple-300 border-purple-900/60",
-  other: "bg-slate-700/40 text-slate-300 border-slate-700",
+  idx_equity: "bg-elevated text-muted border-border",
+  us_equity: "bg-elevated text-muted border-border",
+  crypto: "bg-elevated text-muted border-border",
+  fx: "bg-elevated text-muted border-border",
+  other: "bg-elevated text-muted border-border",
 };
 
 const BOOK_STYLE: Record<BookType, string> = {
-  investing: "bg-teal-900/30 text-teal-300 border-teal-900/60",
-  idx_trading: "bg-blue-900/30 text-blue-300 border-blue-900/60",
-  crypto_trading: "bg-amber-900/30 text-amber-300 border-amber-900/60",
-  other: "bg-slate-700/40 text-slate-300 border-slate-700",
+  investing: "bg-elevated text-muted border-border",
+  idx_trading: "bg-elevated text-muted border-border",
+  crypto_trading: "bg-elevated text-muted border-border",
+  other: "bg-elevated text-muted border-border",
 };
 
 const SEVERITY_STYLE: Record<Severity, string> = {
-  info: "bg-blue-900/30 text-blue-300 border-blue-900/60",
-  warning: "bg-amber-900/30 text-amber-300 border-amber-900/60",
-  critical: "bg-red-900/40 text-red-300 border-red-900/60",
+  info: "bg-[rgba(139,92,246,0.12)] text-[#B794F6] border-transparent",
+  warning: "bg-[rgba(184,104,104,0.12)] text-loss border-transparent",
+  critical: "bg-[rgba(184,104,104,0.2)] text-loss border-transparent",
 };
 
 export function Badge({
@@ -33,7 +36,7 @@ export function Badge({
   return (
     <span
       className={clsx(
-        "inline-flex items-center px-[6px] py-[1px] border rounded text-[10px] font-medium tracking-wider uppercase",
+        "inline-flex items-center px-[7px] py-[2px] border rounded-[3px] text-[10.5px] font-medium mono tracking-normal",
         className,
       )}
     >
@@ -43,13 +46,13 @@ export function Badge({
 }
 
 export function AssetBadge({ cls }: { cls: AssetClass }) {
-  const label = cls === "idx_equity" ? "IDX" : cls === "us_equity" ? "US" : cls === "crypto" ? "CRYPTO" : cls.toUpperCase();
+  const label = cls === "idx_equity" ? "idx" : cls === "us_equity" ? "us" : cls === "crypto" ? "crypto" : cls;
   return <Badge className={ASSET_STYLE[cls]}>{label}</Badge>;
 }
 
 export function BookBadge({ book }: { book: BookType }) {
   const label =
-    book === "investing" ? "INV" : book === "idx_trading" ? "IDX" : book === "crypto_trading" ? "CRYPTO" : "OTHER";
+    book === "investing" ? "inv" : book === "idx_trading" ? "idx" : book === "crypto_trading" ? "crypto" : "other";
   return <Badge className={BOOK_STYLE[book]}>{label}</Badge>;
 }
 
