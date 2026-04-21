@@ -55,6 +55,12 @@ function isAuthorized(req: NextRequest): boolean {
   return safeEq(auth, `Bearer ${secret}`);
 }
 
+// POST is an alias for GET so GitHub Actions / external cron schedulers can
+// call either verb with the same Bearer auth. Keeps parity with hot-news.
+export async function POST(req: NextRequest) {
+  return GET(req);
+}
+
 export async function GET(req: NextRequest) {
   if (!isAuthorized(req)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
