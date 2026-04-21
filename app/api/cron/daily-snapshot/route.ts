@@ -2,7 +2,53 @@ import { NextResponse, type NextRequest } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { getQuote, getUsdIdr } from "@/lib/prices";
 import { getIdxHistory, getUsHistory } from "@/lib/prices";
+import {
+  getClearinghouseState,
+  getSpotClearinghouseState,
+  getAllMids,
+  getSpotMeta,
+} from "@/lib/crypto/hyperliquid";
 import type { AssetClass, BookType } from "@/lib/types";
+
+const STABLES = new Set(["USDC", "USDT", "USDE", "DAI", "FDUSD", "USDB"]);
+
+async function getHyperliquidAccountValueUsd(address: string): Promise<number> {
+  try {
+    const [perp, spot, mids, spotMeta] = await Promise.all([
+      getClearinghouseState(address).catch(() => null),
+      getSpotClearinghouseState(address).catch(() => null),
+      getAllMids().catch(() => ({} as Record<string, string>)),
+      getSpotMeta().catch(() => null),
+    ]);
+    const priceByCoin: Record<string, number> = {};
+    if (spotMeta) {
+      for (const u of spotMeta.universe) {
+        const m = mids[u.name];
+        if (!m) continue;
+        const baseIdx = u.tokens[0];
+        const base = spotMeta.tokens.find((t) => t.index === baseIdx);
+        if (base) priceByCoin[base.name.toUpperCase()] = parseFloat(m);
+      }
+    }
+    let spotValueUsd = 0;
+    if (spot?.balances) {
+      for (const b of spot.balances) {
+        const total = parseFloat(b.total);
+        if (total === 0) continue;
+        const coin = b.coin.toUpperCase();
+        let px = 0;
+        if (STABLES.has(coin)) px = 1;
+        else if (priceByCoin[coin]) px = priceByCoin[coin];
+        else px = parseFloat(b.entryNtl) / (total || 1);
+        spotValueUsd += total * px;
+      }
+    }
+    const perpAccountValue = perp ? parseFloat(perp.marginSummary.accountValue) : 0;
+    return perpAccountValue + spotValueUsd;
+  } catch {
+    return 0;
+  }
+}
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -82,12 +128,24 @@ async function run(req: NextRequest) {
     }
   }
 
-  // Get all users with any trades
-  const { data: userRows } = await supabase.from("trades").select("user_id").limit(10000);
-  const users = [...new Set((userRows || []).map((r) => r.user_id))];
+  // Collect users from trades AND user_settings (to catch HL-only users)
+  const [{ data: tradeUserRows }, { data: settingsUserRows }] = await Promise.all([
+    supabase.from("trades").select("user_id").limit(10000),
+    supabase.from("user_settings").select("user_id,hyperliquid_address").not("hyperliquid_address", "is", null),
+  ]);
+  const hlByUser = new Map<string, string>();
+  for (const r of settingsUserRows || []) {
+    if (r.hyperliquid_address) hlByUser.set(r.user_id, r.hyperliquid_address);
+  }
+  const users = [
+    ...new Set([
+      ...(tradeUserRows || []).map((r) => r.user_id),
+      ...hlByUser.keys(),
+    ]),
+  ];
 
   for (const user_id of users) {
-    await snapshotUser(supabase, user_id, today, usdIdr);
+    await snapshotUser(supabase, user_id, today, usdIdr, hlByUser.get(user_id) ?? null);
   }
 
   return NextResponse.json({ ok: true, users: users.length, date: today });
@@ -98,6 +156,7 @@ async function snapshotUser(
   user_id: string,
   date: string,
   usdIdr: number,
+  hyperliquidAddress: string | null,
 ) {
   const { data: openRows } = await supabase
     .from("v_open_positions")
@@ -124,22 +183,63 @@ async function snapshotUser(
     .not("exit_price", "is", null);
   const realized = (realizedRows || []) as RealizedRow[];
 
+  // Live Hyperliquid value for crypto book (if address configured)
+  const hlUsd = hyperliquidAddress ? await getHyperliquidAccountValueUsd(hyperliquidAddress) : 0;
+  const hlIdr = hlUsd * usdIdr;
+
   const books: BookType[] = ["investing", "idx_trading", "crypto_trading", "other"];
 
-  const calc = (filterBook: BookType | "all") => {
-    const exp = filterBook === "all" ? enriched : enriched.filter((p) => p.book === filterBook);
-    const mv = exp.reduce((a, p) => a + Math.abs(p.mvIdr), 0);
-    const netMv = exp.reduce((a, p) => a + p.mvIdr, 0);
-    const unreal = exp.reduce((a, p) => a + p.unrealIdr, 0);
-    const r = filterBook === "all" ? realized : realized.filter((r) => r.book === filterBook);
-    const realSum = r.reduce(
+  const sumRealized = (rows: RealizedRow[]) =>
+    rows.reduce(
       (a, r) => a + toIdr(r.net_pnl_native ?? r.pnl_native ?? 0, r.pnl_currency, r.fx_rate_to_idr, usdIdr),
       0,
     );
-    const nav = mv + realSum;
+
+  const calc = (filterBook: BookType | "all") => {
+    // --- MV / net / unreal ------------------------------------------------
+    // When HL is present, the crypto book's live value IS Hyperliquid's
+    // accountValue. Sheet-sourced crypto positions are dropped to avoid
+    // counting the same capital twice.
+    const sheetForMv =
+      filterBook === "all"
+        ? hlIdr > 0
+          ? enriched.filter((p) => p.book !== "crypto_trading")
+          : enriched
+        : enriched.filter((p) => p.book === filterBook);
+    let mv = sheetForMv.reduce((a, p) => a + Math.abs(p.mvIdr), 0);
+    let netMv = sheetForMv.reduce((a, p) => a + p.mvIdr, 0);
+    const unreal = sheetForMv.reduce((a, p) => a + p.unrealIdr, 0);
+
+    if (filterBook === "crypto_trading" && hlIdr > 0) {
+      mv = hlIdr;
+      netMv = hlIdr;
+    } else if (filterBook === "all" && hlIdr > 0) {
+      mv += hlIdr;
+      netMv += hlIdr;
+    }
+
+    // --- Realized for display (KPI line) ---------------------------------
+    const realizedDisplay =
+      filterBook === "all" ? realized : realized.filter((r) => r.book === filterBook);
+    const realSumDisplay = sumRealized(realizedDisplay);
+
+    // --- Realized that feeds the NAV formula -----------------------------
+    // HL's accountValue already compounds closed-trade P&L inside the
+    // account. Adding crypto realized on top would double-count — so we
+    // strip crypto realized whenever HL is present.
+    let realSumForNav: number;
+    if (hlIdr > 0 && filterBook === "crypto_trading") {
+      realSumForNav = 0;
+    } else if (hlIdr > 0 && filterBook === "all") {
+      realSumForNav = sumRealized(realized.filter((r) => r.book !== "crypto_trading"));
+    } else {
+      realSumForNav = realSumDisplay;
+    }
+
+    const nav = mv + realSumForNav;
     return {
       nav_idr: nav,
-      realized_pnl_idr: realSum,
+      realized_pnl_idr: realSumDisplay,
       unrealized_pnl_idr: unreal,
       gross_exposure_pct: nav > 0 ? (mv / nav) * 100 : 0,
       net_exposure_pct: nav > 0 ? (netMv / nav) * 100 : 0,

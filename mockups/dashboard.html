@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Aeternum — Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,wght@0,400;0,500;1,400;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_shared.css">
+<style>
+  .hdr { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 20px; }
+  .hdr-title .t1 { font-size: 18px; font-weight: 500; letter-spacing: -0.01em; }
+  .hdr-title .t2 { font-family: 'Source Serif 4', serif; font-style: italic; font-size: 13px; color: var(--text-2); margin-top: 2px; }
+
+  .kpi {
+    display: grid; grid-template-columns: 1fr 1px 1fr 1px 1fr 1px 1fr;
+    align-items: center;
+    padding: 12px 0;
+    margin-bottom: 16px;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+  .kpi .v { display: flex; flex-direction: column; gap: 3px; padding: 0 20px; }
+  .kpi .v .lbl { font-size: 11px; color: var(--text-3); }
+  .kpi .v .num { font-family: 'JetBrains Mono', monospace; font-variant-numeric: tabular-nums; font-size: 17px; letter-spacing: -0.01em; color: var(--text-1); }
+  .kpi .v .delta { font-family: 'JetBrains Mono', monospace; font-variant-numeric: tabular-nums; font-size: 11px; }
+
+  /* Benchmark chart block */
+  .bench {
+    margin-bottom: 16px;
+    padding: 14px 16px 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+  .bench-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+  .bench-head .left { display: flex; align-items: baseline; gap: 14px; }
+  .bench-head .t { font-size: 12.5px; font-weight: 500; color: var(--text-1); }
+  .bench-head .legend { display: flex; align-items: center; gap: 14px; font-family: 'JetBrains Mono', monospace; font-size: 10.5px; }
+  .bench-head .legend .k { display: inline-flex; align-items: center; gap: 6px; color: var(--text-2); }
+  .bench-head .legend .k::before { content:''; width:14px; height:1px; background: currentColor; display: inline-block; }
+  .bench-head .legend .nav { color: var(--text-1); }
+  .bench-head .legend .jci { color: var(--text-2); }
+  .bench-head .legend .spx { color: var(--text-3); }
+  .bench-head .tabs { display: flex; gap: 4px; }
+  .bench-head .tabs .tab { font-size: 11px; color: var(--text-3); padding: 3px 8px; border-radius: 3px; cursor: pointer; }
+  .bench-head .tabs .tab.active { color: var(--text-1); background: var(--elevated); }
+
+  .grid { display: grid; grid-template-columns: 1fr 340px; gap: 20px; }
+
+  .section-title { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 10px; }
+  .section-title .left { font-size: 12px; color: var(--text-2); display: flex; align-items: baseline; gap: 10px; }
+  .section-title .count { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-3); }
+  .section-title .tabs { display: flex; gap: 2px; }
+  .section-title .tabs .tab { font-size: 11px; color: var(--text-3); padding: 3px 8px; border-radius: 3px; cursor: pointer; }
+  .section-title .tabs .tab.active { color: var(--text-1); background: var(--elevated); }
+
+  .signal {
+    padding: 14px 16px;
+    border-top: 1px solid var(--border);
+    display: grid; grid-template-columns: 96px 1fr auto; gap: 16px; align-items: start;
+  }
+  .signal:first-child { border-top: none; }
+  .signal:hover { background: var(--surface); }
+  .signal .agent { display: flex; flex-direction: column; gap: 6px; }
+  .signal .agent .chip { align-self: flex-start; }
+  .signal .agent .time { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: var(--text-3); }
+  .signal .body .title { font-size: 13.5px; font-weight: 500; letter-spacing: -0.01em; color: var(--text-1); line-height: 1.4; }
+  .signal .body .sub { font-size: 12px; color: var(--text-2); margin-top: 4px; line-height: 1.5; }
+  .signal .meta { display: flex; align-items: center; gap: 8px; font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: var(--text-3); }
+
+  .positions-tbl .ticker { font-family: 'JetBrains Mono', monospace; font-weight: 500; color: var(--text-1); }
+  .positions-tbl .w, .positions-tbl .pnl { font-family: 'JetBrains Mono', monospace; font-variant-numeric: tabular-nums; }
+  .positions-tbl td { padding: 9px 8px; }
+  .positions-tbl .sp { width: 50px; }
+
+  .calendar-row {
+    display: grid; grid-template-columns: 60px 1fr auto; gap: 12px; align-items: baseline;
+    padding: 8px 0;
+    border-top: 1px solid var(--border);
+  }
+  .calendar-row:first-of-type { border-top: none; }
+  .calendar-row .d { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-3); }
+  .calendar-row .ev { font-size: 12.5px; color: var(--text-1); }
+  .calendar-row .tag { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: var(--text-2); }
+</style>
+</head>
+<body>
+<!-- inject icons -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-grid" viewBox="0 0 16 16"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="2.25" y="2.25" width="4.5" height="4.5" rx="1"/><rect x="9.25" y="2.25" width="4.5" height="4.5" rx="1"/><rect x="2.25" y="9.25" width="4.5" height="4.5" rx="1"/><rect x="9.25" y="9.25" width="4.5" height="4.5" rx="1"/></g></symbol>
+    <symbol id="i-book" viewBox="0 0 16 16"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h7a2 2 0 0 1 2 2v8H5a2 2 0 0 0-2 2V3Z"/><path d="M3 13a2 2 0 0 1 2-2h7"/></g></symbol>
+    <symbol id="i-coin" viewBox="0 0 16 16"><g fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="5.5"/><path d="M8 5v6M6.5 6.5h2.25a1.25 1.25 0 0 1 0 2.5H6.5m0 0h2.5a1.25 1.25 0 0 1 0 2.5H6.5" stroke-linecap="round"/></g></symbol>
+    <symbol id="i-chart" viewBox="0 0 16 16"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 2.5v11h11"/><path d="M5 11 7.5 8 10 10.5 13 6"/></g></symbol>
+    <symbol id="i-bars" viewBox="0 0 16 16"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3.5 13V8M8 13V3M12.5 13v-7"/></g></symbol>
+    <symbol id="i-shield" viewBox="0 0 16 16"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M8 2.5 3 4v5c0 3 2 4.5 5 5 3-.5 5-2 5-5V4L8 2.5Z"/></g></symbol>
+    <symbol id="i-note" viewBox="0 0 16 16"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 2.5h6l3 3v8h-9v-11Z"/><path d="M9.5 2.5V5.5h3"/><path d="M6 9h4M6 11.5h4"/></g></symbol>
+    <symbol id="i-bell" viewBox="0 0 16 16"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11c0-3 .5-6 4-6s4 3 4 6H4Z"/><path d="M6.5 13.25a1.5 1.5 0 0 0 3 0"/></g></symbol>
+    <symbol id="i-eye" viewBox="0 0 16 16"><g fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1.5 8s2.5-4.5 6.5-4.5S14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8Z"/><circle cx="8" cy="8" r="1.75"/></g></symbol>
+    <symbol id="i-news" viewBox="0 0 16 16"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 3.5h9v10H4a1.5 1.5 0 0 1-1.5-1.5v-8.5Z"/><path d="M11.5 6h2v6a1.5 1.5 0 0 1-1.5 1.5H11"/><path d="M4.5 6h5M4.5 8.5h5M4.5 11h3"/></g></symbol>
+    <symbol id="i-cal" viewBox="0 0 16 16"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="2.5" y="3.5" width="11" height="10" rx="1.5"/><path d="M2.5 6.5h11M5.5 2v3M10.5 2v3"/></g></symbol>
+    <symbol id="i-sparkle" viewBox="0 0 16 16"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2.5 9.25 6.75 13.5 8 9.25 9.25 8 13.5 6.75 9.25 2.5 8 6.75 6.75Z"/></g></symbol>
+    <symbol id="i-gear" viewBox="0 0 16 16"><g fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="2"/><path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.5 3.5l1.5 1.5M11 11l1.5 1.5M3.5 12.5 5 11M11 5l1.5-1.5" stroke-linecap="round"/></g></symbol>
+    <symbol id="i-dot" viewBox="0 0 16 16"><circle cx="8" cy="8" r="2" fill="currentColor"/></symbol>
+  </defs>
+</svg>
+
+<div class="app">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="brand-mark"></span> Aeternum
+      <span class="brand-label">v0.4</span>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-item active"><svg width="14" height="14"><use href="#i-grid"/></svg> Dashboard</div>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-label">Books</div>
+      <div class="nav-item"><svg width="14" height="14"><use href="#i-book"/></svg> Holdings</div>
+      <div class="nav-item"><svg width="14" height="14"><use href="#i-coin"/></svg> Crypto</div>
+      <div class="nav-item"><svg width="14" height="14"><use href="#i-chart"/></svg> IDX trades</div>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-label">Analysis</div>
+      <div class="nav-item"><svg width="14" height="14"><use href="#i-bars"/></svg> Positions</div>
+      <div class="nav-item"><svg width="14" height="14"><use href="#i-chart"/></svg> Benchmarks</div>
+      <div class="nav-item"><svg width="14" height="14"><use href="#i-shield"/></svg> Risk</div>
+      <div class="nav-item"><svg width="14" height="14"><use href="#i-note"/></svg> Journal</div>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-label">Tools</div>
+      <div class="nav-item"><svg width="14" height="14"><use href="#i-bell"/></svg> Alerts</div>
+      <div class="nav-item"><svg width="14" height="14"><use href="#i-eye"/></svg> Watchlist</div>
+      <div class="nav-item"><svg width="14" height="14"><use href="#i-news"/></svg> News feed</div>
+      <div class="nav-item"><svg width="14" height="14"><use href="#i-cal"/></svg> Earnings</div>
+      <div class="nav-item"><svg width="14" height="14"><use href="#i-sparkle"/></svg> Agents</div>
+      <div class="nav-item"><svg width="14" height="14"><use href="#i-gear"/></svg> Settings</div>
+    </div>
+  </aside>
+
+  <!-- Canvas -->
+  <main class="canvas">
+    <!-- Header -->
+    <header class="hdr">
+      <div class="hdr-title">
+        <div class="t1">Dashboard</div>
+        <div class="t2">Good afternoon, Jenson.</div>
+      </div>
+      <div style="display:flex; align-items:center; gap:12px;">
+        <span class="live">14:32 SGT</span>
+      </div>
+    </header>
+
+    <!-- KPI strip -->
+    <div class="kpi">
+      <div class="v">
+        <span class="lbl">NAV</span>
+        <span class="num">$4,821,044.12</span>
+        <span class="delta pos">+1.21% today</span>
+      </div>
+      <div class="vdiv"></div>
+      <div class="v">
+        <span class="lbl">USD/IDR</span>
+        <span class="num">16,342</span>
+        <span class="delta pos">+0.04%</span>
+      </div>
+      <div class="vdiv"></div>
+      <div class="v">
+        <span class="lbl">JCI</span>
+        <span class="num">7,284.10</span>
+        <span class="delta neg">−0.21%</span>
+      </div>
+      <div class="vdiv"></div>
+      <div class="v">
+        <span class="lbl">Cash</span>
+        <span class="num">12.4%</span>
+        <span class="delta tertiary">of book</span>
+      </div>
+    </div>
+
+    <!-- Benchmark chart -->
+    <section class="bench">
+      <div class="bench-head">
+        <div class="left">
+          <span class="t">NAV vs benchmarks</span>
+          <span class="legend">
+            <span class="k nav">NAV +14.2% YTD</span>
+            <span class="k jci" style="color:var(--text-2)">JCI +2.1%</span>
+            <span class="k spx" style="color:var(--text-3)">S&amp;P 500 +6.8%</span>
+          </span>
+        </div>
+        <div style="display:flex; gap:16px; align-items:center;">
+          <div class="tabs">
+            <span class="tab">All</span>
+            <span class="tab active">Investing</span>
+            <span class="tab">IDX trades</span>
+            <span class="tab">Crypto</span>
+          </div>
+          <div class="tabs">
+            <span class="tab">1M</span>
+            <span class="tab">3M</span>
+            <span class="tab active">YTD</span>
+            <span class="tab">1Y</span>
+            <span class="tab">ALL</span>
+          </div>
+        </div>
+      </div>
+
+      <svg width="100%" height="180" viewBox="0 0 1320 180" preserveAspectRatio="none" style="display:block;">
+        <!-- Y axis labels -->
+        <g font-family="JetBrains Mono, monospace" font-size="10" fill="#6B6B73">
+          <text x="4" y="18">+15%</text>
+          <text x="4" y="54">+10%</text>
+          <text x="4" y="90">+5%</text>
+          <text x="4" y="126">0%</text>
+          <text x="4" y="162">−5%</text>
+        </g>
+
+        <!-- Zero line -->
+        <line x1="42" y1="126" x2="1316" y2="126" stroke="#242428" stroke-width="1"/>
+
+        <!-- S&P 500 (dotted, tertiary) — YTD +6.8% -->
+        <polyline fill="none" stroke="#6B6B73" stroke-width="1" stroke-dasharray="1 4" stroke-linejoin="round" stroke-linecap="round"
+          points="42,126 105,124 168,120 231,122 294,118 357,112 420,116 483,108 546,102 609,108 672,100 735,96 798,98 861,92 924,94 987,88 1050,90 1113,84 1176,88 1239,82 1316,78"/>
+        <text x="1316" y="76" text-anchor="end" font-family="JetBrains Mono, monospace" font-size="10" fill="#6B6B73">S&amp;P +6.8%</text>
+
+        <!-- JCI (dashed, secondary) — YTD +2.1% -->
+        <polyline fill="none" stroke="#A1A1AA" stroke-width="1" stroke-dasharray="4 3" stroke-linejoin="round" stroke-linecap="round"
+          points="42,126 105,122 168,128 231,124 294,132 357,126 420,130 483,118 546,122 609,116 672,120 735,114 798,118 861,112 924,116 987,108 1050,114 1113,110 1176,106 1239,112 1316,110"/>
+        <text x="1316" y="108" text-anchor="end" font-family="JetBrains Mono, monospace" font-size="10" fill="#A1A1AA">JCI +2.1%</text>
+
+        <!-- NAV (solid primary, 1.25px) — YTD +14.2% -->
+        <polyline fill="none" stroke="#E4E4E7" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"
+          points="42,126 105,120 168,116 231,112 294,108 357,98 420,104 483,90 546,82 609,90 672,76 735,68 798,72 861,62 924,58 987,52 1050,48 1113,40 1176,46 1239,32 1316,24"/>
+        <circle cx="1316" cy="24" r="3" fill="#E4E4E7"/>
+        <text x="1310" y="20" text-anchor="end" font-family="JetBrains Mono, monospace" font-size="10" fill="#E4E4E7">+14.2%</text>
+
+        <!-- X axis labels -->
+        <g font-family="JetBrains Mono, monospace" font-size="10" fill="#6B6B73">
+          <text x="42" y="178">Jan 1</text>
+          <text x="294" y="178">Feb 1</text>
+          <text x="546" y="178">Mar 1</text>
+          <text x="798" y="178">Mar 24</text>
+          <text x="1050" y="178">Apr 8</text>
+          <text x="1316" y="178" text-anchor="end">Apr 21</text>
+        </g>
+      </svg>
+    </section>
+
+    <!-- Grid -->
+    <div class="grid">
+      <!-- Left: Agent signals feed -->
+      <section>
+        <div class="section-title">
+          <div class="left">
+            <span class="h3">Agent signals</span>
+            <span class="count">4 new · last 3h</span>
+          </div>
+          <div class="tabs">
+            <span class="tab active">All</span>
+            <span class="tab">Urgent</span>
+            <span class="tab">Archived</span>
+          </div>
+        </div>
+        <div class="card" style="padding: 0;">
+          <!-- Signal 1: USD/IDR -->
+          <div class="signal">
+            <div class="agent">
+              <span class="chip">Macro</span>
+              <span class="time">14:18 SGT</span>
+            </div>
+            <div class="body">
+              <div class="title">USD/IDR broke above 16,300 on BI non-intervention — rupiah weakness transmits to foreign selling pressure across IDX blue chips.</div>
+              <div class="sub">BI held rate at 6.00% this morning; carry narrowed to 125bp over Fed. Short-term watch BBCA, BMRI, TLKM flows.</div>
+            </div>
+            <div class="meta">
+              <span class="chip flag">urgency 3</span>
+              <span>↗ 0.6%</span>
+            </div>
+          </div>
+          <!-- Signal 2: Coal concentration -->
+          <div class="signal">
+            <div class="agent">
+              <span class="chip">Risk Sentinel</span>
+              <span class="time">13:41 SGT</span>
+            </div>
+            <div class="body">
+              <div class="title">Coal exposure concentration: 32% of book across ADRO + ADMR — above your 25% single-sector rule.</div>
+              <div class="sub">Newcastle thermal at $122/t, within range but structural China demand soft. Consider trim on either leg.</div>
+            </div>
+            <div class="meta">
+              <span class="chip flag">urgency 2</span>
+            </div>
+          </div>
+          <!-- Signal 3: MDKA copper -->
+          <div class="signal">
+            <div class="agent">
+              <span class="chip">Alpha Gen</span>
+              <span class="time">11:55 SGT</span>
+            </div>
+            <div class="body">
+              <div class="title">MDKA Q1 call: management re-iterated copper guidance 130k–160k t despite Tujuh Bukit ramp slower than mid-point.</div>
+              <div class="sub">Street model already at 135k. Upside scenario if LME copper holds $9,800/t. Thesis intact.</div>
+            </div>
+            <div class="meta">
+              <span class="chip ok">urgency 1</span>
+            </div>
+          </div>
+          <!-- Signal 4: RLCO lockup -->
+          <div class="signal">
+            <div class="agent">
+              <span class="chip">Universe Brief</span>
+              <span class="time">09:12 SGT</span>
+            </div>
+            <div class="body">
+              <div class="title">RLCO post-lockup setup — founder-aligned, insider buying 4 days running, float tightens May 3.</div>
+              <div class="sub">Small-cap structural catalyst. Sits in your alpha wheelhouse. Initial sizing memo ready for review.</div>
+            </div>
+            <div class="meta">
+              <span class="chip">new</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right: positions + calendar -->
+      <aside style="display:flex; flex-direction:column; gap:20px;">
+        <!-- Positions -->
+        <div>
+          <div class="section-title">
+            <div class="left">
+              <span class="h3">Positions</span>
+              <span class="count">5 open</span>
+            </div>
+          </div>
+          <div class="card" style="padding: 4px 12px;">
+            <table class="tbl positions-tbl">
+              <thead>
+                <tr>
+                  <th style="width:40px;">Tkr</th>
+                  <th style="text-align:right;">Wt</th>
+                  <th style="text-align:right;">P&amp;L</th>
+                  <th style="text-align:center;">7d</th>
+                  <th style="text-align:right;">Thesis</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="ticker">WIFI</td>
+                  <td class="w" style="text-align:right;">14.2%</td>
+                  <td class="pnl pos" style="text-align:right;">+8.4%</td>
+                  <td style="text-align:center;">
+                    <svg width="46" height="14" viewBox="0 0 46 14" fill="none"><polyline points="1,9 6,8 11,10 16,7 21,6 26,7 31,5 36,4 41,3 45,2" stroke="#4A9D7C" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </td>
+                  <td style="text-align:right;"><span class="chip ok">OK</span></td>
+                </tr>
+                <tr>
+                  <td class="ticker">GOTO</td>
+                  <td class="w" style="text-align:right;">11.0%</td>
+                  <td class="pnl neg" style="text-align:right;">−3.1%</td>
+                  <td style="text-align:center;">
+                    <svg width="46" height="14" viewBox="0 0 46 14" fill="none"><polyline points="1,4 6,5 11,4 16,6 21,7 26,6 31,8 36,9 41,10 45,11" stroke="#B86868" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </td>
+                  <td style="text-align:right;"><span class="chip flag">Flag</span></td>
+                </tr>
+                <tr>
+                  <td class="ticker">ADRO</td>
+                  <td class="w" style="text-align:right;">18.6%</td>
+                  <td class="pnl pos" style="text-align:right;">+11.4%</td>
+                  <td style="text-align:center;">
+                    <svg width="46" height="14" viewBox="0 0 46 14" fill="none"><polyline points="1,10 6,9 11,8 16,7 21,9 26,6 31,5 36,4 41,3 45,3" stroke="#4A9D7C" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </td>
+                  <td style="text-align:right;"><span class="chip ok">OK</span></td>
+                </tr>
+                <tr>
+                  <td class="ticker">ADMR</td>
+                  <td class="w" style="text-align:right;">13.4%</td>
+                  <td class="pnl pos" style="text-align:right;">+6.7%</td>
+                  <td style="text-align:center;">
+                    <svg width="46" height="14" viewBox="0 0 46 14" fill="none"><polyline points="1,8 6,7 11,8 16,6 21,5 26,6 31,5 36,6 41,4 45,4" stroke="#4A9D7C" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </td>
+                  <td style="text-align:right;"><span class="chip flag">Flag</span></td>
+                </tr>
+                <tr>
+                  <td class="ticker">EXCL</td>
+                  <td class="w" style="text-align:right;">7.8%</td>
+                  <td class="pnl neg" style="text-align:right;">−1.2%</td>
+                  <td style="text-align:center;">
+                    <svg width="46" height="14" viewBox="0 0 46 14" fill="none"><polyline points="1,6 6,7 11,6 16,7 21,8 26,7 31,8 36,7 41,8 45,7" stroke="#B86868" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </td>
+                  <td style="text-align:right;"><span class="chip">Hold</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- This week -->
+        <div>
+          <div class="section-title">
+            <div class="left">
+              <span class="h3 serif" style="font-family:'Source Serif 4',serif; font-weight:400;">This week</span>
+              <span class="count">4 events</span>
+            </div>
+          </div>
+          <div class="card" style="padding: 4px 16px;">
+            <div class="calendar-row">
+              <span class="d">Apr 22</span>
+              <span class="ev">BBRI Q1 earnings release</span>
+              <span class="tag">pre-market</span>
+            </div>
+            <div class="calendar-row">
+              <span class="d">Apr 23</span>
+              <span class="ev">Bank Indonesia rate decision</span>
+              <span class="tag">14:00 WIB</span>
+            </div>
+            <div class="calendar-row">
+              <span class="d">Apr 24</span>
+              <span class="ev">ADRO Q1 results + call</span>
+              <span class="tag">during</span>
+            </div>
+            <div class="calendar-row">
+              <span class="d">Apr 25</span>
+              <span class="ev">Fed Beige Book release</span>
+              <span class="tag">14:00 EDT</span>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </main>
+</div>
+</body>
+</html>

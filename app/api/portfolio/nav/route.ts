@@ -153,11 +153,12 @@ export async function GET(req: NextRequest) {
     let gross_mv = exp.reduce((a, p) => a + Math.abs(p.mvIdr), 0);
     let net_mv = exp.reduce((a, p) => a + p.mvIdr, 0);
     let unreal = exp.reduce((a, p) => a + p.unrealIdr, 0);
-    // Hyperliquid live account value is the source of truth for the crypto book
+    // Hyperliquid live account value is the source of truth for the crypto book.
+    // HL accountValue already reflects unrealized drift, so replace — don't add.
     if (b === "crypto_trading" && hlIdr > 0) {
       gross_mv = hlIdr;
       net_mv = hlIdr;
-      unreal += hlUnrealIdr;
+      unreal = hlUnrealIdr; // perp unrealized from HL; no sheet add-on
     }
     const realAll = realized
       .filter((r) => r.book === b)
@@ -195,29 +196,44 @@ export async function GET(req: NextRequest) {
   if (bookFilter === "crypto_trading") {
     gross_mv = hlIdr;
     net_mv = hlIdr;
-    unrealized = sheetUnrealAll + hlUnrealIdr;
+    // HL's accountValue already captures unrealized — don't stack sheet on top
+    unrealized = hlIdr > 0 ? hlUnrealIdr : sheetUnrealAll;
   } else if (bookFilter === "all") {
+    const unrealNonCrypto = enriched
+      .filter((p) => p.book !== "crypto_trading")
+      .reduce((a, p) => a + p.unrealIdr, 0);
     gross_mv = sheetMvNonCrypto + hlIdr;
     net_mv = sheetNetNonCrypto + hlIdr;
-    unrealized = sheetUnrealAll + hlUnrealIdr;
+    unrealized = unrealNonCrypto + (hlIdr > 0 ? hlUnrealIdr : 0);
   } else {
     gross_mv = sheetMvAll;
     net_mv = sheetNetAll;
     unrealized = sheetUnrealAll;
   }
 
-  const realized_all = realized.reduce(
-    (a, r) => a + toIdr(r.net_pnl_native ?? r.pnl_native ?? 0, r.pnl_currency, r.fx_rate_to_idr, usdIdr),
-    0,
-  );
+  const toRealIdr = (r: RealizedRow) =>
+    toIdr(r.net_pnl_native ?? r.pnl_native ?? 0, r.pnl_currency, r.fx_rate_to_idr, usdIdr);
+
+  // Display-side realized — shown in KPIs as "Realized P&L"
+  const realized_all = realized.reduce((a, r) => a + toRealIdr(r), 0);
   const realized_ytd = realized
     .filter((r) => r.trade_date >= ytdStart)
-    .reduce(
-      (a, r) => a + toIdr(r.net_pnl_native ?? r.pnl_native ?? 0, r.pnl_currency, r.fx_rate_to_idr, usdIdr),
-      0,
-    );
+    .reduce((a, r) => a + toRealIdr(r), 0);
 
-  const nav_idr = gross_mv + realized_all;
+  // NAV-side realized — HL compounds closed P&L inside accountValue, so strip
+  // crypto realized whenever HL is present to avoid double-counting capital.
+  let realizedForNav: number;
+  if (bookFilter === "crypto_trading" && hlIdr > 0) {
+    realizedForNav = 0;
+  } else if (bookFilter === "all" && hlIdr > 0) {
+    realizedForNav = realized
+      .filter((r) => r.book !== "crypto_trading")
+      .reduce((a, r) => a + toRealIdr(r), 0);
+  } else {
+    realizedForNav = realized_all;
+  }
+
+  const nav_idr = gross_mv + realizedForNav;
 
   return NextResponse.json({
     nav_idr,

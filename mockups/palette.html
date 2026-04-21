@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1440px; height: 300px; overflow: hidden; }
+  body {
+    background: #0A0A0B;
+    color: #E4E4E7;
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    padding: 28px 32px;
+    display: grid;
+    grid-template-columns: 840px 1px 1fr;
+    gap: 24px;
+    align-items: stretch;
+  }
+  .group { display: flex; flex-direction: column; gap: 14px; }
+  .gh { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: #6B6B73; letter-spacing: 0; }
+  .swatches { display: grid; grid-template-columns: repeat(7, 1fr); gap: 12px; }
+  .sw { display: flex; flex-direction: column; gap: 6px; }
+  .sw .box { height: 40px; width: 100%; border-radius: 5px; border: 1px solid #242428; }
+  .sw .name { font-size: 11.5px; color: #E4E4E7; }
+  .sw .hex { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #A1A1AA; letter-spacing: 0; }
+  .vdiv { width: 1px; background: #242428; }
+  .type-row { display: flex; flex-direction: column; gap: 8px; }
+  .type-row .s1 { font-family: 'Inter', sans-serif; font-size: 15px; font-weight: 500; color: #E4E4E7; letter-spacing: -0.01em; }
+  .type-row .s2 { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #E4E4E7; font-variant-numeric: tabular-nums; }
+  .type-row .s3 { font-family: 'Source Serif 4', serif; font-style: italic; font-size: 13px; color: #A1A1AA; }
+  .chips { display: flex; gap: 8px; align-items: center; }
+  .chip { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; padding: 3px 7px; border-radius: 3px; background: rgba(139,92,246,0.12); color: #B794F6; }
+  .chip.ok { background: rgba(74,157,124,0.12); color: #4A9D7C; }
+  .chip.flag { background: rgba(184,104,104,0.12); color: #B86868; }
+  .chip.n { background: #1A1A1E; color: #A1A1AA; }
+</style></head>
+<body>
+  <div class="group">
+    <div class="gh">Palette · 7 values, no gradients</div>
+    <div class="swatches">
+      <div class="sw"><div class="box" style="background:#0A0A0B"></div><div class="name">Base</div><div class="hex">#0A0A0B</div></div>
+      <div class="sw"><div class="box" style="background:#141418"></div><div class="name">Surface</div><div class="hex">#141418</div></div>
+      <div class="sw"><div class="box" style="background:#1A1A1E"></div><div class="name">Elevated</div><div class="hex">#1A1A1E</div></div>
+      <div class="sw"><div class="box" style="background:#242428"></div><div class="name">Border</div><div class="hex">#242428</div></div>
+      <div class="sw"><div class="box" style="background:#8B5CF6"></div><div class="name">Accent</div><div class="hex">#8B5CF6</div></div>
+      <div class="sw"><div class="box" style="background:#4A9D7C"></div><div class="name">Success</div><div class="hex">#4A9D7C</div></div>
+      <div class="sw"><div class="box" style="background:#B86868"></div><div class="name">Loss</div><div class="hex">#B86868</div></div>
+    </div>
+  </div>
+
+  <div class="vdiv"></div>
+
+  <div class="group">
+    <div class="gh">Typography + chips</div>
+    <div class="type-row">
+      <div class="s1">Inter · sentence case, −0.01em heading</div>
+      <div class="s2">JetBrains Mono · $4,821,044.12 · +1.21%</div>
+      <div class="s3">Source Serif 4 · editorial, thesis text</div>
+    </div>
+    <div class="chips">
+      <span class="chip">agent</span>
+      <span class="chip ok">OK</span>
+      <span class="chip flag">Flag</span>
+      <span class="chip n">Hold</span>
+    </div>
+  </div>
+</body></html>

@@ -96,6 +96,28 @@ export function getUserFills(address: string, aggregateByTime = false) {
   return hlInfo<HlFill[]>({ type: "userFills", user: address, aggregateByTime });
 }
 
+export type HlPortfolioWindow =
+  | "day"
+  | "week"
+  | "month"
+  | "allTime"
+  | "perpDay"
+  | "perpWeek"
+  | "perpMonth"
+  | "perpAllTime";
+
+export interface HlPortfolioWindowData {
+  accountValueHistory: [number, string][]; // [ms, valueUsd]
+  pnlHistory: [number, string][];
+  vlm: string;
+}
+
+export type HlPortfolioResponse = [HlPortfolioWindow, HlPortfolioWindowData][];
+
+export function getPortfolio(address: string) {
+  return hlInfo<HlPortfolioResponse>({ type: "portfolio", user: address });
+}
+
 export function getUserFillsByTime(address: string, startMs: number, endMs?: number) {
   const body: Record<string, unknown> = { type: "userFillsByTime", user: address, startTime: startMs };
   if (endMs) body.endTime = endMs;

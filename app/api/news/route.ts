@@ -69,14 +69,9 @@ export async function GET(req: NextRequest) {
     const classified = useAgent ? await agentClassify(merged.slice(0, 40), 40, ctx) : merged;
     const rest = merged.slice(40);
     const all = [...classified, ...rest];
-    // Rank: urgency DESC, then score DESC, then recency DESC.
-    all.sort((a, b) => {
-      const du = (b.urgency ?? 0) - (a.urgency ?? 0);
-      if (du !== 0) return du;
-      const ds = (b.score ?? 0) - (a.score ?? 0);
-      if (ds !== 0) return ds;
-      return b.published - a.published;
-    });
+    // Strict chronological order — most recent first. Urgency surfaces via
+    // BREAKING/HOT badges in the UI, not by re-ordering the timeline.
+    all.sort((a, b) => b.published - a.published);
 
     return NextResponse.json({
       items: all.slice(0, 80),
@@ -108,24 +103,26 @@ export async function GET(req: NextRequest) {
     asset_classes: Array.from(new Set(ctxPairs.map((p) => p.asset_class))),
   };
 
+  const sortByTime = (list: NewsItem[]) => [...list].sort((a, b) => b.published - a.published);
+
   if (topicOnly) {
     const items = await getNewsFeed(category, 40);
     const enriched = useAgent ? await agentClassify(items, 25, ctx) : items;
-    return NextResponse.json({ items: enriched, fallback: "category", agent: useAgent, category });
+    return NextResponse.json({ items: sortByTime(enriched), fallback: "category", agent: useAgent, category });
   }
 
   if (!ctxPairs.length) {
     const items = await getNewsFeed(category, 40);
     const enriched = useAgent ? await agentClassify(items, 25, ctx) : items;
-    return NextResponse.json({ items: enriched, fallback: "category", agent: useAgent, category });
+    return NextResponse.json({ items: sortByTime(enriched), fallback: "category", agent: useAgent, category });
   }
 
   const items = await getNewsForSymbols(ctxPairs.slice(0, 24), 5);
   if (items.length === 0) {
     const fallback = await getNewsFeed(category, 40);
     const enriched = useAgent ? await agentClassify(fallback, 25, ctx) : fallback;
-    return NextResponse.json({ items: enriched, fallback: "category", symbols: ctxPairs.length, agent: useAgent, category });
+    return NextResponse.json({ items: sortByTime(enriched), fallback: "category", symbols: ctxPairs.length, agent: useAgent, category });
   }
   const enriched = useAgent ? await agentClassify(items, 25, ctx) : items;
-  return NextResponse.json({ items: enriched, symbols: ctxPairs.length, agent: useAgent, category });
+  return NextResponse.json({ items: sortByTime(enriched), symbols: ctxPairs.length, agent: useAgent, category });
 }
