@@ -4,14 +4,6 @@
     {
       "path": "/api/cron/daily-snapshot",
       "schedule": "0 22 * * *"
-    },
-    {
-      "path": "/api/cron/check-alerts",
-      "schedule": "*/15 * * * *"
-    },
-    {
-      "path": "/api/cron/hot-news",
-      "schedule": "0 */3 * * *"
     }
   ]
 }

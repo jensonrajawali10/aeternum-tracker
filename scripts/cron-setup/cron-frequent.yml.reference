@@ -1,0 +1,64 @@
+# Vercel Hobby caps crons at once-per-day, so we run the frequent cron
+# workers from GitHub Actions and have them hit our Bearer-protected endpoints.
+#
+# Setup required (one-time):
+#   1. Repo → Settings → Secrets and variables → Actions → New repository secret
+#        CRON_SECRET = <same value as Vercel env CRON_SECRET>
+#   2. Same panel → New repository variable
+#        APP_URL = https://aeternum-tracker-neon.vercel.app
+#
+# These workflows do nothing destructive — they just POST/GET the cron endpoints.
+# The backends are idempotent (dedup on news_id, alert_history natural key).
+
+name: cron-frequent
+
+on:
+  schedule:
+    # check-alerts every 15 minutes (price-level alerts + email)
+    - cron: "*/15 * * * *"
+    # hot-news every 3 hours (MSCI/FTSE/macro classifier + email)
+    - cron: "0 */3 * * *"
+  workflow_dispatch:  # allow manual triggering
+
+permissions:
+  contents: read
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Dispatch to the right endpoint
+        env:
+          APP_URL: ${{ vars.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "${APP_URL:-}" ] || [ -z "${CRON_SECRET:-}" ]; then
+            echo "::error::APP_URL (var) and CRON_SECRET (secret) must be set on the repo"
+            exit 1
+          fi
+
+          # GitHub's schedule triggers don't tell us which schedule fired, so
+          # key off the current minute/hour instead:
+          #   - any :00/:15/:30/:45 tick → check-alerts
+          #   - every 3rd hour at :00   → also hot-news
+          MINUTE=$(date -u +%-M)
+          HOUR=$(date -u +%-H)
+
+          curl_json() {
+            local path="$1"
+            echo "→ POST $APP_URL$path"
+            curl -sS -X POST \
+              -H "Authorization: Bearer $CRON_SECRET" \
+              -w "\nHTTP %{http_code} in %{time_total}s\n" \
+              "$APP_URL$path"
+          }
+
+          # check-alerts every run
+          curl_json "/api/cron/check-alerts" || echo "::warning::check-alerts failed"
+
+          # hot-news only on the 3-hour marks (0, 3, 6, ..., 21 UTC at :00)
+          if [ "$MINUTE" = "0" ] && [ $((HOUR % 3)) -eq 0 ]; then
+            curl_json "/api/cron/hot-news" || echo "::warning::hot-news failed"
+          fi
