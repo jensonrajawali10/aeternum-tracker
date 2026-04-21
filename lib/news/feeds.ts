@@ -143,10 +143,22 @@ export async function getNewsForSymbols(
 // stock market today" single-query feed.
 const CATEGORY_QUERIES: Record<string, string[]> = {
   markets: [
-    "stock market today",
-    "Wall Street",
-    "S&P 500 Nasdaq Dow",
-    "US markets close",
+    // Core index-level queries. US-index news was under-covered before —
+    // previously four queries all roughly aliasing "stock market today", which
+    // Google clustered down to <5 unique items. Fanned out to cover index
+    // moves, records, breadth, volatility, and intraday context separately.
+    "S&P 500 index today",
+    "S&P 500 record high close",
+    "Nasdaq 100 close today",
+    "Dow Jones Industrial Average close",
+    "Russell 2000 small cap index",
+    "VIX volatility index spike",
+    "Wall Street stocks rally selloff",
+    "US stock market close",
+    "US equities futures premarket",
+    "market breadth decliners advancers",
+    "sector rotation technology financials energy",
+    "magnificent seven mega cap tech",
   ],
   stock: [
     "US stocks earnings report",

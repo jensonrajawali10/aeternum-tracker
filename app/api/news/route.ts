@@ -82,7 +82,14 @@ export async function GET(req: NextRequest) {
   }
 
   const category: NewsCategory = rawMode as NewsCategory;
-  const topicOnly = category === "macro" || category === "idx" || category === "economy";
+  // "Markets" is US index-level news (S&P, Nasdaq, Dow) — always topic-based,
+  // never per-symbol. Previously this fell through to per-position news which
+  // meant an IDX-heavy portfolio got zero S&P coverage under the Markets tab.
+  const topicOnly =
+    category === "macro" ||
+    category === "idx" ||
+    category === "economy" ||
+    category === "markets";
 
   // Always build portfolio context so the agent can reason about correlations
   // (oil → coal, Fed → crypto/EM, China → metals, etc.) against actual holdings.
