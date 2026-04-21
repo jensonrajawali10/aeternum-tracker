@@ -1,10 +1,19 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { supabaseServer } from "@/lib/supabase/server";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 import { getQuote, getUsdIdr } from "@/lib/prices";
+import {
+  getClearinghouseState,
+  getSpotClearinghouseState,
+  getAllMids,
+  getSpotMeta,
+} from "@/lib/crypto/hyperliquid";
 import type { AssetClass, BookFilter, BookType } from "@/lib/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+const STABLES = new Set(["USDC", "USDT", "USDE", "DAI", "FDUSD", "USDB"]);
 
 interface OpenPositionRow {
   ticker: string;
@@ -18,6 +27,142 @@ interface OpenPositionRow {
   fx_rate_to_idr: number | null;
   opened_at: string;
   leg_count: number;
+}
+
+interface PositionRow {
+  ticker: string;
+  asset_class: AssetClass;
+  book: BookType;
+  qty: number;
+  avg_entry: number;
+  stop_loss: number | null;
+  take_profit: number | null;
+  live_price: number | null;
+  currency: "IDR" | "USD";
+  day_change_pct: number | null;
+  market_value_idr: number | null;
+  market_value_usd: number | null;
+  unrealized_pnl_idr: number | null;
+  unrealized_pnl_usd: number | null;
+  unrealized_pnl_pct: number | null;
+  opened_at: string;
+  leg_count: number;
+  venue?: "hyperliquid" | "sheet";
+}
+
+/**
+ * Pull live Hyperliquid perp + spot positions and shape them to match the rest
+ * of the positions table. Empty array if the user has no HL address or the
+ * API hiccups — caller falls back cleanly to sheet-backed data.
+ */
+async function getHyperliquidPositions(userId: string, usdIdr: number): Promise<PositionRow[]> {
+  try {
+    const admin = supabaseAdmin();
+    const { data: settings } = await admin
+      .from("user_settings")
+      .select("hyperliquid_address")
+      .eq("user_id", userId)
+      .maybeSingle();
+    const address = settings?.hyperliquid_address;
+    if (!address) return [];
+
+    const [perp, spot, mids, spotMeta] = await Promise.all([
+      getClearinghouseState(address).catch(() => null),
+      getSpotClearinghouseState(address).catch(() => null),
+      getAllMids().catch(() => ({} as Record<string, string>)),
+      getSpotMeta().catch(() => null),
+    ]);
+
+    const out: PositionRow[] = [];
+
+    // Perp positions — signed szi, leverage baked into returnOnEquity
+    if (perp?.assetPositions) {
+      for (const ap of perp.assetPositions) {
+        const p = ap.position;
+        const szi = parseFloat(p.szi);
+        if (szi === 0) continue;
+        const entryPx = p.entryPx ? parseFloat(p.entryPx) : 0;
+        const mid = mids[p.coin];
+        const livePx = mid ? parseFloat(mid) : entryPx;
+        const positionValueUsd = parseFloat(p.positionValue);
+        const unrealPnlUsd = parseFloat(p.unrealizedPnl);
+        // ROE captures leverage effect; raw unlevered pct = (live-entry)/entry for longs
+        const roe = parseFloat(p.returnOnEquity) * 100;
+        out.push({
+          ticker: `${p.coin}-PERP`,
+          asset_class: "crypto",
+          book: "crypto_trading",
+          qty: szi,
+          avg_entry: entryPx,
+          stop_loss: p.liquidationPx ? parseFloat(p.liquidationPx) : null,
+          take_profit: null,
+          live_price: livePx,
+          currency: "USD",
+          day_change_pct: null,
+          market_value_idr: positionValueUsd * usdIdr,
+          market_value_usd: positionValueUsd,
+          unrealized_pnl_idr: unrealPnlUsd * usdIdr,
+          unrealized_pnl_usd: unrealPnlUsd,
+          unrealized_pnl_pct: isFinite(roe) ? roe : null,
+          opened_at: "",
+          leg_count: 1,
+          venue: "hyperliquid",
+        });
+      }
+    }
+
+    // Spot balances — derive live price from spot mids, stables pinned at 1
+    if (spot?.balances) {
+      const priceByCoin: Record<string, number> = {};
+      if (spotMeta) {
+        for (const u of spotMeta.universe) {
+          const m = mids[u.name];
+          if (!m) continue;
+          const baseIdx = u.tokens[0];
+          const base = spotMeta.tokens.find((t) => t.index === baseIdx);
+          if (base) priceByCoin[base.name.toUpperCase()] = parseFloat(m);
+        }
+      }
+      for (const b of spot.balances) {
+        const total = parseFloat(b.total);
+        if (total === 0) continue;
+        const coin = b.coin.toUpperCase();
+        const entryNtl = parseFloat(b.entryNtl);
+        const entryPx = total > 0 ? entryNtl / total : 0;
+        let livePx = 0;
+        if (STABLES.has(coin)) livePx = 1;
+        else if (priceByCoin[coin]) livePx = priceByCoin[coin];
+        else livePx = entryPx;
+        const mvUsd = total * livePx;
+        const upnlUsd = mvUsd - entryNtl;
+        const upnlPct = entryPx ? ((livePx - entryPx) / entryPx) * 100 : null;
+        out.push({
+          ticker: coin,
+          asset_class: "crypto",
+          book: "crypto_trading",
+          qty: total,
+          avg_entry: entryPx,
+          stop_loss: null,
+          take_profit: null,
+          live_price: livePx,
+          currency: "USD",
+          day_change_pct: null,
+          market_value_idr: mvUsd * usdIdr,
+          market_value_usd: mvUsd,
+          unrealized_pnl_idr: upnlUsd * usdIdr,
+          unrealized_pnl_usd: upnlUsd,
+          unrealized_pnl_pct: upnlPct,
+          opened_at: "",
+          leg_count: 1,
+          venue: "hyperliquid",
+        });
+      }
+    }
+
+    return out;
+  } catch {
+    return [];
+  }
 }
 
 export async function GET(req: NextRequest) {
@@ -38,7 +183,7 @@ export async function GET(req: NextRequest) {
   const positions = (rows || []) as OpenPositionRow[];
   const usdIdr = (await getUsdIdr()) ?? 16500;
 
-  const enriched = await Promise.all(
+  const enriched: PositionRow[] = await Promise.all(
     positions.map(async (p) => {
       const quote = await getQuote(p.ticker, p.asset_class);
       const liveNative = quote?.price ?? null;
@@ -68,12 +213,25 @@ export async function GET(req: NextRequest) {
         unrealized_pnl_pct: unrealizedPct,
         opened_at: p.opened_at,
         leg_count: p.leg_count,
+        venue: "sheet" as const,
       };
     }),
   );
 
-  const totalMV = enriched.reduce((a, p) => a + (p.market_value_idr || 0), 0);
-  const withPct = enriched.map((p) => ({
+  // For the crypto book, Hyperliquid is the live source of truth. Strip any
+  // sheet-backed crypto rows (they're usually stale or placeholder) and append
+  // fresh perp + spot positions. Applies when bookFilter is crypto_trading OR all.
+  let combined: PositionRow[];
+  if (bookFilter === "crypto_trading" || bookFilter === "all") {
+    const hlRows = await getHyperliquidPositions(user.id, usdIdr);
+    const nonCrypto = enriched.filter((p) => p.book !== "crypto_trading");
+    combined = [...nonCrypto, ...hlRows];
+  } else {
+    combined = enriched;
+  }
+
+  const totalMV = combined.reduce((a, p) => a + (p.market_value_idr || 0), 0);
+  const withPct = combined.map((p) => ({
     ...p,
     pct_of_nav: totalMV > 0 && p.market_value_idr != null ? (p.market_value_idr / totalMV) * 100 : null,
   }));
