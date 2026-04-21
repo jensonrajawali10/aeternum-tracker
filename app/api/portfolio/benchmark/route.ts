@@ -1,6 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { supabaseServer } from "@/lib/supabase/server";
-import { rebaseToHundred } from "@/lib/analytics/returns";
 import type { BookFilter } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -20,6 +19,41 @@ function rangeStart(range: Range): string {
   return d.toISOString().slice(0, 10);
 }
 
+/**
+ * Rebase a possibly-sparse series to 100 on its first non-null/non-NaN value.
+ * Null and NaN stay null (so Chart.js can skip or span them).
+ */
+function rebaseSparse(series: (number | null)[]): (number | null)[] {
+  let base: number | null = null;
+  for (const v of series) {
+    if (v != null && isFinite(v) && v !== 0) {
+      base = v;
+      break;
+    }
+  }
+  if (base == null) return series.map(() => null);
+  return series.map((v) => (v == null || !isFinite(v) ? null : (v / base!) * 100));
+}
+
+/**
+ * Forward-fill a series of (number | null) so the line is continuous.
+ * Used for IHSG / S&P where we want a dense curve across weekends & gaps.
+ */
+function forwardFill(series: (number | null)[]): (number | null)[] {
+  const out = [...series];
+  let last: number | null = null;
+  // First pass: find the first real value so leading nulls stay null
+  // (don't forward-fill before the series actually starts)
+  for (let i = 0; i < out.length; i++) {
+    if (out[i] != null && isFinite(out[i] as number)) {
+      last = out[i] as number;
+    } else if (last != null) {
+      out[i] = last;
+    }
+  }
+  return out;
+}
+
 export async function GET(req: NextRequest) {
   const supabase = await supabaseServer();
   const {
@@ -31,64 +65,53 @@ export async function GET(req: NextRequest) {
   const bookFilter = (req.nextUrl.searchParams.get("book") || "all") as BookFilter;
   const start = rangeStart(range);
 
-  const { data: navRows } = await supabase
-    .from("nav_history")
-    .select("snapshot_date, nav_idr")
-    .eq("user_id", user.id)
-    .eq("book", bookFilter === "all" ? "all" : bookFilter)
-    .gte("snapshot_date", start)
-    .order("snapshot_date", { ascending: true });
+  const [{ data: navRows }, { data: benchRows }] = await Promise.all([
+    supabase
+      .from("nav_history")
+      .select("snapshot_date, nav_idr")
+      .eq("user_id", user.id)
+      .eq("book", bookFilter === "all" ? "all" : bookFilter)
+      .gte("snapshot_date", start)
+      .order("snapshot_date", { ascending: true }),
+    supabase
+      .from("benchmark_history")
+      .select("snapshot_date, close, symbol")
+      .in("symbol", ["^JKSE", "^GSPC"])
+      .gte("snapshot_date", start)
+      .order("snapshot_date", { ascending: true }),
+  ]);
 
-  const { data: benchRows } = await supabase
-    .from("benchmark_history")
-    .select("snapshot_date, close, symbol")
-    .in("symbol", ["^JKSE", "^GSPC"])
-    .gte("snapshot_date", start)
-    .order("snapshot_date", { ascending: true });
-
+  // Benchmark data is dense — use it as the date spine
   const ihsgMap = new Map<string, number>();
   const spxMap = new Map<string, number>();
+  const dateSet = new Set<string>();
   (benchRows || []).forEach((r) => {
+    dateSet.add(r.snapshot_date);
     if (r.symbol === "^JKSE") ihsgMap.set(r.snapshot_date, Number(r.close));
     else if (r.symbol === "^GSPC") spxMap.set(r.snapshot_date, Number(r.close));
   });
 
-  // If the user has NAV history, use those dates. If not, fall back to the
-  // union of benchmark dates so the chart at least shows IHSG and S&P.
-  let dates: string[];
-  let navSeries: number[];
-  let navEmpty = false;
-  if ((navRows || []).length > 0) {
-    dates = (navRows || []).map((r) => r.snapshot_date);
-    navSeries = (navRows || []).map((r) => Number(r.nav_idr));
-  } else {
-    navEmpty = true;
-    const all = new Set<string>();
-    for (const d of ihsgMap.keys()) all.add(d);
-    for (const d of spxMap.keys()) all.add(d);
-    dates = Array.from(all).sort();
-    navSeries = [];
-  }
+  // Also include any NAV-only dates (shouldn't happen often but keeps alignment honest)
+  const navMap = new Map<string, number>();
+  (navRows || []).forEach((r) => {
+    navMap.set(r.snapshot_date, Number(r.nav_idr));
+    dateSet.add(r.snapshot_date);
+  });
 
-  const ihsgSeries = dates.map((d) => ihsgMap.get(d) ?? NaN);
-  const spxSeries = dates.map((d) => spxMap.get(d) ?? NaN);
+  const dates = Array.from(dateSet).sort();
+
+  const ihsgRaw: (number | null)[] = dates.map((d) => ihsgMap.get(d) ?? null);
+  const spxRaw: (number | null)[] = dates.map((d) => spxMap.get(d) ?? null);
+  const navRaw: (number | null)[] = dates.map((d) => navMap.get(d) ?? null);
+
+  const navEmpty = (navRows || []).length === 0;
 
   return NextResponse.json({
     range,
     dates,
-    nav: rebaseToHundred(navSeries),
-    ihsg: rebaseToHundred(fillNaN(ihsgSeries)),
-    spx: rebaseToHundred(fillNaN(spxSeries)),
+    nav: rebaseSparse(navRaw),
+    ihsg: rebaseSparse(forwardFill(ihsgRaw)),
+    spx: rebaseSparse(forwardFill(spxRaw)),
     nav_empty: navEmpty,
   });
-}
-
-function fillNaN(series: number[]): number[] {
-  const out = [...series];
-  let last = out.find((v) => !isNaN(v)) ?? 0;
-  for (let i = 0; i < out.length; i++) {
-    if (isNaN(out[i])) out[i] = last;
-    else last = out[i];
-  }
-  return out;
 }

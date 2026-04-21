@@ -11,20 +11,22 @@ registerCharts();
 interface BenchResp {
   range: string;
   dates: string[];
-  nav: number[];
-  ihsg: number[];
-  spx: number[];
+  nav: (number | null)[];
+  ihsg: (number | null)[];
+  spx: (number | null)[];
   nav_empty?: boolean;
 }
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 const RANGES = ["1M", "3M", "YTD", "1Y", "ALL"] as const;
 
-function lastPct(arr?: number[]): number | null {
+function lastPct(arr?: (number | null)[]): number | null {
   if (!arr || arr.length === 0) return null;
-  const last = arr[arr.length - 1];
-  if (!isFinite(last)) return null;
-  return last - 100;
+  for (let i = arr.length - 1; i >= 0; i--) {
+    const v = arr[i];
+    if (v != null && isFinite(v)) return v - 100;
+  }
+  return null;
 }
 
 export function NavVsBenchmarkChart({ book, height = 260 }: { book: string; height?: number }) {
@@ -45,9 +47,14 @@ export function NavVsBenchmarkChart({ book, height = 260 }: { book: string; heig
           borderColor: "#E4E4E7",
           backgroundColor: "transparent",
           fill: false,
-          pointRadius: 0,
+          // Show a dot on each real NAV point so a single-point NAV is still visible
+          pointRadius: (ctx: { raw: unknown }) =>
+            ctx.raw == null || !isFinite(ctx.raw as number) ? 0 : 2,
+          pointBackgroundColor: "#E4E4E7",
+          pointBorderWidth: 0,
           borderWidth: 1.3,
           tension: 0.18,
+          spanGaps: false,
         },
         {
           label: "JCI",
