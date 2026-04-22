@@ -158,14 +158,14 @@ async function processUser(
     return true;
   });
 
-  // Realtime: only consider headlines published in the last ~20 min. We run
-  // every 5 min so a 20-min window gives 4× overlap — any feed lag up to
-  // 15 min still gets caught on a subsequent tick, and the dedup table
-  // prevents double-sends.
-  if (mode === "realtime") {
-    const cutoff = Date.now() - 20 * 60 * 1000;
-    dedup = dedup.filter((m) => m.published >= cutoff);
-  }
+  // Realtime: 20-min window (4× overlap with 5-min schedule).
+  // Full sweep: 48h window. Without this cap the Google News RSS kept
+  // recycling stale "Top Story" clusters, leading to year-old headlines
+  // landing in fresh hot-news emails. 48h gives weekend/holiday slack
+  // while still cutting the worst of the stale noise.
+  const recencyCutoffMs = mode === "realtime" ? 20 * 60 * 1000 : 48 * 60 * 60 * 1000;
+  const cutoff = Date.now() - recencyCutoffMs;
+  dedup = dedup.filter((m) => m.published >= cutoff);
 
   if (dedup.length === 0) return { flagged: 0, emailed: 0 };
 

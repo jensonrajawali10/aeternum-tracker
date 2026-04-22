@@ -59,7 +59,11 @@ const SIGNALS: HotSignal[] = [
   // - Bahasa variants ("rights issue", "penawaran umum terbatas", "HMETD", "PUT")
   { pattern: /\b(stock split|bonus (shares|issue)|buyback|tender offer)\b/i, score: 35, reason: "corp action" },
   { pattern: /\b(right[s]? issue|HMETD|penawaran umum terbatas|PUT\s?[IVX]+)\b/i, score: 50, reason: "rights issue" },
-  { pattern: /\b(right[s]? issue|HMETD|penawaran umum terbatas)\b[\s\S]{0,80}\b(rumor|rumour|plan|mull|mulling|intend|weigh|weighs|weighing|consider|considering|prepar|explor|eye|eyes|eyeing|disclos|announce|approve|secure|completes?|complet(e|ed) the|fix(es|ed)? price|seek|seeks|seeking)/i, score: 75, reason: "rights issue rumor" },
+  // Bidirectional: "rights issue" followed by a plan/rumor verb within 80 chars.
+  { pattern: /\b(right[s]? issue|HMETD|penawaran umum terbatas)\b[\s\S]{0,80}\b(rumor|rumour|plan|mull|mulling|intend|weigh|weighs|weighing|consider|considering|prepar|explor|eye|eyes|eyeing|disclos|announce|approve|secure|completes?|complet(e|ed) the|fix(es|ed)? price|seek|seeks|seeking|priced?|fund|raise)/i, score: 75, reason: "rights issue rumor" },
+  // Reverse order: plan/rumor verb followed by "rights issue" within 80 chars.
+  // Catches "mulls rights issue to fund expansion", "weigh rights issue as capital...".
+  { pattern: /\b(mull|mulls|mulling|plans?|planning|weigh|weighs|weighing|consider|considering|intend|intends|prepar|explor|eye|eyes|eyeing|disclos|announces?|approve|secure|completes?|seek|seeks|seeking|rumor|rumour|whispers?)\b[\s\S]{0,80}\b(right[s]? issue|HMETD|penawaran umum terbatas)/i, score: 75, reason: "rights issue rumor" },
   { pattern: /\b(rumor|rumour|whispers?)\b[\s\S]{0,60}\b(right[s]? issue|stock split|acqui|takeover|backdoor listing|injeksi)/i, score: 60, reason: "M&A/rights rumor" },
   { pattern: /\b(komisioner|direktur utama|dirut)\b/i, score: 30, reason: "IDX leadership" },
 

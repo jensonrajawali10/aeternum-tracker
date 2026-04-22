@@ -4,6 +4,7 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
 import { getQuote, getUsdIdr } from "@/lib/prices";
 import type { AssetClass } from "@/lib/types";
 import { sendEmail, marketRecapEmailHtml } from "@/lib/email/resend";
+import { sessionBrief } from "@/lib/news/llm-brief";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -140,35 +141,6 @@ async function getTopMovers(
     .slice(0, 6);
 }
 
-async function getPortfolioDelta(
-  supabase: ReturnType<typeof supabaseAdmin>,
-  user_id: string,
-): Promise<{
-  nav_idr: number | null;
-  nav_prev_idr: number | null;
-  day_pct: number | null;
-  unrealized_pnl_idr: number | null;
-} | null> {
-  const { data } = await supabase
-    .from("nav_history")
-    .select("snapshot_date, nav_idr, unrealized_pnl_idr")
-    .eq("user_id", user_id)
-    .eq("book", "all")
-    .order("snapshot_date", { ascending: false })
-    .limit(2);
-  const rows = (data || []) as { snapshot_date: string; nav_idr: number; unrealized_pnl_idr: number }[];
-  if (!rows.length) return null;
-  const nav = rows[0]?.nav_idr ?? null;
-  const prev = rows[1]?.nav_idr ?? null;
-  const day_pct = nav !== null && prev !== null && prev !== 0 ? ((nav - prev) / prev) * 100 : null;
-  return {
-    nav_idr: nav,
-    nav_prev_idr: prev,
-    day_pct,
-    unrealized_pnl_idr: rows[0]?.unrealized_pnl_idr ?? null,
-  };
-}
-
 interface NewsRow {
   news_id: string;
   ticker: string | null;
@@ -271,8 +243,7 @@ async function run(req: NextRequest, onlyUserId: string | undefined) {
       continue;
     }
 
-    const [portfolio, movers, news] = await Promise.all([
-      getPortfolioDelta(supabase, s.user_id),
+    const [movers, news] = await Promise.all([
       getTopMovers(supabase, s.user_id),
       getSessionNews(supabase, s.user_id, session),
     ]);
@@ -303,11 +274,23 @@ async function run(req: NextRequest, onlyUserId: string | undefined) {
 
     const subject = `Aeternum News — ${sessionLabel(session)} Recap${leadSuffix}`;
 
+    // LLM narrative brief — 3-4 sentences on what happened this session.
+    const brief = await sessionBrief({
+      session_label: sessionLabel(session),
+      benchmarks,
+      headlines: newsForTemplate.map((n) => ({
+        title: n.title,
+        source: n.source,
+        ticker: n.ticker,
+        score: n.score,
+      })),
+    });
+
     const html = marketRecapEmailHtml({
       session_label: sessionLabel(session),
       session_date: dateKey,
+      brief,
       benchmarks,
-      portfolio,
       top_movers: movers,
       news: newsForTemplate,
       app_url: appUrl,

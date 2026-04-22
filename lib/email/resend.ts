@@ -105,13 +105,8 @@ ${rows}
 export function marketRecapEmailHtml(params: {
   session_label: string; // "US Close" | "IDX Close"
   session_date: string; // e.g. "2026-04-22"
+  brief: string; // 3-4 sentence narrative of what happened this session
   benchmarks: { name: string; close: number | null; day_pct: number | null; ccy: string }[];
-  portfolio: {
-    nav_idr: number | null;
-    nav_prev_idr: number | null;
-    day_pct: number | null;
-    unrealized_pnl_idr: number | null;
-  } | null;
   top_movers: { ticker: string; asset_class: string; day_pct: number | null; price: number | null }[];
   news: { title: string; url: string; source: string; ticker?: string | null; score: number; reasons: string[]; published: number }[];
   app_url: string;
@@ -126,13 +121,6 @@ export function marketRecapEmailHtml(params: {
     if (n === null || !Number.isFinite(n)) return "—";
     return n.toLocaleString("en-US", { minimumFractionDigits: digits, maximumFractionDigits: digits });
   };
-  const fmtIdr = (n: number | null) => {
-    if (n === null || !Number.isFinite(n)) return "—";
-    if (Math.abs(n) >= 1e9) return `Rp ${(n / 1e9).toFixed(2)}B`;
-    if (Math.abs(n) >= 1e6) return `Rp ${(n / 1e6).toFixed(2)}M`;
-    return `Rp ${n.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
-  };
-
   const benchRows = params.benchmarks
     .map(
       (b) =>
@@ -141,17 +129,6 @@ export function marketRecapEmailHtml(params: {
         `<td style="padding:6px 8px;font-size:13px;text-align:right;font-variant-numeric:tabular-nums;">${fmtPct(b.day_pct)}</td></tr>`,
     )
     .join("");
-
-  const portfolioRow = params.portfolio
-    ? `<div style="margin:16px 0 8px;padding:12px;background:#0e141b;border:1px solid #1c2532;border-radius:4px;">
-        <div style="color:#8a92a6;font-size:11px;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px;">Your Portfolio</div>
-        <div style="display:flex;justify-content:space-between;align-items:baseline;">
-          <div><span style="color:#e6e7eb;font-size:18px;font-weight:600;font-variant-numeric:tabular-nums;">${fmtIdr(params.portfolio.nav_idr)}</span>
-          <span style="margin-left:10px;font-size:14px;">${fmtPct(params.portfolio.day_pct)}</span></div>
-          <div style="color:#8a92a6;font-size:12px;">Unreal ${fmtIdr(params.portfolio.unrealized_pnl_idr)}</div>
-        </div>
-      </div>`
-    : "";
 
   const moverRows = params.top_movers
     .slice(0, 6)
@@ -181,17 +158,24 @@ export function marketRecapEmailHtml(params: {
     })
     .join("");
 
+  const briefBlock = params.brief
+    ? `<div style="margin:12px 0 18px;padding:14px 16px;background:#0e141b;border:1px solid #1c2532;border-left:3px solid #d4a64a;border-radius:4px;">
+        <div style="color:#d4a64a;font-size:11px;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;">The Brief</div>
+        <div style="color:#e6e7eb;font-size:14px;line-height:1.55;">${escapeHtml(params.brief)}</div>
+      </div>`
+    : "";
+
   return `<!DOCTYPE html><html><body style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;background:#0a0e13;color:#e6e7eb;padding:24px;">
 <div style="max-width:640px;margin:0 auto;background:#111820;border:1px solid #1c2532;border-radius:6px;padding:24px;">
 <h2 style="color:#d4a64a;margin:0 0 4px 0;font-size:18px;letter-spacing:.08em;text-transform:uppercase;">AETERNUM — ${escapeHtml(params.session_label)} Recap</h2>
-<p style="margin:0 0 16px;font-size:12px;color:#8a92a6;">${escapeHtml(params.session_date)}</p>
+<p style="margin:0 0 12px;font-size:12px;color:#8a92a6;">${escapeHtml(params.session_date)}</p>
+
+${briefBlock}
 
 <div style="color:#8a92a6;font-size:11px;letter-spacing:.08em;text-transform:uppercase;margin:16px 0 6px;">Benchmarks</div>
 <table style="width:100%;border-collapse:collapse;background:#0e141b;border:1px solid #1c2532;border-radius:4px;">${benchRows}</table>
 
-${portfolioRow}
-
-${moverRows ? `<div style="color:#8a92a6;font-size:11px;letter-spacing:.08em;text-transform:uppercase;margin:16px 0 6px;">Top Movers (Your Book)</div>
+${moverRows ? `<div style="color:#8a92a6;font-size:11px;letter-spacing:.08em;text-transform:uppercase;margin:16px 0 6px;">Top Movers on Your Watchlist</div>
 <table style="width:100%;border-collapse:collapse;background:#0e141b;border:1px solid #1c2532;border-radius:4px;">${moverRows}</table>` : ""}
 
 ${newsRows ? `<div style="color:#8a92a6;font-size:11px;letter-spacing:.08em;text-transform:uppercase;margin:18px 0 6px;">Headlines Worth Knowing</div>
