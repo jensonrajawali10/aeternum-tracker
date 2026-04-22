@@ -3,6 +3,7 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
 import { TopHeader } from "@/components/TopHeader";
 import { Panel } from "@/components/Panel";
 import { AppsScriptBlock } from "./AppsScriptBlock";
+import { CcEmailsPanel } from "./CcEmailsPanel";
 import { randomBytes } from "crypto";
 
 export const dynamic = "force-dynamic";
@@ -51,6 +52,8 @@ export default async function SettingsPage() {
             </div>
           </div>
         </Panel>
+
+        <CcEmailsPanel />
 
         <Panel
           title="Google Sheets Sync"

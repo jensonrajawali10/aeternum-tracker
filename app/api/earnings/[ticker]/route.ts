@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getEarningsSummary } from "@/lib/earnings/yahoo";
+import { supabaseServer } from "@/lib/supabase/server";
 import type { AssetClass } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -10,6 +11,12 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ ticker: string }> },
 ) {
+  const supabase = await supabaseServer();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
   const { ticker } = await params;
   const sp = req.nextUrl.searchParams;
   const assetClass = (sp.get("asset_class") || "idx_equity") as AssetClass;
