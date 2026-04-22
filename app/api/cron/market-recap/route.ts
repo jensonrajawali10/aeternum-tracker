@@ -104,43 +104,6 @@ async function getBenchmarkState(
   return out;
 }
 
-interface OpenPositionRow {
-  ticker: string;
-  asset_class: AssetClass;
-  net_qty: number;
-  avg_entry: number;
-  pnl_currency: "IDR" | "USD";
-  fx_rate_to_idr: number | null;
-}
-
-async function getTopMovers(
-  supabase: ReturnType<typeof supabaseAdmin>,
-  user_id: string,
-): Promise<{ ticker: string; asset_class: string; day_pct: number | null; price: number | null }[]> {
-  const { data } = await supabase
-    .from("v_open_positions")
-    .select("ticker, asset_class, net_qty, avg_entry, pnl_currency, fx_rate_to_idr")
-    .eq("user_id", user_id);
-  const positions = (data || []) as OpenPositionRow[];
-  if (!positions.length) return [];
-
-  const quotes = await Promise.all(
-    positions.slice(0, 20).map(async (p) => {
-      const q = await getQuote(p.ticker, p.asset_class).catch(() => null);
-      return {
-        ticker: p.ticker,
-        asset_class: p.asset_class,
-        price: q?.price ?? null,
-        day_pct: q?.day_change_pct ?? null,
-      };
-    }),
-  );
-  return quotes
-    .filter((q) => q.day_pct !== null)
-    .sort((a, b) => Math.abs(b.day_pct ?? 0) - Math.abs(a.day_pct ?? 0))
-    .slice(0, 6);
-}
-
 interface NewsRow {
   news_id: string;
   ticker: string | null;
@@ -243,10 +206,7 @@ async function run(req: NextRequest, onlyUserId: string | undefined) {
       continue;
     }
 
-    const [movers, news] = await Promise.all([
-      getTopMovers(supabase, s.user_id),
-      getSessionNews(supabase, s.user_id, session),
-    ]);
+    const news = await getSessionNews(supabase, s.user_id, session);
 
     const { data: authUser } = await supabase.auth.admin.getUserById(s.user_id);
     const email = authUser?.user?.email;
@@ -291,7 +251,6 @@ async function run(req: NextRequest, onlyUserId: string | undefined) {
       session_date: dateKey,
       brief,
       benchmarks,
-      top_movers: movers,
       news: newsForTemplate,
       app_url: appUrl,
     });

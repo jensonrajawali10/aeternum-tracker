@@ -107,7 +107,6 @@ export function marketRecapEmailHtml(params: {
   session_date: string; // e.g. "2026-04-22"
   brief: string; // 3-4 sentence narrative of what happened this session
   benchmarks: { name: string; close: number | null; day_pct: number | null; ccy: string }[];
-  top_movers: { ticker: string; asset_class: string; day_pct: number | null; price: number | null }[];
   news: { title: string; url: string; source: string; ticker?: string | null; score: number; reasons: string[]; published: number }[];
   app_url: string;
 }): string {
@@ -127,16 +126,6 @@ export function marketRecapEmailHtml(params: {
         `<tr><td style="padding:6px 8px;color:#cdd1d9;font-size:13px;">${escapeHtml(b.name)}</td>` +
         `<td style="padding:6px 8px;color:#e6e7eb;font-size:13px;text-align:right;font-variant-numeric:tabular-nums;">${b.close !== null ? fmtNum(b.close) : "—"}</td>` +
         `<td style="padding:6px 8px;font-size:13px;text-align:right;font-variant-numeric:tabular-nums;">${fmtPct(b.day_pct)}</td></tr>`,
-    )
-    .join("");
-
-  const moverRows = params.top_movers
-    .slice(0, 6)
-    .map(
-      (m) =>
-        `<tr><td style="padding:6px 8px;font-size:13px;"><span style="color:#d4a64a;font-weight:600;">${escapeHtml(m.ticker)}</span> <span style="color:#8a92a6;font-size:10px;text-transform:uppercase;letter-spacing:.06em;">${escapeHtml(m.asset_class.replace("_", " "))}</span></td>` +
-        `<td style="padding:6px 8px;color:#cdd1d9;font-size:13px;text-align:right;font-variant-numeric:tabular-nums;">${m.price !== null ? fmtNum(m.price) : "—"}</td>` +
-        `<td style="padding:6px 8px;font-size:13px;text-align:right;font-variant-numeric:tabular-nums;">${fmtPct(m.day_pct)}</td></tr>`,
     )
     .join("");
 
@@ -175,10 +164,7 @@ ${briefBlock}
 <div style="color:#8a92a6;font-size:11px;letter-spacing:.08em;text-transform:uppercase;margin:16px 0 6px;">Benchmarks</div>
 <table style="width:100%;border-collapse:collapse;background:#0e141b;border:1px solid #1c2532;border-radius:4px;">${benchRows}</table>
 
-${moverRows ? `<div style="color:#8a92a6;font-size:11px;letter-spacing:.08em;text-transform:uppercase;margin:16px 0 6px;">Top Movers on Your Watchlist</div>
-<table style="width:100%;border-collapse:collapse;background:#0e141b;border:1px solid #1c2532;border-radius:4px;">${moverRows}</table>` : ""}
-
-${newsRows ? `<div style="color:#8a92a6;font-size:11px;letter-spacing:.08em;text-transform:uppercase;margin:18px 0 6px;">Headlines Worth Knowing</div>
+${newsRows ? `<div style="color:#8a92a6;font-size:11px;letter-spacing:.08em;text-transform:uppercase;margin:18px 0 6px;">Macro &amp; IDX Headlines</div>
 ${newsRows}` : `<p style="color:#8a92a6;font-size:12px;margin-top:16px;">No headlines cleared the hot-news bar this session.</p>`}
 
 <a href="${escapeHtml(params.app_url)}" style="display:inline-block;margin-top:16px;padding:8px 16px;background:#d4a64a;color:#0a0e13;text-decoration:none;border-radius:4px;font-size:13px;font-weight:600;">Open Aeternum</a>

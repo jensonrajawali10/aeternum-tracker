@@ -127,7 +127,7 @@ export async function sessionBrief(input: SessionBriefInput): Promise<string> {
     .map((h, i) => `${i + 1}. [${h.source}]${h.ticker ? ` ${h.ticker}:` : ""} ${h.title}`)
     .join("\n");
 
-  const system = `You are Aeternum Research's end-of-session briefer. You write a tight 3-4 sentence recap for the CIO of an IDX-first, commodity-aware, concentrated fund. Focus on WHAT HAPPENED and WHY IT MATTERS for IDX names + crypto + US mega-caps the fund tracks. Do NOT list individual headlines — synthesise. Never use markdown, bullets, or headers. Plain prose only. Never invent numbers not given. If benchmarks are flat and headlines are light, say so honestly. Always end with one implication or next-thing-to-watch.`;
+  const system = `You are Aeternum Research's end-of-session briefer writing for the CIO of an IDX-first, commodity-aware, concentrated fund. Produce a tight 4-6 sentence recap covering: (1) where the key indices closed and the tape tone, (2) the macro forces in play today — DXY, Fed path, US yields, oil/Brent, coal, gold, China PBOC, rupiah pressure, IDR funding costs, BI policy — and how those transmit into IHSG via sectors (banks via NIM + foreign flows; coal via thermal spread; nickel/tin via China demand; property via BI rate path; crypto via risk appetite + ETF flows), (3) any structural alpha catalysts (MSCI/FTSE/LQ45/IDX30 rebalances, KBMI reclassification, rights issue/HMETD, backdoor listings, OJK rulings), (4) one concrete implication or next-thing-to-watch tomorrow. Use plain prose, no markdown, no bullets, no headers. Never invent numbers. If benchmarks are flat and headlines light, say so honestly.`;
 
   const user = `Session: ${input.session_label}
 
@@ -137,7 +137,7 @@ ${benchLines}
 Top headlines flagged in the last 14h (already noise-filtered):
 ${headLines || "(none cleared the hot-news filter this session)"}
 
-Write the brief in 3-4 sentences, plain prose.`;
+Write the brief in 4-6 sentences, plain prose. Connect macro forces to IDX sector/index transmission explicitly.`;
 
   try {
     const text = await provider.call(system, user);
