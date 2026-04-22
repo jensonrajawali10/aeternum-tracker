@@ -51,7 +51,16 @@ const SIGNALS: HotSignal[] = [
 
   // Indonesia-specific
   { pattern: /\b(idx|ihsg|bei|rupiah|jkse)/i, score: 10, reason: "IDX context" },
-  { pattern: /\b(right issue|rights issue|stock split|bonus (shares|issue)|buyback|tender offer)/i, score: 30, reason: "corp action" },
+  // Rights issue rumors — Jenson's alpha surface. Previously a bare "rights issue"
+  // scored 30 (below 60 threshold) so rumors never fired. Split into:
+  // - confirmed corporate action (tender/buyback/split) = 35
+  // - rights issue anywhere in text = 50 (clears threshold solo)
+  // - rights issue + rumor/plan/intend/disclose verbs = 75 (BREAKING bar)
+  // - Bahasa variants ("rights issue", "penawaran umum terbatas", "HMETD", "PUT")
+  { pattern: /\b(stock split|bonus (shares|issue)|buyback|tender offer)\b/i, score: 35, reason: "corp action" },
+  { pattern: /\b(right[s]? issue|HMETD|penawaran umum terbatas|PUT\s?[IVX]+)\b/i, score: 50, reason: "rights issue" },
+  { pattern: /\b(right[s]? issue|HMETD|penawaran umum terbatas)\b[\s\S]{0,80}\b(rumor|rumour|plan|mull|mulling|intend|weigh|weighs|weighing|consider|considering|prepar|explor|eye|eyes|eyeing|disclos|announce|approve|secure|completes?|complet(e|ed) the|fix(es|ed)? price|seek|seeks|seeking)/i, score: 75, reason: "rights issue rumor" },
+  { pattern: /\b(rumor|rumour|whispers?)\b[\s\S]{0,60}\b(right[s]? issue|stock split|acqui|takeover|backdoor listing|injeksi)/i, score: 60, reason: "M&A/rights rumor" },
   { pattern: /\b(komisioner|direktur utama|dirut)\b/i, score: 30, reason: "IDX leadership" },
 
   // Index rebalance & structural catalysts — MSCI adds/removes force passive
