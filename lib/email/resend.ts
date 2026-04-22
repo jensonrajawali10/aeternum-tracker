@@ -3,6 +3,14 @@ import { Resend } from "resend";
 const apiKey = process.env.RESEND_API_KEY;
 const FROM = process.env.RESEND_FROM || "Aeternum Tracker <onboarding@resend.dev>";
 
+// Resend's sandbox sender (onboarding@resend.dev) will REJECT the entire send
+// if any recipient (to/cc/bcc) isn't the account owner. That silently killed
+// our hot-news and market-recap emails because cc_emails contains partner
+// addresses. Detect the sandbox and strip cc/bcc so the primary recipient
+// still gets the email; partners will be reinstated automatically once a
+// verified domain is set via RESEND_FROM env.
+const IS_SANDBOX = /@resend\.dev>?$/.test(FROM.trim());
+
 const client = apiKey ? new Resend(apiKey) : null;
 
 export async function sendEmail(opts: {
@@ -19,8 +27,14 @@ export async function sendEmail(opts: {
   }
   try {
     // Resend rejects empty arrays on cc/bcc — normalise to undefined.
-    const cc = Array.isArray(opts.cc) ? (opts.cc.length ? opts.cc : undefined) : opts.cc;
-    const bcc = Array.isArray(opts.bcc) ? (opts.bcc.length ? opts.bcc : undefined) : opts.bcc;
+    let cc = Array.isArray(opts.cc) ? (opts.cc.length ? opts.cc : undefined) : opts.cc;
+    let bcc = Array.isArray(opts.bcc) ? (opts.bcc.length ? opts.bcc : undefined) : opts.bcc;
+    if (IS_SANDBOX) {
+      if (cc) console.warn("[resend] sandbox: dropping cc recipients", cc);
+      if (bcc) console.warn("[resend] sandbox: dropping bcc recipients", bcc);
+      cc = undefined;
+      bcc = undefined;
+    }
     const { data, error } = await client.emails.send({
       from: FROM,
       to: opts.to,
