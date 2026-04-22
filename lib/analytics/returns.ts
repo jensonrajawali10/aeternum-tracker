@@ -59,19 +59,29 @@ export function annualizedVol(daily: number, periods: number = 252): number {
   return daily * Math.sqrt(periods);
 }
 
+// Below this many return observations, risk-adjusted ratios are pure noise —
+// a handful of zero-return days next to one or two non-zero days blows up
+// mean/stdev into absurd values (we saw Sharpe -11 on 3 NAV points).
+// Gate both ratios on this minimum and return 0 (frontend renders as "—").
+const MIN_RETURNS_FOR_RATIO = 20;
+
+// Return NaN (not 0) when insufficient data so the frontend renders "—" via
+// fmtNumber's !isFinite guard — 0 would falsely read as "flat Sharpe".
 export function sharpe(returns: number[], riskFreeDaily: number = 0, periods: number = 252): number {
+  if (returns.length < MIN_RETURNS_FOR_RATIO) return NaN;
   const excess = returns.map((r) => r - riskFreeDaily);
   const s = stdev(excess);
-  if (s === 0) return 0;
+  if (s === 0) return NaN;
   return (mean(excess) / s) * Math.sqrt(periods);
 }
 
 export function sortino(returns: number[], riskFreeDaily: number = 0, periods: number = 252): number {
+  if (returns.length < MIN_RETURNS_FOR_RATIO) return NaN;
   const excess = returns.map((r) => r - riskFreeDaily);
   const negs = excess.filter((r) => r < 0);
-  if (!negs.length) return 0;
+  if (!negs.length) return NaN;
   const downsideDev = Math.sqrt(negs.reduce((a, b) => a + b * b, 0) / negs.length);
-  if (downsideDev === 0) return 0;
+  if (downsideDev === 0) return NaN;
   return (mean(excess) / downsideDev) * Math.sqrt(periods);
 }
 

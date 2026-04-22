@@ -35,22 +35,24 @@ export function AlphaDecompositionChart({ book }: { book: string }) {
         {
           label: "vs JCI",
           data: sorted.map((d) => ihsgMap.get(d) ?? null),
-          borderColor: "#E4E4E7",
+          // Blue for IHSG-relative alpha — matches main NAV chart palette.
+          borderColor: "#7fa2d6",
           backgroundColor: "transparent",
           fill: false,
           pointRadius: 0,
-          borderWidth: 1.3,
+          borderWidth: 1.5,
           tension: 0.18,
         },
         {
           label: "vs S&P 500",
           data: sorted.map((d) => spxMap.get(d) ?? null),
-          borderColor: "#A1A1AA",
+          // Green for S&P-relative alpha — matches main NAV chart palette.
+          borderColor: "#7fb98c",
           borderDash: [4, 3],
           backgroundColor: "transparent",
           fill: false,
           pointRadius: 0,
-          borderWidth: 1,
+          borderWidth: 1.3,
           tension: 0.18,
         },
       ],

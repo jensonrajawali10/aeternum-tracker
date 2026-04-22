@@ -44,35 +44,40 @@ export function NavVsBenchmarkChart({ book, height = 260 }: { book: string; heig
         {
           label: "NAV",
           data: data?.nav || [],
-          borderColor: "#E4E4E7",
+          // Aeternum gold — brand accent per brief §10.  Was #E4E4E7 (identical
+          // grey to the bench lines) which made the three series visually
+          // indistinguishable on the chart.
+          borderColor: "#d4a64a",
           backgroundColor: "transparent",
           fill: false,
           // Show a dot on each real NAV point so a single-point NAV is still visible
           pointRadius: (ctx: { raw: unknown }) =>
-            ctx.raw == null || !isFinite(ctx.raw as number) ? 0 : 2,
-          pointBackgroundColor: "#E4E4E7",
+            ctx.raw == null || !isFinite(ctx.raw as number) ? 0 : 2.5,
+          pointBackgroundColor: "#d4a64a",
           pointBorderWidth: 0,
-          borderWidth: 1.3,
+          borderWidth: 1.8,
           tension: 0.18,
           spanGaps: false,
         },
         {
           label: "JCI",
           data: data?.ihsg || [],
-          borderColor: "#A1A1AA",
+          // Desaturated blue for IHSG — clearly separate from gold + green.
+          borderColor: "#7fa2d6",
           borderDash: [4, 3],
           pointRadius: 0,
-          borderWidth: 1,
+          borderWidth: 1.2,
           fill: false,
           tension: 0.18,
         },
         {
           label: "S&P 500",
           data: data?.spx || [],
-          borderColor: "#6B6B73",
+          // Soft green for S&P — matches pos colour so "US stacks the deck green".
+          borderColor: "#7fb98c",
           borderDash: [2, 3],
           pointRadius: 0,
-          borderWidth: 1,
+          borderWidth: 1.2,
           fill: false,
           tension: 0.18,
         },
@@ -130,9 +135,9 @@ export function NavVsBenchmarkChart({ book, height = 260 }: { book: string; heig
     <div>
       <div className="flex items-center justify-between gap-3 mb-3">
         <div className="flex items-center gap-5 text-[11px]">
-          <LegendKey stroke="#E4E4E7" label="NAV" value={navPct} solid />
-          <LegendKey stroke="#A1A1AA" label="JCI" value={ihsgPct} dashed />
-          <LegendKey stroke="#6B6B73" label="S&P" value={spxPct} dotted />
+          <LegendKey stroke="#d4a64a" label="NAV" value={navPct} solid />
+          <LegendKey stroke="#7fa2d6" label="JCI" value={ihsgPct} dashed />
+          <LegendKey stroke="#7fb98c" label="S&P" value={spxPct} dotted />
         </div>
         <div className="flex gap-1">
           {RANGES.map((r) => (
