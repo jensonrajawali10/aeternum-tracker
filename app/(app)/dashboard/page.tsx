@@ -1,20 +1,14 @@
 import { TopHeader } from "@/components/TopHeader";
 import { Panel } from "@/components/Panel";
 import { KpiRow } from "@/components/KpiRow";
-import { PositionsTable } from "@/components/PositionsTable";
-import { ExposureBars } from "@/components/ExposureBars";
-import { BookSwitcher } from "@/components/BookSwitcher";
+import { BooksStrip } from "@/components/BooksStrip";
+import { ActionPanel } from "@/components/ActionPanel";
 import { CurrencyToggle } from "@/components/CurrencyToggle";
-import { NavVsBenchmarkChart } from "@/components/NavVsBenchmarkChart";
-import { AlphaDecompositionChart } from "@/components/AlphaDecompositionChart";
-import { AlphaAttribution } from "@/components/AlphaAttribution";
 import { RiskSnapshot } from "@/components/RiskSnapshot";
 import { SectorDoughnut } from "@/components/SectorDoughnut";
 import { StrategyMatrix } from "@/components/StrategyMatrix";
-import { SignalFeed } from "@/components/SignalFeed";
 import { FxTicker } from "@/components/FxTicker";
 import { AsOfStamp } from "@/components/AsOfStamp";
-import type { BookFilter } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -33,67 +27,61 @@ function greeting(): string {
   return "Good evening, Jenson";
 }
 
+/**
+ * Command Center — the firm-level landing page.  Structured around three
+ * concerns a CIO needs first thing in the morning:
+ *
+ *   1. Firm Pulse     — NAV, unrealised, YTD, gross/net exposure across all books
+ *   2. Books Strip    — how each arm is contributing today (Investing / IDX / Crypto)
+ *   3. Action Panel   — what needs attention: signals, movers, catalysts, exceptions
+ *
+ * Concentration + risk sit below as a calmer second fold.  Per-book
+ * performance charts (NAV-vs-benchmark, rolling alpha, attribution) moved
+ * into each book workspace at /books/[slug]/performance so the firm view
+ * doesn't double up on what the book tabs already show.
+ */
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ book?: string; ccy?: string }>;
+  searchParams: Promise<{ ccy?: string }>;
 }) {
   const params = await searchParams;
-  const book = (params.book || "all") as BookFilter;
   const ccy = (params.ccy === "USD" ? "USD" : "IDR") as "IDR" | "USD";
 
   return (
     <>
-      <TopHeader title="Dashboard" subtitle={greeting()}>
+      <TopHeader title="Command Center" subtitle={greeting()}>
         <AsOfStamp />
         <FxTicker from="USD" to="IDR" />
-        <BookSwitcher current={book} />
         <CurrencyToggle current={ccy} />
       </TopHeader>
 
-      <KpiRow book={book} currency={ccy} />
+      {/* Firm Pulse — single KPI row across all books */}
+      <KpiRow book="all" currency={ccy} />
 
-      {/* Benchmark chart folded into dashboard — replaces standalone /benchmark page */}
-      <Panel
-        title="Performance vs benchmarks"
-        subtitle="% change since period start · NAV vs JCI vs S&P 500"
-        className="mb-5"
-      >
-        <NavVsBenchmarkChart book={book} height={240} />
-      </Panel>
+      {/* Books strip — one card per arm with click-through to workspace */}
+      <div className="mt-5">
+        <BooksStrip />
+      </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[1.2fr_1fr] gap-4 mb-5">
-        <Panel title="Recent signals" subtitle="Agent feed">
-          <SignalFeed limit={8} />
-        </Panel>
-        <Panel title="Open positions" subtitle="Live marks · sorted by weight">
-          <PositionsTable book={book} currency={ccy} limit={10} />
+      {/* Action panel — signals / movers / catalysts / exceptions */}
+      <div className="mt-5">
+        <Panel title="Needs attention" subtitle="Triage feed across all books">
+          <ActionPanel />
         </Panel>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[2fr_1fr] gap-4 mb-5">
-        <Panel title="Rolling 30D alpha" subtitle="vs JCI and S&P 500">
-          <AlphaDecompositionChart book={book} />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-5">
+        <Panel title="Concentration by ticker" subtitle="Top 7 positions + rest · firm-wide">
+          <SectorDoughnut book="all" />
         </Panel>
-        <Panel title="Alpha attribution" subtitle="YTD">
-          <AlphaAttribution book={book} />
-        </Panel>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-5">
-        <Panel title="Exposure breakdown">
-          <ExposureBars book={book} />
-        </Panel>
-        <Panel title="Concentration by ticker" subtitle="Top 7 positions + rest · all books / book filter applies">
-          <SectorDoughnut book={book} />
+        <Panel title="Risk snapshot" subtitle="Vol, Sharpe, Sortino, beta vs JCI + S&P">
+          <RiskSnapshot book="all" />
         </Panel>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr] gap-4">
-        <Panel title="Risk snapshot">
-          <RiskSnapshot book={book} />
-        </Panel>
-        <Panel title="Strategy matrix" subtitle="Win rate, expectancy, hold time">
+      <div className="mt-4">
+        <Panel title="Strategy matrix" subtitle="Win rate, expectancy, hold time · firm-wide">
           <StrategyMatrix />
         </Panel>
       </div>
