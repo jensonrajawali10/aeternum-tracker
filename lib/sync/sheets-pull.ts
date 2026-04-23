@@ -29,18 +29,41 @@ export function parseNum(v: unknown): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-/** M/D/YYYY (US) or YYYY-MM-DD → ISO date string. */
-export function parseSheetDate(v: unknown): string | null {
+/** Date-format hint: Trading sheet is M/D/YYYY, Holdings sheet is DD/MM/YYYY. */
+export type DateFormat = "MDY" | "DMY";
+
+/** Parse a date cell. Supports ISO (YYYY-MM-DD), MDY (4/21/2026), and DMY
+ * (21/04/2026).  Caller passes the expected format for the sheet. */
+export function parseSheetDate(v: unknown, fmt: DateFormat = "MDY"): string | null {
   if (!v) return null;
   const s = String(v).trim();
   if (!s) return null;
-  // ISO already
   if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
-  // M/D/YYYY or MM/DD/YYYY
   const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
   if (m) {
-    const [, mm, dd, yyyy] = m;
-    return `${yyyy}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}`;
+    const [, a, b, yyyy] = m;
+    // DMY: first=day, second=month.  MDY: first=month, second=day.
+    // Auto-detect override: if one of the two numbers is > 12 it must be the
+    // day; flip format if the explicit hint disagrees.  Protects against
+    // sheet-format drift if Jenson changes locale later.
+    const na = Number(a);
+    const nb = Number(b);
+    let day: string;
+    let mon: string;
+    if (na > 12 && nb <= 12) {
+      day = a;
+      mon = b;
+    } else if (nb > 12 && na <= 12) {
+      mon = a;
+      day = b;
+    } else if (fmt === "DMY") {
+      day = a;
+      mon = b;
+    } else {
+      mon = a;
+      day = b;
+    }
+    return `${yyyy}-${mon.padStart(2, "0")}-${day.padStart(2, "0")}`;
   }
   const d = new Date(s);
   if (isNaN(d.getTime())) return null;
@@ -157,7 +180,20 @@ export interface HoldingsRow {
  * spacer rows without filtering rows that are in-flight / partially filled. */
 function isLiveRow(ticker: string, ...anyOf: (number | null)[]): boolean {
   if (!ticker || ticker.length < 1 || ticker.length > 10) return false;
+  // Require at least one non-null numeric AND reject pure-number tickers
+  // (those are artefacts of trailing CSV columns).
+  if (!/^[A-Z][A-Z0-9.]*$/.test(ticker)) return false;
   return anyOf.some((v) => v != null);
+}
+
+/** Find the header row inside a CSV that has preamble lines before it.
+ * Returns -1 if not found. */
+function findHeaderRow(rows: string[][], mustContain: string[]): number {
+  for (let i = 0; i < Math.min(rows.length, 20); i++) {
+    const cells = (rows[i] || []).map((c) => String(c || "").toUpperCase().trim());
+    if (mustContain.every((t) => cells.some((c) => c.includes(t)))) return i;
+  }
+  return -1;
 }
 
 function parseResult(v: unknown): "WIN" | "LOSS" | "BE" | null {
@@ -171,12 +207,11 @@ function parseResult(v: unknown): "WIN" | "LOSS" | "BE" | null {
 
 export function parseTradingCsv(csvText: string): TradingRow[] {
   const rows = parseCsv(csvText);
-  if (rows.length < 2) return [];
-  // Row 0 is the header — we don't verify the column names because the
-  // schema was captured from Jenson's actual sheet; we just use positional
-  // indices.  If he reorders columns, this parser needs an update.
+  // Skip preamble — find the row containing DATE + TICKER (header row).
+  const headerIdx = findHeaderRow(rows, ["DATE", "TICKER"]);
+  if (headerIdx < 0 || rows.length < headerIdx + 2) return [];
   const out: TradingRow[] = [];
-  for (let i = 1; i < rows.length; i++) {
+  for (let i = headerIdx + 1; i < rows.length; i++) {
     const r = rows[i];
     if (!r || r.length < 3) continue;
     const ticker = String(r[2] || "").trim().toUpperCase();
@@ -185,7 +220,7 @@ export function parseTradingCsv(csvText: string): TradingRow[] {
     if (!isLiveRow(ticker, entry, lots, parseNum(r[5]))) continue;
     out.push({
       row_index: i,
-      trade_date: parseSheetDate(r[0]),
+      trade_date: parseSheetDate(r[0], "MDY"),
       sector: String(r[1] || "").trim() || null,
       ticker,
       strategy: String(r[3] || "").trim() || null,
@@ -215,9 +250,10 @@ export function parseTradingCsv(csvText: string): TradingRow[] {
 
 export function parseHoldingsCsv(csvText: string): HoldingsRow[] {
   const rows = parseCsv(csvText);
-  if (rows.length < 2) return [];
+  const headerIdx = findHeaderRow(rows, ["PURCHASE DATE", "TICKER"]);
+  if (headerIdx < 0 || rows.length < headerIdx + 2) return [];
   const out: HoldingsRow[] = [];
-  for (let i = 1; i < rows.length; i++) {
+  for (let i = headerIdx + 1; i < rows.length; i++) {
     const r = rows[i];
     if (!r || r.length < 3) continue;
     const ticker = String(r[2] || "").trim().toUpperCase();
@@ -226,7 +262,7 @@ export function parseHoldingsCsv(csvText: string): HoldingsRow[] {
     if (!isLiveRow(ticker, entry, current, parseNum(r[5]))) continue;
     out.push({
       row_index: i,
-      purchase_date: parseSheetDate(r[0]),
+      purchase_date: parseSheetDate(r[0], "DMY"),
       sector: String(r[1] || "").trim() || null,
       ticker,
       thesis: String(r[3] || "").trim() || null,
@@ -334,10 +370,24 @@ export function tradingRowToTrade(r: TradingRow, userId: string): TradeInsertRow
   };
 }
 
-/** Holdings sheet → trades with book='investing' and NO exit_price (open). */
+/** Holdings sheet → trades with book='investing' and NO exit_price (open).
+ *
+ * Lots is optional in Jenson's sheet — if missing, infer shares from cost
+ * basis / entry price.  If BOTH lots AND cost_basis are missing, the row
+ * is a tracking/watchlist entry with no capital committed; skip it so the
+ * NAV formula doesn't receive a spurious zero-qty position. */
 export function holdingsRowToTrade(r: HoldingsRow, userId: string): TradeInsertRow | null {
-  if (!r.purchase_date || r.entry_price == null || r.lots == null) return null;
-  const shares = r.lots * IDX_LOT_SIZE;
+  if (!r.purchase_date || r.entry_price == null) return null;
+  let shares: number | null = null;
+  if (r.lots != null && r.lots > 0) {
+    shares = r.lots * IDX_LOT_SIZE;
+  } else if (r.cost_basis_idr != null && r.cost_basis_idr > 0 && r.entry_price > 0) {
+    // Derive shares from cost basis: shares ≈ cost_basis / entry_price.
+    // Rounded to nearest lot to avoid fractional-share ghosts.
+    const rawShares = r.cost_basis_idr / r.entry_price;
+    shares = Math.round(rawShares / IDX_LOT_SIZE) * IDX_LOT_SIZE;
+  }
+  if (shares == null || shares <= 0) return null;
   // daysHeld approximation in hours; if not available leave null (frontend
   // derives from trade_date anyway for open positions)
   const holdHours = r.days_held != null ? r.days_held * 24 : null;
