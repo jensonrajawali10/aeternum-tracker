@@ -4,6 +4,10 @@
     {
       "path": "/api/cron/daily-snapshot",
       "schedule": "0 22 * * *"
+    },
+    {
+      "path": "/api/sync/sheets-pull",
+      "schedule": "*/10 * * * *"
     }
   ]
 }
