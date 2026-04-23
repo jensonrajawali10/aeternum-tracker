@@ -4,35 +4,48 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { clsx } from "@/lib/format";
 
-type NavItem = { href: string; label: string };
+type NavItem = { href: string; label: string; exactMatch?: boolean };
 type NavGroup = { label: string; items: NavItem[] };
 
+/**
+ * Sidebar restructure for the CIO cockpit model:
+ *
+ *   FIRM  — the view from the holding company: all-books aggregate, capital
+ *           between arms, firm-wide risk, the decision journal.
+ *   BOOKS — each trading arm as its own workspace (/books/<slug>) with
+ *           Positions/Performance/Risk/Trades/Notes tabs.
+ *   TOOLS — supporting utilities that span the firm: alerts, watchlist,
+ *           news, earnings, analysts, settings.
+ *
+ * Active state matches the URL prefix so all book sub-routes stay lit under
+ * their BOOKS entry.
+ */
 const NAV: NavGroup[] = [
-  { label: "", items: [{ href: "/dashboard", label: "Dashboard" }] },
   {
-    label: "Books",
+    label: "Firm",
     items: [
-      { href: "/holdings", label: "Holdings" },
-      { href: "/crypto-trading", label: "Crypto" },
-      { href: "/idx-trading", label: "IDX trades" },
+      { href: "/dashboard", label: "Command Center" },
+      { href: "/capital", label: "Capital" },
+      { href: "/risk", label: "Firm Risk" },
+      { href: "/journal", label: "Journal" },
     ],
   },
   {
-    label: "Analysis",
+    label: "Books",
     items: [
-      { href: "/positions", label: "Positions" },
-      { href: "/risk", label: "Risk" },
-      { href: "/journal", label: "Journal" },
+      { href: "/books/investing", label: "Investing" },
+      { href: "/books/idx-trading", label: "IDX Trading" },
+      { href: "/books/crypto-trading", label: "Crypto Trading" },
     ],
   },
   {
     label: "Tools",
     items: [
-      { href: "/alerts", label: "Alerts" },
       { href: "/watchlist", label: "Watchlist" },
-      { href: "/news", label: "News feed" },
+      { href: "/alerts", label: "Alerts" },
+      { href: "/news", label: "News" },
       { href: "/earnings", label: "Earnings" },
-      { href: "/agents", label: "Agents" },
+      { href: "/agents", label: "Analysts" },
       { href: "/settings", label: "Settings" },
     ],
   },
@@ -41,24 +54,28 @@ const NAV: NavGroup[] = [
 export function Sidebar() {
   const pathname = usePathname();
   return (
-    <aside className="w-[160px] shrink-0 border-r border-border bg-panel hidden md:flex flex-col h-screen sticky top-0">
+    <aside className="w-[172px] shrink-0 border-r border-border bg-panel hidden md:flex flex-col h-screen sticky top-0">
       <div className="px-4 pt-5 pb-3 border-b border-border">
         <div className="flex items-baseline gap-2">
           <span className="w-[6px] h-[6px] rounded-full bg-accent inline-block" />
           <span className="serif text-[15px] text-fg">Aeternum</span>
         </div>
-        <div className="mono text-[10px] text-muted-2 mt-[2px] pl-[14px]">tracker</div>
+        <div className="mono text-[10px] text-muted-2 mt-[2px] pl-[14px]">
+          CIO cockpit
+        </div>
       </div>
       <nav className="flex-1 overflow-y-auto py-3">
         {NAV.map((group, gi) => (
           <div key={gi} className={gi > 0 ? "mt-3" : ""}>
             {group.label && (
-              <div className="px-[14px] py-1 text-[10.5px] text-muted-2">
+              <div className="px-[14px] py-1 text-[9.5px] text-muted-2 uppercase tracking-[0.14em]">
                 {group.label}
               </div>
             )}
             {group.items.map((item) => {
-              const active = pathname === item.href || pathname.startsWith(item.href + "/");
+              const active = item.exactMatch
+                ? pathname === item.href
+                : pathname === item.href || pathname.startsWith(item.href + "/");
               return (
                 <Link
                   key={item.href}
@@ -66,7 +83,9 @@ export function Sidebar() {
                   prefetch
                   className={clsx(
                     "relative block pl-[14px] pr-3 py-[6px] text-[12px] transition-all duration-150",
-                    active ? "text-fg bg-elevated" : "text-muted hover:text-fg hover:bg-elevated hover:translate-x-[1px]",
+                    active
+                      ? "text-fg bg-elevated"
+                      : "text-muted hover:text-fg hover:bg-elevated hover:translate-x-[1px]",
                   )}
                 >
                   {active && (
