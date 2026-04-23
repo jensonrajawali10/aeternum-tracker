@@ -1,8 +1,10 @@
 "use client";
 
-import useSWR from "swr";
+import useSWR, { mutate } from "swr";
+import { useEffect } from "react";
 import { SeverityBadge } from "./Badge";
 import { fmtDate } from "@/lib/format";
+import { supabaseBrowser } from "@/lib/supabase/client";
 import type { Severity } from "@/lib/types";
 
 interface Signal {
@@ -20,10 +22,29 @@ interface Signal {
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 export function SignalFeed({ limit = 10 }: { limit?: number }) {
-  const { data } = useSWR<{ signals: Signal[] }>(`/api/agents/signals?limit=${limit}`, fetcher, {
+  const key = `/api/agents/signals?limit=${limit}`;
+  const { data } = useSWR<{ signals: Signal[] }>(key, fetcher, {
     refreshInterval: 30_000,
+    keepPreviousData: true,
   });
   const signals = data?.signals ?? [];
+
+  // Realtime: push agent_signals INSERTs into the feed immediately, so a
+  // macro / alpha / risk agent hit lands on the dashboard without a poll delay.
+  useEffect(() => {
+    const sb = supabaseBrowser();
+    const ch = sb
+      .channel(`signals-live-${limit}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "agent_signals" },
+        () => mutate(key),
+      )
+      .subscribe();
+    return () => {
+      sb.removeChannel(ch);
+    };
+  }, [key, limit]);
 
   return (
     <div className="divide-y divide-border">

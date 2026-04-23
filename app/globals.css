@@ -132,3 +132,30 @@ th, td { padding-top: 6px; padding-bottom: 6px; }
 .chart-nav { stroke: var(--color-text); }
 .chart-jci { stroke: var(--color-muted); }
 .chart-spx { stroke: var(--color-tertiary); }
+
+/* ======== Smoothness: skeleton shimmer + page fade-in ======== */
+
+/* Fade page content in on route change — replaces the blank flash between
+   server-rendered navigations. 180ms is short enough to feel instant but
+   long enough to mask the hydration pop. */
+@keyframes aeFadeIn {
+  from { opacity: 0; transform: translateY(2px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.fade-in { animation: aeFadeIn 180ms ease-out both; }
+
+/* Skeleton rows used everywhere data is loading instead of plain "Loading…" text.
+   Uses a slow subtle pulse so multiple skeletons in view don't feel frantic. */
+@keyframes aeShimmer {
+  0%, 100% { opacity: 0.35; }
+  50%      { opacity: 0.7;  }
+}
+.skel {
+  background: var(--color-panel-2);
+  border-radius: 3px;
+  animation: aeShimmer 1.4s ease-in-out infinite;
+  display: inline-block;
+}
+
+/* Hover bg used for row interactions across tables / cards */
+button, a, tr { /* no-op — hover handled per-component */ }

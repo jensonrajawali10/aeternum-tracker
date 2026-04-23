@@ -53,8 +53,8 @@ export default async function DashboardPage({
 
       {/* Benchmark chart folded into dashboard — replaces standalone /benchmark page */}
       <Panel
-        title="NAV vs benchmarks"
-        subtitle="Rebased to 100"
+        title="Performance vs benchmarks"
+        subtitle="% change since period start · NAV vs JCI vs S&P 500"
         className="mb-5"
       >
         <NavVsBenchmarkChart book={book} height={240} />

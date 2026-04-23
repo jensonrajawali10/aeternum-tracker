@@ -1,8 +1,10 @@
 "use client";
 
-import useSWR from "swr";
+import useSWR, { mutate } from "swr";
+import { useEffect } from "react";
 import { AssetBadge, BookBadge } from "./Badge";
 import { fmtCurrency, fmtPct, fmtQty, fmtNumber, signClass } from "@/lib/format";
+import { supabaseBrowser } from "@/lib/supabase/client";
 import type { AssetClass, BookType } from "@/lib/types";
 
 interface Position {
@@ -40,9 +42,29 @@ export function PositionsTable({
   limit?: number;
 }) {
   const bookParam = book === "all" ? "" : `?book=${book}`;
-  const { data, isLoading } = useSWR<PositionsResp>(`/api/positions${bookParam}`, fetcher, {
+  const key = `/api/positions${bookParam}`;
+  const { data, isLoading } = useSWR<PositionsResp>(key, fetcher, {
     refreshInterval: 30_000,
+    keepPreviousData: true,
   });
+
+  // Realtime: any INSERT/UPDATE on trades (from Sheets sync) triggers an
+  // immediate refetch so the positions table reflects the new row without
+  // waiting on the 30s poll.
+  useEffect(() => {
+    const sb = supabaseBrowser();
+    const ch = sb
+      .channel(`positions-live-${book}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "trades" },
+        () => mutate(key),
+      )
+      .subscribe();
+    return () => {
+      sb.removeChannel(ch);
+    };
+  }, [key, book]);
 
   const positions = data?.positions ?? [];
   const rows = limit ? positions.slice(0, limit) : positions;
@@ -66,12 +88,19 @@ export function PositionsTable({
           </tr>
         </thead>
         <tbody>
-          {isLoading && (
-            <tr>
-              <td colSpan={11} className="py-6 text-center text-muted">
-                Loading…
-              </td>
-            </tr>
+          {isLoading && !data && (
+            // Skeleton rows — replaces the plain "Loading…" flash.  Six rows
+            // matches typical above-the-fold position count so the layout
+            // doesn't jump when real data swaps in.
+            Array.from({ length: 6 }).map((_, i) => (
+              <tr key={`skel-${i}`} className="border-b border-border">
+                {Array.from({ length: 11 }).map((__, j) => (
+                  <td key={j} className="py-[10px] px-2">
+                    <span className="skel h-[10px] w-full block" style={{ opacity: 0.35 + (i % 3) * 0.05 }} />
+                  </td>
+                ))}
+              </tr>
+            ))
           )}
           {!isLoading && rows.length === 0 && (
             <tr>

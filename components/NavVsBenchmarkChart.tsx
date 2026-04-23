@@ -57,7 +57,10 @@ export function NavVsBenchmarkChart({ book, height = 260 }: { book: string; heig
           pointBorderWidth: 0,
           borderWidth: 1.8,
           tension: 0.18,
-          spanGaps: false,
+          // spanGaps:true so sparse NAV snapshots connect into a line across
+          // weekends/holidays — this reads as a proper performance curve rather
+          // than 3 disconnected dots when nav_history is thin.
+          spanGaps: true,
         },
         {
           label: "JCI",
@@ -101,6 +104,17 @@ export function NavVsBenchmarkChart({ book, height = 260 }: { book: string; heig
           bodyColor: "#A1A1AA",
           titleFont: { family: "JetBrains Mono", size: 10 },
           bodyFont: { family: "JetBrains Mono", size: 11 },
+          callbacks: {
+            // Series is indexed to 100; render tooltip values as signed % change
+            // so the chart reads unambiguously as a performance benchmark.
+            label: (ctx: { dataset: { label?: string }; parsed: { y: number | null } }) => {
+              const y = ctx.parsed.y;
+              if (y == null || !isFinite(y)) return `${ctx.dataset.label}: —`;
+              const pct = y - 100;
+              const sign = pct >= 0 ? "+" : "";
+              return `${ctx.dataset.label}: ${sign}${pct.toFixed(2)}%`;
+            },
+          },
         },
       },
       scales: {
@@ -115,7 +129,13 @@ export function NavVsBenchmarkChart({ book, height = 260 }: { book: string; heig
           ticks: {
             color: "#6B6B73",
             maxTicksLimit: 5,
-            callback: (v: number | string) => `${Number(v).toFixed(0)}`,
+            // Axis shows performance — "+10%" / "-5%" instead of "110" / "95".
+            // This is a rebased-to-100 series, so value − 100 = % since period start.
+            callback: (v: number | string) => {
+              const pct = Number(v) - 100;
+              const sign = pct > 0 ? "+" : "";
+              return `${sign}${pct.toFixed(0)}%`;
+            },
             font: { family: "JetBrains Mono", size: 10 },
           },
         },
@@ -146,7 +166,7 @@ export function NavVsBenchmarkChart({ book, height = 260 }: { book: string; heig
               onClick={() => setRange(r)}
               className={clsx(
                 "mono px-2 h-[24px] text-[10.5px] rounded-[4px] transition-colors",
-                range === r ? "bg-elevated text-fg" : "text-muted hover:text-fg hover:bg-elevated",
+                range === r ? "bg-accent text-bg" : "text-muted hover:text-fg hover:bg-elevated",
               )}
             >
               {r}

@@ -63,9 +63,10 @@ export function Sidebar() {
                 <Link
                   key={item.href}
                   href={item.href}
+                  prefetch
                   className={clsx(
-                    "relative block pl-[14px] pr-3 py-[6px] text-[12px] transition-colors",
-                    active ? "text-fg bg-elevated" : "text-muted hover:text-fg hover:bg-elevated",
+                    "relative block pl-[14px] pr-3 py-[6px] text-[12px] transition-all duration-150",
+                    active ? "text-fg bg-elevated" : "text-muted hover:text-fg hover:bg-elevated hover:translate-x-[1px]",
                   )}
                 >
                   {active && (

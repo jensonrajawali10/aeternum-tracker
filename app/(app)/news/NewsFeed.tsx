@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import useSWR from "swr";
 import { fmtDate } from "@/lib/format";
 
@@ -51,10 +51,16 @@ function timeAgo(ms: number): string {
 export function NewsFeed() {
   const [category, setCategory] = useState<Category>("all");
   const [hideNoise, setHideNoise] = useState(true);
-  const { data, isLoading } = useSWR<FeedResp>(
+  const [lastRefresh, setLastRefresh] = useState<number>(Date.now());
+  const { data, isLoading, mutate: refetch } = useSWR<FeedResp>(
     `/api/news?category=${category}`,
     fetcher,
-    { refreshInterval: 180_000 },
+    {
+      refreshInterval: 60_000,
+      revalidateOnFocus: true,
+      dedupingInterval: 10_000,
+      keepPreviousData: true,
+    },
   );
 
   const raw = data?.items || [];
@@ -62,6 +68,19 @@ export function NewsFeed() {
   const items = hideNoise && data?.agent
     ? raw.filter((i) => (i.urgency ?? 0) >= 1)
     : raw;
+
+  // Stamp every time SWR hands us a fresh payload — drives the "updated Xs ago"
+  // chip so Jenson can see the feed is actually polling.
+  useEffect(() => {
+    if (data) setLastRefresh(Date.now());
+  }, [data]);
+
+  // Tick every 10s so the chip counter visibly moves between revalidations.
+  const [, forceTick] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => forceTick((x) => x + 1), 10_000);
+    return () => clearInterval(t);
+  }, []);
 
   return (
     <div>
@@ -102,6 +121,13 @@ export function NewsFeed() {
             {hideNoise ? "hiding noise" : "showing all"}
           </button>
         )}
+        <button
+          onClick={() => refetch()}
+          className="px-2 py-[3px] rounded text-[9px] uppercase tracking-wider border border-border text-muted hover:text-fg transition-colors"
+          title="Refresh now"
+        >
+          ↻ {timeAgo(lastRefresh)}
+        </button>
       </div>
 
       {data?.symbols != null && (
@@ -110,7 +136,18 @@ export function NewsFeed() {
         </div>
       )}
 
-      {isLoading && <div className="text-muted text-[12px]">Loading feed…</div>}
+      {isLoading && !data && (
+        // Skeleton feed — 8 stubs keeps the scroll length stable when real
+        // items swap in, so the header tabs don't jump up on first paint.
+        <ul className="divide-y divide-border">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <li key={`skel-${i}`} className="py-3">
+              <span className="skel h-[9px] w-[180px] block mb-2" />
+              <span className="skel h-[13px] w-[70%] block" />
+            </li>
+          ))}
+        </ul>
+      )}
 
       <ul className="divide-y divide-border">
         {items.map((it) => (
@@ -119,7 +156,7 @@ export function NewsFeed() {
               href={it.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="block hover:bg-hover -mx-2 px-2 py-1 rounded"
+              className="group block hover:bg-hover -mx-2 px-2 py-1 rounded transition-colors"
             >
               <div className="flex items-center gap-2 text-[10px] text-muted uppercase tracking-wider mb-1">
                 <span>{it.source}</span>
@@ -146,7 +183,15 @@ export function NewsFeed() {
                   </span>
                 ))}
               </div>
-              <div className="text-[13px] leading-snug">{it.title}</div>
+              <div className="text-[13px] leading-snug group-hover:underline">
+                {it.title}
+                <span
+                  aria-hidden
+                  className="ml-1 inline-block align-baseline text-[10px] text-muted-2 group-hover:text-accent transition-colors"
+                >
+                  ↗
+                </span>
+              </div>
               {it.reasons && it.reasons.length > 0 && (
                 <div className="text-[10px] text-accent mt-1">
                   {it.reasons.slice(0, 2).join(" · ")}

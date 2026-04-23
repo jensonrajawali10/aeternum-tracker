@@ -1,8 +1,9 @@
 "use client";
 
 import useSWR, { mutate } from "swr";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { fmtDate } from "@/lib/format";
+import { supabaseBrowser } from "@/lib/supabase/client";
 
 interface RecentRow {
   news_id: string;
@@ -26,9 +27,37 @@ interface Resp {
 const fetcher = (u: string) => fetch(u).then((r) => r.json());
 
 export function HotNewsPanel() {
-  const { data } = useSWR<Resp>("/api/hot-news-settings", fetcher, { refreshInterval: 60_000 });
+  const { data } = useSWR<Resp>("/api/hot-news-settings", fetcher, {
+    refreshInterval: 20_000,
+    revalidateOnFocus: true,
+    keepPreviousData: true,
+    dedupingInterval: 5_000,
+  });
   const [checking, setChecking] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [livePulse, setLivePulse] = useState(false);
+
+  // Supabase Realtime: subscribe to news_alert_sent INSERTs so we re-fetch the
+  // moment the cron writes a new hot row.  This is the actual "realtime" — SWR
+  // polling is a 20s fallback; this fires on server push with zero delay.
+  useEffect(() => {
+    const sb = supabaseBrowser();
+    const ch = sb
+      .channel("hot-news-live")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "news_alert_sent" },
+        () => {
+          mutate("/api/hot-news-settings");
+          setLivePulse(true);
+          setTimeout(() => setLivePulse(false), 1200);
+        },
+      )
+      .subscribe();
+    return () => {
+      sb.removeChannel(ch);
+    };
+  }, []);
 
   async function toggle(enabled: boolean) {
     await fetch("/api/hot-news-settings", {
@@ -69,7 +98,22 @@ export function HotNewsPanel() {
     <div className="mb-6 p-4 bg-panel-2 rounded border border-border">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <div className="text-fg text-[13px] font-semibold mb-1">Hot news email alerts</div>
+          <div className="flex items-center gap-2 mb-1">
+            <div className="text-fg text-[13px] font-semibold">Hot news email alerts</div>
+            <span
+              className={`flex items-center gap-1 px-1.5 py-[1px] rounded text-[9px] uppercase tracking-wider border ${
+                livePulse
+                  ? "bg-green/20 text-green border-green/50"
+                  : "bg-panel text-muted-2 border-border"
+              } transition-colors`}
+              title="Realtime subscription to news_alert_sent — updates push the moment the cron inserts a row"
+            >
+              <span
+                className={`w-[5px] h-[5px] rounded-full ${livePulse ? "bg-green animate-pulse" : "bg-green/60"}`}
+              />
+              {livePulse ? "new" : "live"}
+            </span>
+          </div>
           <div className="text-muted text-[11px] leading-relaxed max-w-xl">
             Emails you breaking headlines for your positions + watchlist: halts, M&A, earnings surprises,
             ratings changes, bankruptcies, regulatory actions, hacks, ±double-digit moves. Dedupes so
@@ -128,8 +172,19 @@ export function HotNewsPanel() {
                   <span>· {fmtDate(r.sent_at, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
                   {r.email_ok && <span className="text-green">· emailed</span>}
                 </div>
-                <a href={r.url} target="_blank" rel="noopener noreferrer" className="text-fg hover:text-accent block leading-snug">
+                <a
+                  href={r.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group text-fg hover:text-accent hover:underline transition-colors block leading-snug"
+                >
                   {r.title}
+                  <span
+                    aria-hidden
+                    className="ml-1 inline-block align-baseline text-[10px] text-muted-2 group-hover:text-accent transition-colors"
+                  >
+                    ↗
+                  </span>
                 </a>
                 {r.reasons.length > 0 && (
                   <div className="mt-0.5 flex flex-wrap gap-1">
