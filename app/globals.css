@@ -159,3 +159,33 @@ th, td { padding-top: 6px; padding-bottom: 6px; }
 
 /* Hover bg used for row interactions across tables / cards */
 button, a, tr { /* no-op — hover handled per-component */ }
+
+/* ======== Typography hierarchy (documentation) ========
+
+   Four tiers, applied via component classes so a refactor never has
+   to touch every page:
+
+     L1  Page title              .ae-h1   (TopHeader)
+     L2  Panel / section title   .ae-h2   (Panel)
+     L3  Card label              text-[10.5px] uppercase tracking-[0.14em]
+     L4  Body data               .mono + tabular-nums
+
+   Default (Comfortable) sizes are set in TopHeader and Panel.  Compact
+   density overrides below tighten everything by roughly one step. */
+
+/* ======== Density: compact overrides ======== */
+
+html[data-density="compact"] .ae-topheader { padding-bottom: 12px; margin-bottom: 16px; }
+html[data-density="compact"] .ae-h1        { font-size: 19px; }
+html[data-density="compact"] .ae-h1-sub    { font-size: 12px; }
+
+html[data-density="compact"] .ae-panel-header { padding-top: 8px; padding-bottom: 8px; }
+html[data-density="compact"] .ae-h2        { font-size: 12.5px; }
+html[data-density="compact"] .ae-h2-sub    { font-size: 10.5px; }
+html[data-density="compact"] .ae-panel-body { padding: 10px 12px; }
+
+/* Tighten default body font so dense tables fit one more row per screen */
+html[data-density="compact"] body { font-size: 12.5px; }
+
+/* Gaps on stacked panels closer together */
+html[data-density="compact"] main { padding-top: 16px; padding-bottom: 16px; }
