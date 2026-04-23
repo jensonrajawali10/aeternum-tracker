@@ -24,15 +24,16 @@ export function RiskSnapshot({ book }: { book: string }) {
     refreshInterval: 120_000,
   });
 
-  // Treat all-zero metrics as a signal that we don't have enough daily NAV
-  // snapshots yet — nav_history still backfilling, so vol/Sharpe/Sortino
-  // collapse to zero rather than being genuinely flat.
+  // Insufficient-history signal — lib/analytics/metrics now returns NaN for
+  // vol / sharpe / sortino / VaR when the sample is below the minimum
+  // threshold (15 returns for 30D vol, 45 for 90D vol). If both vol
+  // windows are NaN the nav_history is too shallow to show anything
+  // useful; print a one-line banner under the metric rows instead of
+  // letting the "—" scatter look like a broken render.
   const sparse =
     !!data &&
-    data.vol_30d_annualized_pct === 0 &&
-    data.vol_90d_annualized_pct === 0 &&
-    data.sharpe_ytd === 0 &&
-    data.sortino_ytd === 0 &&
+    !isFinite(data.vol_30d_annualized_pct) &&
+    !isFinite(data.vol_90d_annualized_pct) &&
     data.beta_vs_ihsg == null &&
     data.beta_vs_spx == null;
 

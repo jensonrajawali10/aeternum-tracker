@@ -9,7 +9,7 @@ interface Row {
   count: number;
   win_rate_pct: number;
   avg_rr: number | null;
-  expectancy: number;
+  expectancy: number | null;
   net_pnl_idr: number;
   avg_hold_hours: number | null;
 }

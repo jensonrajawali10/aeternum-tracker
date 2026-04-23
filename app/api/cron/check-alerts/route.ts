@@ -30,12 +30,6 @@ interface PositionRow {
   fx_rate_to_idr: number | null;
 }
 
-interface NavRow {
-  user_id: string;
-  nav_idr: number;
-  unrealized_pnl_idr: number;
-}
-
 // Re-trigger guard: don't spam the same alert more than once per 6h.
 const RETRIGGER_MIN_MS = 6 * 60 * 60 * 1000;
 

@@ -51,7 +51,12 @@ function timeAgo(ms: number): string {
 export function NewsFeed() {
   const [category, setCategory] = useState<Category>("all");
   const [hideNoise, setHideNoise] = useState(true);
-  const [lastRefresh, setLastRefresh] = useState<number>(Date.now());
+  // lastRefresh tracks when SWR last handed us a fresh payload.  Lazy
+  // useState initializer keeps Date.now() out of render body (React 19
+  // purity rule).  The SWR onSuccess callback fires from SWR's internal
+  // event loop — outside React reconciliation — so it's a safe place to
+  // poke state without tripping the set-state-in-effect rule.
+  const [lastRefresh, setLastRefresh] = useState<number>(() => Date.now());
   const { data, isLoading, mutate: refetch } = useSWR<FeedResp>(
     `/api/news?category=${category}`,
     fetcher,
@@ -60,6 +65,7 @@ export function NewsFeed() {
       revalidateOnFocus: true,
       dedupingInterval: 10_000,
       keepPreviousData: true,
+      onSuccess: () => setLastRefresh(Date.now()),
     },
   );
 
@@ -68,12 +74,6 @@ export function NewsFeed() {
   const items = hideNoise && data?.agent
     ? raw.filter((i) => (i.urgency ?? 0) >= 1)
     : raw;
-
-  // Stamp every time SWR hands us a fresh payload — drives the "updated Xs ago"
-  // chip so Jenson can see the feed is actually polling.
-  useEffect(() => {
-    if (data) setLastRefresh(Date.now());
-  }, [data]);
 
   // Tick every 10s so the chip counter visibly moves between revalidations.
   const [, forceTick] = useState(0);

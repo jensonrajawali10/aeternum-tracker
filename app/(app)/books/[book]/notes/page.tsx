@@ -57,10 +57,18 @@ export default async function BookNotesPage({
             </Link>
             .
           </p>
-          <p>
-            Decision memos and journal entries for this arm will render here in
-            the next iteration — dated decided / why / expected / invalidation /
-            outcome.
+          <p className="text-muted-2 pt-2 border-t border-border">
+            Decision memos (dated decided / why / expected / invalidation /
+            outcome) are on the roadmap but not live yet. For now, journal
+            rationale lives on the{" "}
+            <Link href="/journal" className="text-accent hover:underline">
+              firm journal
+            </Link>{" "}
+            and capital-level decisions on the{" "}
+            <Link href="/capital" className="text-accent hover:underline">
+              rebalance log
+            </Link>
+            .
           </p>
         </div>
       </Panel>

@@ -22,12 +22,12 @@ export default function AnalystsPage() {
     <>
       <TopHeader
         title="Analysts"
-        subtitle="Four voices — macro · alpha · risk · universe-brief. Wired via Claude Code."
+        subtitle="Four bookmark slots for Claude Code briefs. Run the skill locally, the brief posts back via webhook."
       />
       <MorningBrief />
       <Panel
         title="Advisory circle"
-        subtitle="Latest brief per analyst · click Run now to log a manual invocation"
+        subtitle="Briefs land here via /api/agents/webhook once a Claude Code session posts one. Run-now is a bookmark — it does not invoke a model."
         className="mt-5"
       >
         <AnalystsBoard />

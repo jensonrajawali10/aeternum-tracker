@@ -22,8 +22,58 @@ export interface RiskMetrics {
   var_30d_95_pct: number;
 }
 
-function sliceFrom(series: { date: string; value: number }[], startDate: string): { date: string; value: number }[] {
+// Minimum sample sizes below which the metric is pure noise — Jenson saw
+// Vol (30D ann) = Vol (90D ann) = 1182% because both windows collapsed to
+// the same tiny slice when nav_history was only a few days deep. Return
+// NaN instead and let the frontend show "—".
+const MIN_RETURNS_FOR_VOL_30D = 15;
+const MIN_RETURNS_FOR_VOL_90D = 45;
+const MIN_RETURNS_FOR_VAR = 15;
+const MIN_PORTFOLIO_FOR_MDD = 10;
+
+// Daily-return magnitude above which we treat the observation as a capital
+// flow event, not an investment return. The firm-level 'all' NAV series
+// jumps on days when a new book was funded (e.g. seeding the investing
+// book mid-year) — without this filter, TWRR would falsely include that
+// deposit as a +100% return.
+//
+// 50% is generous enough that legitimate crypto-book single-day moves
+// still pass through; anything larger is almost certainly a cashflow.
+const CASHFLOW_FILTER_ABS = 0.5;
+
+function sliceFrom(
+  series: { date: string; value: number }[],
+  startDate: string,
+): { date: string; value: number }[] {
   return series.filter((r) => r.date >= startDate);
+}
+
+/**
+ * Time-weighted return with a cashflow-outlier filter. Chains daily
+ * returns geometrically and skips any single-day move whose magnitude
+ * exceeds CASHFLOW_FILTER_ABS — those are almost always capital
+ * additions / withdrawals, not investment returns.
+ *
+ * Returns 0 when there aren't enough observations to compute a return.
+ * Returns NaN (frontend renders "—") when the series is malformed.
+ */
+function timeWeightedReturn(
+  series: { date: string; value: number }[],
+): number {
+  if (series.length < 2) return 0;
+  let multiplier = 1;
+  let counted = 0;
+  for (let i = 1; i < series.length; i++) {
+    const prev = series[i - 1].value;
+    const curr = series[i].value;
+    if (prev <= 0 || curr <= 0) continue;
+    const r = curr / prev - 1;
+    if (Math.abs(r) > CASHFLOW_FILTER_ABS) continue; // skip capital flows
+    multiplier *= 1 + r;
+    counted++;
+  }
+  if (counted === 0) return 0;
+  return (multiplier - 1) * 100;
 }
 
 /**
@@ -57,6 +107,9 @@ function alignReturns(
   for (const r of portR) {
     const br = benchR.get(r.date);
     if (br == null) continue;
+    // Also skip the portfolio's cashflow-outlier days from beta regression —
+    // they'd otherwise swamp the covariance on tiny samples.
+    if (Math.abs(r.r) > CASHFLOW_FILTER_ABS) continue;
     p.push(r.r);
     b.push(br);
   }
@@ -79,14 +132,14 @@ export function computeMetrics(
     return {
       ytd_return_pct: 0,
       mtd_return_pct: 0,
-      vol_30d_annualized_pct: 0,
-      vol_90d_annualized_pct: 0,
+      vol_30d_annualized_pct: NaN,
+      vol_90d_annualized_pct: NaN,
       beta_vs_ihsg: null,
       beta_vs_spx: null,
-      sharpe_ytd: 0,
-      sortino_ytd: 0,
-      max_drawdown_pct: 0,
-      var_30d_95_pct: 0,
+      sharpe_ytd: NaN,
+      sortino_ytd: NaN,
+      max_drawdown_pct: NaN,
+      var_30d_95_pct: NaN,
     };
   }
   const year = refDate.getFullYear();
@@ -94,16 +147,30 @@ export function computeMetrics(
   const mtdStart = `${year}-${String(refDate.getMonth() + 1).padStart(2, "0")}-01`;
   const ytdSlice = sliceFrom(portfolio, ytdStart);
   const mtdSlice = sliceFrom(portfolio, mtdStart);
-  const ytd_return_pct =
-    ytdSlice.length >= 2 ? (ytdSlice[ytdSlice.length - 1].value / ytdSlice[0].value - 1) * 100 : 0;
-  const mtd_return_pct =
-    mtdSlice.length >= 2 ? (mtdSlice[mtdSlice.length - 1].value / mtdSlice[0].value - 1) * 100 : 0;
-  const returnsYtd = dailyReturns(ytdSlice.map((r) => r.value));
-  const returnsFull = dailyReturns(portfolio.map((r) => r.value));
+
+  // Time-weighted returns with cashflow filter — robust to capital flows
+  // that would otherwise make firm-level 'all' YTD read 124% when books
+  // were seeded incrementally through the year.
+  const ytd_return_pct = timeWeightedReturn(ytdSlice);
+  const mtd_return_pct = timeWeightedReturn(mtdSlice);
+
+  // Clean the return stream for vol/sharpe/sortino — exclude cashflow days
+  const returnsYtdAll = dailyReturns(ytdSlice.map((r) => r.value));
+  const returnsYtd = returnsYtdAll.filter((r) => Math.abs(r) <= CASHFLOW_FILTER_ABS);
+  const returnsFullAll = dailyReturns(portfolio.map((r) => r.value));
+  const returnsFull = returnsFullAll.filter((r) => Math.abs(r) <= CASHFLOW_FILTER_ABS);
+
   const last30 = returnsFull.slice(-30);
   const last90 = returnsFull.slice(-90);
-  const vol_30d_annualized_pct = annualizedVol(stdev(last30), periods) * 100;
-  const vol_90d_annualized_pct = annualizedVol(stdev(last90), periods) * 100;
+  const vol_30d_annualized_pct =
+    last30.length >= MIN_RETURNS_FOR_VOL_30D
+      ? annualizedVol(stdev(last30), periods) * 100
+      : NaN;
+  const vol_90d_annualized_pct =
+    last90.length >= MIN_RETURNS_FOR_VOL_90D
+      ? annualizedVol(stdev(last90), periods) * 100
+      : NaN;
+
   let beta_vs_ihsg: number | null = null;
   let beta_vs_spx: number | null = null;
   if (ihsg && ihsg.length) {
@@ -114,10 +181,16 @@ export function computeMetrics(
     const { p, b } = alignReturns(portfolio, spx);
     beta_vs_spx = p.length >= 30 ? beta(p, b) : null;
   }
+
   const sharpe_ytd = sharpe(returnsYtd, 0, periods);
   const sortino_ytd = sortino(returnsYtd, 0, periods);
-  const { mdd } = maxDrawdown(portfolio.map((r) => r.value));
-  const var_30d_95_pct = historicalVar(last30, 0.95);
+  const { mdd } =
+    portfolio.length >= MIN_PORTFOLIO_FOR_MDD
+      ? maxDrawdown(portfolio.map((r) => r.value))
+      : { mdd: NaN };
+  const var_30d_95_pct =
+    last30.length >= MIN_RETURNS_FOR_VAR ? historicalVar(last30, 0.95) : NaN;
+
   return {
     ytd_return_pct,
     mtd_return_pct,

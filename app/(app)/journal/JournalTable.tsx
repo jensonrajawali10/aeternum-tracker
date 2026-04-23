@@ -46,7 +46,13 @@ export function JournalTable() {
   const { data } = useSWR<{ trades: TradeRow[] }>(`/api/journal/trades?${qs.toString()}`, fetcher, {
     refreshInterval: 60_000,
   });
-  const rows = data?.trades ?? [];
+  // Ghost-row filter: early sync runs wrote shell rows with Entry=0 and
+  // Size=0 that never got replaced. A real trade has a non-zero entry+size
+  // pair (still open) or a recorded exit — anything else is a stub we
+  // should not pretend was a trade.
+  const rows = (data?.trades ?? []).filter(
+    (t) => (t.position_size > 0 && t.entry_price > 0) || t.exit_price != null,
+  );
 
   return (
     <div>

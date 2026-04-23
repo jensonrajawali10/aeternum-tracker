@@ -127,10 +127,18 @@ async function getHyperliquidPositions(userId: string, usdIdr: number): Promise<
         const total = parseFloat(b.total);
         if (total === 0) continue;
         const coin = b.coin.toUpperCase();
-        const entryNtl = parseFloat(b.entryNtl);
+        const entryNtlRaw = parseFloat(b.entryNtl);
+        const isStable = STABLES.has(coin);
+        // Stables bug fix: Hyperliquid reports entryNtl=0 for on-chain
+        // deposits (not purchases). The old math did mvUsd=total*1 and
+        // upnlUsd = mvUsd - 0 = mvUsd — which made every USDC deposit
+        // show its full balance as unrealized P&L. Treat stables with
+        // no recorded entry cost as cash (entry notional = current MV).
+        const entryNtl =
+          isStable && (!isFinite(entryNtlRaw) || entryNtlRaw === 0) ? total : entryNtlRaw;
         const entryPx = total > 0 ? entryNtl / total : 0;
         let livePx = 0;
-        if (STABLES.has(coin)) livePx = 1;
+        if (isStable) livePx = 1;
         else if (priceByCoin[coin]) livePx = priceByCoin[coin];
         else livePx = entryPx;
         const mvUsd = total * livePx;

@@ -24,6 +24,13 @@ export default async function BookTradesPage({
       title="Trades"
       subtitle={`${meta.title} · most recent first · P&L in native ccy`}
     >
+      <div className="mb-3 text-[10.5px] text-muted-2 leading-relaxed">
+        Shows trades recorded via the Sheets sync only. Live Hyperliquid
+        positions (perps, spot balances) appear on the Overview tab but
+        don&apos;t create trade rows here until the HL fill sync runs — open
+        positions that have never been flipped will always look missing
+        from this tab.
+      </div>
       <BookTradesTable book={meta.book} />
     </Panel>
   );

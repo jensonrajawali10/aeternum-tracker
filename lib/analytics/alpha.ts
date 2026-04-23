@@ -43,12 +43,21 @@ export function rollingAlpha(
 }
 
 export interface AlphaAttribution {
-  ytd_alpha_pct: number;
-  info_ratio: number;
-  days_outperform_pct: number;
-  active_vol_pct: number;
-  hit_rate_pct: number;
+  ytd_alpha_pct: number | null;
+  info_ratio: number | null;
+  days_outperform_pct: number | null;
+  active_vol_pct: number | null;
+  hit_rate_pct: number | null;
+  aligned_days: number;
 }
+
+// Below this many aligned (portfolio-date × benchmark-date) return
+// observations, every attribution metric is pure noise. The old
+// implementation returned zeros, which made every book's alpha page
+// read "YTD Alpha 0.00%, IR 0.00, Hit Rate 0.0%" regardless of whether
+// the data was sparse or genuinely flat. We now return nulls and let
+// the frontend render "—" plus a one-line insufficient-history banner.
+const MIN_ALIGNED_FOR_ATTRIBUTION = 20;
 
 export function computeAttribution(
   portfolio: { date: string; value: number }[],
@@ -62,8 +71,15 @@ export function computeAttribution(
     const bv = bMap.get(row.date);
     if (bv != null) aligned.push({ date: row.date, p: row.value, b: bv });
   }
-  if (aligned.length < 2) {
-    return { ytd_alpha_pct: 0, info_ratio: 0, days_outperform_pct: 0, active_vol_pct: 0, hit_rate_pct: 0 };
+  if (aligned.length < MIN_ALIGNED_FOR_ATTRIBUTION) {
+    return {
+      ytd_alpha_pct: null,
+      info_ratio: null,
+      days_outperform_pct: null,
+      active_vol_pct: null,
+      hit_rate_pct: null,
+      aligned_days: aligned.length,
+    };
   }
   const pR = dailyReturns(aligned.map((x) => x.p));
   const bR = dailyReturns(aligned.map((x) => x.b));
@@ -72,15 +88,24 @@ export function computeAttribution(
   const bTotal = aligned[aligned.length - 1].b / aligned[0].b - 1;
   const ytd_alpha_pct = (pTotal - bTotal) * 100;
   const m = activeR.reduce((a, b) => a + b, 0) / activeR.length;
-  const sd = Math.sqrt(activeR.reduce((a, b) => a + (b - m) * (b - m), 0) / Math.max(1, activeR.length - 1));
+  const sd = Math.sqrt(
+    activeR.reduce((a, b) => a + (b - m) * (b - m), 0) / Math.max(1, activeR.length - 1),
+  );
   // NB: 252 is correct for equity books (IDX + US). Crypto books should pass
   // their own attribution via a book-aware caller; the current callers are
   // already book-filtered before they reach here.
-  const info_ratio = sd === 0 ? 0 : (m / sd) * Math.sqrt(252);
+  const info_ratio = sd === 0 ? null : (m / sd) * Math.sqrt(252);
   const active_vol_pct = sd * Math.sqrt(252) * 100;
   const outperform = activeR.filter((r) => r > 0).length;
   const days_outperform_pct = (outperform / activeR.length) * 100;
   const positiveActive = activeR.filter((r) => r > 0).length;
   const hit_rate_pct = (positiveActive / activeR.length) * 100;
-  return { ytd_alpha_pct, info_ratio, days_outperform_pct, active_vol_pct, hit_rate_pct };
+  return {
+    ytd_alpha_pct,
+    info_ratio,
+    days_outperform_pct,
+    active_vol_pct,
+    hit_rate_pct,
+    aligned_days: aligned.length,
+  };
 }

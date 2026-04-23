@@ -3,22 +3,19 @@
 import useSWR from "swr";
 import { fmtPct, fmtNumber, signClass } from "@/lib/format";
 
+interface AttributionRow {
+  ytd_alpha_pct: number | null;
+  info_ratio: number | null;
+  days_outperform_pct: number | null;
+  active_vol_pct: number | null;
+  hit_rate_pct: number | null;
+  aligned_days?: number;
+}
+
 interface AlphaResp {
   attribution: {
-    vs_ihsg: {
-      ytd_alpha_pct: number;
-      info_ratio: number;
-      days_outperform_pct: number;
-      active_vol_pct: number;
-      hit_rate_pct: number;
-    };
-    vs_spx: {
-      ytd_alpha_pct: number;
-      info_ratio: number;
-      days_outperform_pct: number;
-      active_vol_pct: number;
-      hit_rate_pct: number;
-    };
+    vs_ihsg: AttributionRow;
+    vs_spx: AttributionRow;
   };
 }
 
@@ -30,7 +27,8 @@ export function AlphaAttribution({ book }: { book: string }) {
     refreshInterval: 120_000,
   });
 
-  const rows: { label: string; key: keyof AlphaResp["attribution"]["vs_ihsg"]; fmt: (v: number) => string; signed?: boolean }[] = [
+  type MetricKey = Exclude<keyof AttributionRow, "aligned_days">;
+  const rows: { label: string; key: MetricKey; fmt: (v: number) => string; signed?: boolean }[] = [
     { label: "YTD Alpha", key: "ytd_alpha_pct", fmt: (v) => fmtPct(v, 2, true), signed: true },
     { label: "Info Ratio", key: "info_ratio", fmt: (v) => fmtNumber(v, 2), signed: true },
     { label: "Days Outperform", key: "days_outperform_pct", fmt: (v) => fmtPct(v, 1) },
@@ -38,32 +36,46 @@ export function AlphaAttribution({ book }: { book: string }) {
     { label: "Hit Rate", key: "hit_rate_pct", fmt: (v) => fmtPct(v, 1) },
   ];
 
+  const alignedIhsg = data?.attribution.vs_ihsg?.aligned_days ?? 0;
+  const alignedSpx = data?.attribution.vs_spx?.aligned_days ?? 0;
+  const insufficient =
+    !!data && data.attribution.vs_ihsg?.ytd_alpha_pct == null && data.attribution.vs_spx?.ytd_alpha_pct == null;
+
   return (
-    <table className="w-full text-[12px] tabular-nums">
-      <thead>
-        <tr className="text-muted text-[10px] uppercase tracking-wider border-b border-border">
-          <th className="py-2 text-left font-normal">Metric</th>
-          <th className="py-2 text-right font-normal">vs IHSG</th>
-          <th className="py-2 text-right font-normal">vs S&amp;P</th>
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map((r) => {
-          const i = data?.attribution.vs_ihsg?.[r.key];
-          const s = data?.attribution.vs_spx?.[r.key];
-          return (
-            <tr key={r.key} className="border-b border-border">
-              <td className="py-[7px] text-muted">{r.label}</td>
-              <td className={`py-[7px] text-right ${r.signed ? signClass(i ?? null) : ""}`}>
-                {i != null ? r.fmt(i) : "—"}
-              </td>
-              <td className={`py-[7px] text-right ${r.signed ? signClass(s ?? null) : ""}`}>
-                {s != null ? r.fmt(s) : "—"}
-              </td>
-            </tr>
-          );
-        })}
-      </tbody>
-    </table>
+    <div className="space-y-2">
+      <table className="w-full text-[12px] tabular-nums">
+        <thead>
+          <tr className="text-muted text-[10px] uppercase tracking-wider border-b border-border">
+            <th className="py-2 text-left font-normal">Metric</th>
+            <th className="py-2 text-right font-normal">vs IHSG</th>
+            <th className="py-2 text-right font-normal">vs S&amp;P</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => {
+            const i = data?.attribution.vs_ihsg?.[r.key];
+            const s = data?.attribution.vs_spx?.[r.key];
+            return (
+              <tr key={r.key} className="border-b border-border">
+                <td className="py-[7px] text-muted">{r.label}</td>
+                <td className={`py-[7px] text-right ${r.signed ? signClass(i ?? null) : ""}`}>
+                  {i != null ? r.fmt(i) : "—"}
+                </td>
+                <td className={`py-[7px] text-right ${r.signed ? signClass(s ?? null) : ""}`}>
+                  {s != null ? r.fmt(s) : "—"}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+      {insufficient && (
+        <div className="text-[10.5px] text-muted-2 leading-relaxed pt-1 border-t border-border/60">
+          Insufficient aligned history · {alignedIhsg}d vs IHSG, {alignedSpx}d vs S&amp;P.
+          Attribution populates once ≥20 aligned daily observations are on file
+          against each benchmark (daily-snapshot cron writes at 05:00 WIB).
+        </div>
+      )}
+    </div>
   );
 }

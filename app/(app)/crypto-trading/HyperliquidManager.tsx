@@ -140,7 +140,7 @@ export function HyperliquidManager() {
           </button>
           {msg && <div className="text-[11px] text-muted">{msg}</div>}
           <div className="text-[10.5px] text-muted-2 leading-relaxed pt-2 border-t border-border">
-            Uses Hyperliquid's public info API. Reads your perp positions, spot balances, and trade fills.
+            Uses Hyperliquid&apos;s public info API. Reads your perp positions, spot balances, and trade fills.
             No API key or signature required since all account data on HL is public on-chain.
           </div>
         </div>
