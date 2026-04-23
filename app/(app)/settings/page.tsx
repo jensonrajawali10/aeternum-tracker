@@ -4,6 +4,7 @@ import { TopHeader } from "@/components/TopHeader";
 import { Panel } from "@/components/Panel";
 import { CcEmailsPanel } from "./CcEmailsPanel";
 import { SheetSourcesPanel } from "./SheetSourcesPanel";
+import { AgentIntegrationsPanel } from "./AgentIntegrationsPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -46,6 +47,13 @@ export default async function SettingsPage() {
             initialHoldingsUrl={settings?.sheet_holdings_url || ""}
             lastSyncAt={settings?.sheet_last_sync_at || null}
           />
+        </Panel>
+
+        <Panel
+          title="Agent integrations"
+          subtitle="Webhook keys for the four Claude Code analysts · generate once, paste into skill config"
+        >
+          <AgentIntegrationsPanel />
         </Panel>
       </div>
     </>
