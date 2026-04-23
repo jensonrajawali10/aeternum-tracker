@@ -3,19 +3,22 @@ import { Panel } from "@/components/Panel";
 import { CapitalSummary } from "@/components/capital/CapitalSummary";
 import { AllocationDriftTable } from "@/components/capital/AllocationDriftTable";
 import { CorrelationHeatmap } from "@/components/capital/CorrelationHeatmap";
+import { RecentRebalances } from "@/components/capital/RecentRebalances";
 
 export const dynamic = "force-dynamic";
 
 /**
- * Capital Allocation — the firm-level mandate page.  Three concerns:
+ * Capital Allocation — the firm-level mandate page.  Four concerns:
  *
- *   1. Summary strip  — firm NAV (IDR + USD), drift headline, last rebalance
- *   2. Drift table    — target vs actual per arm with band visual + status pill
- *   3. Correlation    — cross-arm pairwise correlation heatmap (30/90/180d)
+ *   1. Summary strip    — firm NAV (IDR + USD), drift headline, last rebalance + CTA
+ *   2. Drift table      — target vs actual per arm with band visual + status pill
+ *   3. Correlation      — cross-arm pairwise correlation heatmap (30/90/180d)
+ *   4. Rebalance journal — dated log of recorded decisions, most recent first
  *
- * The "Rebalance now" action (writes a dated delta entry to the capital
- * journal) lands in the next iteration.  For now this page is read-only
- * diagnostics.
+ * The "Record rebalance" CTA in the summary opens a dialog that writes a
+ * dated delta entry to the capital journal.  Executing the trades still
+ * happens out of the app (sheets / broker portals) — this page is the
+ * decision log + firm mandate diagnostic.
  */
 export default function CapitalPage() {
   return (
@@ -77,6 +80,13 @@ export default function CapitalPage() {
           </div>
         </Panel>
       </div>
+      <Panel
+        title="Rebalance journal"
+        subtitle="Dated decisions — most recent first"
+        className="mt-5"
+      >
+        <RecentRebalances />
+      </Panel>
     </>
   );
 }

@@ -112,10 +112,14 @@ export async function GET() {
     };
   });
 
-  // Last rebalance — read from capital_rebalance_log if the table is populated
-  // (created in Commit 7). For now we return null — the UI shows "No rebalance
-  // recorded" rather than a fake date.
-  const last_rebalance_at: string | null = null;
+  // Last rebalance — most recent dated entry in capital_rebalance_log.
+  const { data: lastReb } = await supabase
+    .from("capital_rebalance_log")
+    .select("decided_at")
+    .eq("user_id", user.id)
+    .order("decided_at", { ascending: false })
+    .limit(1);
+  const last_rebalance_at: string | null = lastReb?.[0]?.decided_at ?? null;
 
   const resp: AllocationResp = {
     firm_nav_idr: firmNav,
