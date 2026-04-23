@@ -1,56 +1,82 @@
 import { TopHeader } from "@/components/TopHeader";
 import { Panel } from "@/components/Panel";
-import { BOOKS } from "@/lib/books/meta";
+import { CapitalSummary } from "@/components/capital/CapitalSummary";
+import { AllocationDriftTable } from "@/components/capital/AllocationDriftTable";
+import { CorrelationHeatmap } from "@/components/capital/CorrelationHeatmap";
 
 export const dynamic = "force-dynamic";
 
 /**
- * Capital Allocation placeholder — the real implementation (target vs
- * actual drift, rebalance action, cross-arm correlation heatmap) lands
- * in Weeks 3-5 of the CIO rebuild.  For now this page just renders the
- * mandate / PM / risk-budget roll-up so Jenson can see the arm split
- * at a glance.
+ * Capital Allocation — the firm-level mandate page.  Three concerns:
+ *
+ *   1. Summary strip  — firm NAV (IDR + USD), drift headline, last rebalance
+ *   2. Drift table    — target vs actual per arm with band visual + status pill
+ *   3. Correlation    — cross-arm pairwise correlation heatmap (30/90/180d)
+ *
+ * The "Rebalance now" action (writes a dated delta entry to the capital
+ * journal) lands in the next iteration.  For now this page is read-only
+ * diagnostics.
  */
 export default function CapitalPage() {
-  const books = Object.values(BOOKS);
-  const totalBudget = books.reduce((a, b) => a + b.risk_budget_pct, 0);
-
   return (
     <>
       <TopHeader
         title="Capital Allocation"
-        subtitle="Target risk budget per arm · drift + rebalance view lands in next iteration"
+        subtitle="Target vs actual drift per arm · cross-arm correlation · firm mandate view"
       />
+      <CapitalSummary />
       <Panel
-        title="Target allocation by book"
-        subtitle={`${books.length} arms · ${totalBudget}% of firm capital budgeted`}
+        title="Allocation by arm"
+        subtitle="Target risk budget vs actual NAV share"
+        className="mt-5"
       >
-        <table className="w-full text-[12px] tabular-nums">
-          <thead className="text-muted text-[10px] uppercase tracking-[0.14em] border-b border-border">
-            <tr>
-              <th className="text-left py-2">Book</th>
-              <th className="text-left">Mandate</th>
-              <th className="text-left">PM</th>
-              <th className="text-right">Target %</th>
-            </tr>
-          </thead>
-          <tbody>
-            {books.map((b) => (
-              <tr key={b.slug} className="border-b border-border">
-                <td className="py-2 font-medium text-fg">{b.title}</td>
-                <td className="text-muted max-w-[360px]">{b.mandate}</td>
-                <td className="text-muted">{b.pm}</td>
-                <td className="text-right text-fg">{b.risk_budget_pct}%</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <div className="mt-4 text-[10.5px] text-muted-2 leading-relaxed border-t border-border pt-3">
-          Next iteration will add: actual NAV per arm, drift bands, rebalance
-          buttons that write target deltas into the journal, and a pairwise
-          correlation heatmap (investing × idx_trading × crypto_trading).
-        </div>
+        <AllocationDriftTable />
       </Panel>
+      <div className="grid grid-cols-1 xl:grid-cols-[1fr_1fr] gap-4 mt-5">
+        <Panel
+          title="Cross-arm correlation"
+          subtitle="Daily NAV log-returns · Pearson"
+        >
+          <CorrelationHeatmap />
+        </Panel>
+        <Panel
+          title="Diversification notes"
+          subtitle="Why this matters"
+        >
+          <div className="text-[11.5px] text-muted leading-relaxed space-y-3">
+            <p>
+              Correlation on NAV returns tells you whether your three arms are actually
+              providing diversification or just three flavours of the same trade. A firm
+              with <span className="text-red font-semibold">+0.8</span> across every pair
+              has one book in three costumes. A firm with two arms near zero and one
+              negative is running a real barbell.
+            </p>
+            <p>
+              Useful reads to run quarterly:
+            </p>
+            <ul className="list-disc pl-5 space-y-1">
+              <li>
+                Investing × IDX Trading correlation should be moderate positive (both
+                IDX-denominated), but drift above +0.85 means the trading book is just
+                mirroring long-book beta.
+              </li>
+              <li>
+                Crypto × anything else should land near zero for most windows — if it
+                spikes positive during risk-off, crypto is no longer diversifying.
+              </li>
+              <li>
+                Short windows (30d) read as noise; use the 180d window to settle the
+                regime view and the 30d window to spot a correlation break.
+              </li>
+            </ul>
+            <p className="text-muted-2 pt-1 border-t border-border">
+              Bands and rebalance thresholds are configured centrally in{" "}
+              <code className="mono text-fg">lib/books/meta.ts</code> and the allocation
+              endpoint — adjust there to change firm-wide policy.
+            </p>
+          </div>
+        </Panel>
+      </div>
     </>
   );
 }
