@@ -2,27 +2,10 @@ import { supabaseServer } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { TopHeader } from "@/components/TopHeader";
 import { Panel } from "@/components/Panel";
-import { AppsScriptBlock } from "./AppsScriptBlock";
 import { CcEmailsPanel } from "./CcEmailsPanel";
-import { randomBytes } from "crypto";
+import { SheetSourcesPanel } from "./SheetSourcesPanel";
 
 export const dynamic = "force-dynamic";
-
-async function ensureWebhookSecret(userId: string): Promise<string> {
-  const admin = supabaseAdmin();
-  const { data } = await admin
-    .from("user_settings")
-    .select("sheets_webhook_secret")
-    .eq("user_id", userId)
-    .maybeSingle();
-  if (data?.sheets_webhook_secret) return data.sheets_webhook_secret;
-  const secret = randomBytes(32).toString("hex");
-  await admin.from("user_settings").upsert(
-    { user_id: userId, sheets_webhook_secret: secret },
-    { onConflict: "user_id" },
-  );
-  return secret;
-}
 
 export default async function SettingsPage() {
   const supabase = await supabaseServer();
@@ -30,15 +13,18 @@ export default async function SettingsPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const appUrl =
-    process.env.NEXT_PUBLIC_APP_URL ||
-    process.env.APP_URL ||
-    "https://aeternum-tracker-neon.vercel.app";
-  const webhookSecret = user ? await ensureWebhookSecret(user.id) : "";
+  const admin = supabaseAdmin();
+  const { data: settings } = user
+    ? await admin
+        .from("user_settings")
+        .select("sheet_trading_url, sheet_holdings_url, sheet_last_sync_at")
+        .eq("user_id", user.id)
+        .maybeSingle()
+    : { data: null };
 
   return (
     <>
-      <TopHeader title="Settings" subtitle="Account, webhooks, sync configuration" />
+      <TopHeader title="Settings" subtitle="Account, data sources, preferences" />
       <div className="grid gap-4">
         <Panel title="Account">
           <div className="grid grid-cols-[140px_1fr] gap-y-2 text-[12px]">
@@ -46,32 +32,20 @@ export default async function SettingsPage() {
             <div>{user?.email || "—"}</div>
             <div className="text-muted">User ID</div>
             <div className="font-mono text-[11px] break-all">{user?.id || "—"}</div>
-            <div className="text-muted">Webhook secret</div>
-            <div className="font-mono text-[11px] break-all">
-              {webhookSecret ? `${webhookSecret.slice(0, 8)}…${webhookSecret.slice(-6)}` : "—"}
-            </div>
           </div>
         </Panel>
 
         <CcEmailsPanel />
 
         <Panel
-          title="Google Sheets Sync"
-          subtitle="Paste this into Extensions → Apps Script in your trade journal sheet"
+          title="Google Sheets sync"
+          subtitle="Aeternum polls your sheets every 10 min · no Apps Script required"
         >
-          <AppsScriptBlock
-            userId={user?.id || ""}
-            webhookUrl={`${appUrl}/api/sync/sheets`}
-            webhookSecret={webhookSecret}
+          <SheetSourcesPanel
+            initialTradingUrl={settings?.sheet_trading_url || ""}
+            initialHoldingsUrl={settings?.sheet_holdings_url || ""}
+            lastSyncAt={settings?.sheet_last_sync_at || null}
           />
-          <div className="mt-4 text-[11px] text-muted space-y-1">
-            <div>1. Open your trade journal Google Sheet</div>
-            <div>2. Extensions → Apps Script</div>
-            <div>3. Replace the default code with the block above, save</div>
-            <div>4. Run <code className="text-accent">setupDailySync</code> once, grant permissions</div>
-            <div>5. Run <code className="text-accent">syncAllTrades</code> once to backfill</div>
-            <div>6. Edits to the sheet will auto-sync via <code className="text-accent">onEdit</code></div>
-          </div>
         </Panel>
       </div>
     </>
