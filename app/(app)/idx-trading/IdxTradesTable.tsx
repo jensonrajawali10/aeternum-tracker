@@ -27,7 +27,13 @@ export function IdxTradesTable() {
   });
 
   if (isLoading) return <div className="text-muted text-[11px]">Loading…</div>;
-  const trades = data?.trades ?? [];
+  // Filter out zombie rows: empty skeleton entries that the sync created before
+  // the trader filled in the sheet row.  A "real" trade has at least an entry
+  // price + non-zero size OR an exit price recorded.  Anything else is noise
+  // carried over from early sync runs.
+  const trades = (data?.trades ?? []).filter(
+    (t) => (t.position_size > 0 && t.entry_price > 0) || t.exit_price != null,
+  );
   if (!trades.length)
     return (
       <div className="text-[11px] text-muted">

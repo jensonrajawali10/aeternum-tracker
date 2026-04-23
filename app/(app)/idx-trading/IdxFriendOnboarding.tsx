@@ -130,13 +130,29 @@ export function IdxFriendOnboarding({
   webhookSecret: string;
 }) {
   const [copied, setCopied] = useState(false);
+  const [revealed, setRevealed] = useState(false);
 
+  // Full script — always used for clipboard writes (the friend needs the real
+  // secret in the code block they paste).
   const filled = useMemo(
     () =>
       TEMPLATE.replace("__WEBHOOK_URL__", webhookUrl)
         .replace("__WEBHOOK_SECRET__", webhookSecret)
         .replace("__USER_ID__", userId),
     [webhookUrl, webhookSecret, userId],
+  );
+
+  // Preview variant — masks the secret unless explicitly revealed so Jenson
+  // doesn't expose the webhook token on screen during a demo / screen share.
+  const maskedSecret = webhookSecret
+    ? `${webhookSecret.slice(0, 4)}${"•".repeat(Math.max(0, webhookSecret.length - 8))}${webhookSecret.slice(-4)}`
+    : "";
+  const preview = useMemo(
+    () =>
+      TEMPLATE.replace("__WEBHOOK_URL__", webhookUrl)
+        .replace("__WEBHOOK_SECRET__", revealed ? webhookSecret : maskedSecret)
+        .replace("__USER_ID__", userId),
+    [webhookUrl, webhookSecret, userId, revealed, maskedSecret],
   );
 
   async function copy() {
@@ -154,17 +170,26 @@ export function IdxFriendOnboarding({
         <li>Run <span className="font-mono text-accent">syncAllTrades</span> to backfill.</li>
         <li>Every edit after that syncs live into this page.</li>
       </ol>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
         <button
           onClick={copy}
           className="px-3 py-1.5 rounded-[4px] bg-accent text-bg text-[11px] font-semibold tracking-wide hover:bg-accent-dim transition-colors"
         >
           {copied ? "Copied ✓" : "Copy Apps Script"}
         </button>
-        <span className="text-[10.5px] text-muted-2">{filled.length} chars · pre-filled with your webhook</span>
+        <button
+          type="button"
+          onClick={() => setRevealed((r) => !r)}
+          className="px-2.5 py-1.5 rounded-[4px] bg-panel-2 border border-border text-[11px] font-medium hover:border-accent/60 transition-colors"
+        >
+          {revealed ? "Hide secret" : "Reveal secret"}
+        </button>
+        <span className="text-[10.5px] text-muted-2">
+          {filled.length} chars · pre-filled with your webhook · {revealed ? "secret visible" : "secret masked in preview"}
+        </span>
       </div>
       <pre className="mt-2 text-[10.5px] leading-relaxed bg-panel-2 border border-border rounded-[4px] p-3 max-h-[400px] overflow-auto font-mono">
-        {filled}
+        {preview}
       </pre>
     </div>
   );

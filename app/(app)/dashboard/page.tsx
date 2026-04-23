@@ -13,6 +13,7 @@ import { SectorDoughnut } from "@/components/SectorDoughnut";
 import { StrategyMatrix } from "@/components/StrategyMatrix";
 import { SignalFeed } from "@/components/SignalFeed";
 import { FxTicker } from "@/components/FxTicker";
+import { AsOfStamp } from "@/components/AsOfStamp";
 import type { BookFilter } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -44,6 +45,7 @@ export default async function DashboardPage({
   return (
     <>
       <TopHeader title="Dashboard" subtitle={greeting()}>
+        <AsOfStamp />
         <FxTicker from="USD" to="IDR" />
         <BookSwitcher current={book} />
         <CurrencyToggle current={ccy} />
@@ -82,7 +84,7 @@ export default async function DashboardPage({
         <Panel title="Exposure breakdown">
           <ExposureBars book={book} />
         </Panel>
-        <Panel title="Sector concentration">
+        <Panel title="Concentration by ticker" subtitle="Top 7 positions + rest · all books / book filter applies">
           <SectorDoughnut book={book} />
         </Panel>
       </div>

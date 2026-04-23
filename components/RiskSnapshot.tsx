@@ -24,6 +24,18 @@ export function RiskSnapshot({ book }: { book: string }) {
     refreshInterval: 120_000,
   });
 
+  // Treat all-zero metrics as a signal that we don't have enough daily NAV
+  // snapshots yet — nav_history still backfilling, so vol/Sharpe/Sortino
+  // collapse to zero rather than being genuinely flat.
+  const sparse =
+    !!data &&
+    data.vol_30d_annualized_pct === 0 &&
+    data.vol_90d_annualized_pct === 0 &&
+    data.sharpe_ytd === 0 &&
+    data.sortino_ytd === 0 &&
+    data.beta_vs_ihsg == null &&
+    data.beta_vs_spx == null;
+
   const rows: {
     label: string;
     value: string;
@@ -35,20 +47,29 @@ export function RiskSnapshot({ book }: { book: string }) {
     { label: "Vol (90D ann)", value: data ? fmtPct(data.vol_90d_annualized_pct, 1) : "—" },
     { label: "Sharpe (YTD)", value: data ? fmtNumber(data.sharpe_ytd, 2) : "—", signClass: signClass(data?.sharpe_ytd) },
     { label: "Sortino (YTD)", value: data ? fmtNumber(data.sortino_ytd, 2) : "—", signClass: signClass(data?.sortino_ytd) },
-    { label: "Beta vs IHSG", value: data?.beta_vs_ihsg != null ? fmtNumber(data.beta_vs_ihsg, 2) : "—" },
+    { label: "Beta vs JCI", value: data?.beta_vs_ihsg != null ? fmtNumber(data.beta_vs_ihsg, 2) : "—" },
     { label: "Beta vs S&P", value: data?.beta_vs_spx != null ? fmtNumber(data.beta_vs_spx, 2) : "—" },
     { label: "Max Drawdown", value: data ? fmtPct(data.max_drawdown_pct, 1) : "—", signClass: "neg" },
     { label: "30D VaR (95%)", value: data ? fmtPct(data.var_30d_95_pct, 2) : "—", signClass: "neg" },
   ];
 
   return (
-    <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-[12px] tabular-nums">
-      {rows.map((r) => (
-        <div key={r.label} className="flex items-baseline justify-between">
-          <dt className="text-muted text-[11px]">{r.label}</dt>
-          <dd className={r.signClass}>{r.value}</dd>
+    <div className="space-y-2">
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-[12px] tabular-nums">
+        {rows.map((r) => (
+          <div key={r.label} className="flex items-baseline justify-between">
+            <dt className="text-muted text-[11px]">{r.label}</dt>
+            <dd className={r.signClass}>{r.value}</dd>
+          </div>
+        ))}
+      </dl>
+      {sparse && (
+        <div className="text-[10.5px] text-muted-2 leading-relaxed pt-1 border-t border-border/60">
+          Insufficient history · vol, Sharpe, Sortino and beta populate once
+          ≥30 aligned daily NAV snapshots are on file. Daily snapshots are
+          written at 05:00 WIB.
         </div>
-      ))}
-    </dl>
+      )}
+    </div>
   );
 }
