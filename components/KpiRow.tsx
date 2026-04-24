@@ -7,9 +7,11 @@ import { fmtCurrency, fmtPct, signClass } from "@/lib/format";
 interface NavResp {
   nav_idr: number;
   nav_usd: number;
+  gross_mv_idr: number;
   gross_exposure_pct: number;
   net_exposure_pct: number;
   unrealized_pnl_idr: number;
+  realized_pnl_idr: number;
   realized_ytd_idr: number;
   fx: { usd_idr: number };
 }
@@ -49,12 +51,27 @@ export function KpiRow({
       : nav.realized_ytd_idr / (nav.fx.usd_idr || 1)
     : null;
 
+  // When a book has no open positions but cumulative realized P&L on file,
+  // nav_idr collapses to pure realized-P&L.  Calling that "Portfolio NAV"
+  // without context makes Jenson wonder where the cash is coming from, so
+  // we swap the hint (and implicitly the mental model) to "book value is
+  // cumulative realized P&L · no live positions" instead of showing the
+  // FX rate as if this were a marked-to-market book.
+  const isFlatBook =
+    !!nav && book !== "all" && nav.gross_mv_idr === 0 && Math.abs(nav.nav_idr) > 0;
+  const navHint = nav
+    ? isFlatBook
+      ? "no open positions · cumulative realized"
+      : `USD/IDR ${nav.fx.usd_idr.toFixed(0)}`
+    : "—";
+  const navLabel = isFlatBook ? "Book realized P&L" : "Portfolio NAV";
+
   return (
     <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
       <Kpi
-        label="Portfolio NAV"
+        label={navLabel}
         value={navValue != null ? fmtCurrency(navValue, currency) : "—"}
-        hint={nav ? `USD/IDR ${nav.fx.usd_idr.toFixed(0)}` : "—"}
+        hint={navHint}
       />
       <Kpi
         label="Unrealized P&L"

@@ -8,6 +8,7 @@ import type { BookType } from "@/lib/types";
 
 interface NavResp {
   nav_idr: number;
+  gross_mv_idr: number;
   unrealized_pnl_idr: number;
   realized_ytd_idr: number;
 }
@@ -41,6 +42,9 @@ function BookCard({
   const navIdr = nav?.nav_idr ?? null;
   const unreal = nav?.unrealized_pnl_idr ?? null;
   const ytd = metrics?.ytd_return_pct ?? null;
+  // Flat book = cumulative realized P&L only (no open positions to mark).
+  // Signal this on the card so the headline number reads honestly.
+  const isFlatBook = !!nav && nav.gross_mv_idr === 0 && Math.abs(nav.nav_idr) > 0;
 
   return (
     <Link
@@ -62,6 +66,11 @@ function BookCard({
       <div className="mt-3 text-[17px] mono text-fg tracking-[-0.01em]">
         {navIdr != null ? fmtCurrency(navIdr, "IDR") : "—"}
       </div>
+      {isFlatBook && (
+        <div className="mt-[2px] text-[9.5px] uppercase tracking-[0.12em] text-muted-2">
+          realized only · no open positions
+        </div>
+      )}
       <div className="mt-1 flex items-center gap-3 text-[11px]">
         <span className={clsx("mono", signClass(ytd))}>
           YTD {ytd != null ? fmtPct(ytd, 1, true) : "—"}
