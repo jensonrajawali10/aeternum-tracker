@@ -33,23 +33,86 @@ const ANALYSTS = [
  */
 export function AgentIntegrationsPanel() {
   const { data } = useSWR<{ keys: AgentKey[] }>("/api/agents/keys", fetcher);
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkReveal, setBulkReveal] = useState<Record<string, string> | null>(null);
 
   const keysBySlug: Record<string, AgentKey | undefined> = {};
   for (const k of data?.keys || []) {
     if (k.revoked_at) continue;
     keysBySlug[k.agent_slug] = k;
   }
+  const missing = ANALYSTS.filter((a) => !keysBySlug[a.slug]);
+
+  async function generateAllMissing() {
+    if (missing.length === 0) return;
+    setBulkBusy(true);
+    const results = await Promise.all(
+      missing.map(async (a) => {
+        const res = await fetch("/api/agents/keys", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ agent_slug: a.slug }),
+        });
+        const json = (await res.json().catch(() => ({}))) as { plaintext?: string };
+        return [a.slug, json.plaintext ?? ""] as const;
+      }),
+    );
+    setBulkBusy(false);
+    const reveal: Record<string, string> = {};
+    for (const [slug, plaintext] of results) {
+      if (plaintext) reveal[slug] = plaintext;
+    }
+    if (Object.keys(reveal).length > 0) setBulkReveal(reveal);
+    mutate("/api/agents/keys");
+  }
 
   return (
     <div className="space-y-3">
-      <div className="text-[11px] text-muted leading-relaxed">
-        Each analyst posts briefs to{" "}
-        <code className="bg-bg border border-border rounded px-1 py-[1px] text-[10.5px]">
-          /api/agents/webhook
-        </code>{" "}
-        with a Bearer key scoped to one slug. Generate once, paste into the skill
-        config locally, and forget about it — the keys stay put across app deploys.
+      <div className="flex items-start justify-between gap-4">
+        <div className="text-[11px] text-muted leading-relaxed flex-1">
+          Each analyst posts briefs to{" "}
+          <code className="bg-bg border border-border rounded px-1 py-[1px] text-[10.5px]">
+            /api/agents/webhook
+          </code>{" "}
+          with a Bearer key scoped to one slug. Generate once, paste into the skill
+          config locally, and forget about it — the keys stay put across app deploys.
+        </div>
+        {missing.length > 1 && (
+          <button
+            onClick={generateAllMissing}
+            disabled={bulkBusy}
+            className="shrink-0 border border-accent/40 text-accent hover:bg-accent/10 px-3 py-[6px] rounded text-[10px] font-semibold uppercase tracking-[0.12em] disabled:opacity-60"
+            title={`Creates one key per missing analyst (${missing.length} keys)`}
+          >
+            {bulkBusy ? "Generating…" : `Generate all missing (${missing.length})`}
+          </button>
+        )}
       </div>
+
+      {bulkReveal && (
+        <div className="rounded-[8px] border border-accent/40 bg-accent/5 p-3 space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="text-[10px] uppercase tracking-[0.14em] text-accent">
+              New keys — copy now, never shown again
+            </div>
+            <button
+              onClick={() => setBulkReveal(null)}
+              className="text-[10px] text-muted hover:text-fg uppercase tracking-wider"
+            >
+              Dismiss
+            </button>
+          </div>
+          {ANALYSTS.filter((a) => bulkReveal[a.slug]).map((a) => (
+            <div key={a.slug} className="space-y-1">
+              <div className="text-[10.5px] text-muted mono">{a.slug}</div>
+              <code className="block text-[10.5px] bg-bg border border-border rounded p-2 break-all mono">
+                {bulkReveal[a.slug]}
+              </code>
+            </div>
+          ))}
+        </div>
+      )}
+
       <div className="divide-y divide-border border border-border rounded-[8px] overflow-hidden">
         {ANALYSTS.map((a) => (
           <IntegrationRow key={a.slug} analyst={a} existingKey={keysBySlug[a.slug]} />
