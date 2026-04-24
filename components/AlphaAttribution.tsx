@@ -43,32 +43,34 @@ export function AlphaAttribution({ book }: { book: string }) {
 
   return (
     <div className="space-y-2">
-      <table className="w-full text-[12px] tabular-nums">
-        <thead>
-          <tr className="text-muted text-[10px] uppercase tracking-wider border-b border-border">
-            <th className="py-2 text-left font-normal">Metric</th>
-            <th className="py-2 text-right font-normal">vs IHSG</th>
-            <th className="py-2 text-right font-normal">vs S&amp;P</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r) => {
-            const i = data?.attribution.vs_ihsg?.[r.key];
-            const s = data?.attribution.vs_spx?.[r.key];
-            return (
-              <tr key={r.key} className="border-b border-border">
-                <td className="py-[7px] text-muted">{r.label}</td>
-                <td className={`py-[7px] text-right ${r.signed ? signClass(i ?? null) : ""}`}>
-                  {i != null ? r.fmt(i) : "—"}
-                </td>
-                <td className={`py-[7px] text-right ${r.signed ? signClass(s ?? null) : ""}`}>
-                  {s != null ? r.fmt(s) : "—"}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+      <div className="overflow-x-auto">
+        <table className="w-full text-[12px] tabular-nums min-w-[280px]">
+          <thead>
+            <tr className="text-muted text-[10px] uppercase tracking-wider border-b border-border">
+              <th className="py-2 text-left font-normal">Metric</th>
+              <th className="py-2 text-right font-normal">vs IHSG</th>
+              <th className="py-2 text-right font-normal">vs S&amp;P</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => {
+              const i = data?.attribution.vs_ihsg?.[r.key];
+              const s = data?.attribution.vs_spx?.[r.key];
+              return (
+                <tr key={r.key} className="border-b border-border">
+                  <td className="py-[7px] text-muted">{r.label}</td>
+                  <td className={`py-[7px] text-right ${r.signed ? signClass(i ?? null) : ""}`}>
+                    {i != null ? r.fmt(i) : "—"}
+                  </td>
+                  <td className={`py-[7px] text-right ${r.signed ? signClass(s ?? null) : ""}`}>
+                    {s != null ? r.fmt(s) : "—"}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
       {insufficient && (
         <div className="text-[10.5px] text-muted-2 leading-relaxed pt-1 border-t border-border/60">
           Insufficient aligned history · {alignedIhsg}d vs IHSG, {alignedSpx}d vs S&amp;P.

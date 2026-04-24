@@ -81,28 +81,30 @@ export function MoodScatter() {
         )}
       </div>
       {!empty && (
-        <table className="w-full text-[11px] tabular-nums">
-          <thead>
-            <tr className="text-muted text-[10px] uppercase tracking-wider border-b border-border">
-              <th className="py-1 text-left font-normal">Mood</th>
-              <th className="py-1 text-right font-normal">N</th>
-              <th className="py-1 text-right font-normal">Win%</th>
-              <th className="py-1 text-right font-normal">Net P&amp;L</th>
-            </tr>
-          </thead>
-          <tbody>
-            {(data?.buckets || []).map((b) => (
-              <tr key={b.range} className="border-b border-border">
-                <td className="py-1 text-muted">{b.range}</td>
-                <td className="py-1 text-right">{b.count}</td>
-                <td className="py-1 text-right">{fmtPct(b.win_rate_pct, 1)}</td>
-                <td className={`py-1 text-right ${b.net_pnl_idr >= 0 ? "pos" : "neg"}`}>
-                  {fmtCurrency(b.net_pnl_idr, "IDR")}
-                </td>
+        <div className="overflow-x-auto">
+          <table className="w-full text-[11px] tabular-nums min-w-[320px]">
+            <thead>
+              <tr className="text-muted text-[10px] uppercase tracking-wider border-b border-border">
+                <th className="py-1 text-left font-normal">Mood</th>
+                <th className="py-1 text-right font-normal">N</th>
+                <th className="py-1 text-right font-normal">Win%</th>
+                <th className="py-1 text-right font-normal">Net P&amp;L</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {(data?.buckets || []).map((b) => (
+                <tr key={b.range} className="border-b border-border">
+                  <td className="py-1 text-muted">{b.range}</td>
+                  <td className="py-1 text-right">{b.count}</td>
+                  <td className="py-1 text-right">{fmtPct(b.win_rate_pct, 1)}</td>
+                  <td className={`py-1 text-right ${b.net_pnl_idr >= 0 ? "pos" : "neg"}`}>
+                    {fmtCurrency(b.net_pnl_idr, "IDR")}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );
