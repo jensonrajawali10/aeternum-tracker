@@ -176,7 +176,7 @@ button, a, tr { /* no-op — hover handled per-component */ }
 /* ======== Density: compact overrides ======== */
 
 html[data-density="compact"] .ae-topheader { padding-bottom: 12px; margin-bottom: 16px; }
-html[data-density="compact"] .ae-h1        { font-size: 19px; }
+html[data-density="compact"] .ae-h1        { font-size: 20px; }
 html[data-density="compact"] .ae-h1-sub    { font-size: 12px; }
 
 html[data-density="compact"] .ae-panel-header { padding-top: 8px; padding-bottom: 8px; }
@@ -189,3 +189,170 @@ html[data-density="compact"] body { font-size: 12.5px; }
 
 /* Gaps on stacked panels closer together */
 html[data-density="compact"] main { padding-top: 16px; padding-bottom: 16px; }
+
+/* ======== Hyperlane-inspired decoration layer ========
+   Translates hyperlane.xyz's signature design DNA into the dashboard:
+     - ASCII `+` mesh backdrops as decorative motif behind hero sections
+     - Numbered section labels ("01 / FIRM PULSE") with accent dot
+     - Pill-shaped primary CTAs
+   The palette stays Aeternum (violet accent, near-black bg); only the
+   typography rhythm and decorative material is borrowed.
+*/
+
+/* ASCII mesh — used as a positioned absolute backdrop behind heroes
+   and hero-adjacent panels. Component AsciiMesh renders the literal
+   characters; this class scales typography + sets opacity so the mesh
+   reads as texture, not content. */
+.ae-mesh-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  user-select: none;
+  font-family: var(--font-mono);
+  color: var(--color-muted-2);
+  opacity: 0.16;
+  font-size: 10px;
+  line-height: 14px;
+  letter-spacing: 0.06em;
+  white-space: pre;
+  overflow: hidden;
+}
+
+.ae-mesh-bg.ae-mesh-loose {
+  opacity: 0.12;
+  font-size: 11px;
+  line-height: 18px;
+}
+
+.ae-mesh-bg.ae-mesh-tight {
+  opacity: 0.18;
+  font-size: 9px;
+  line-height: 12px;
+}
+
+/* Numbered step label — appears above page titles ("01 / FIRM PULSE"),
+   above sidebar groups, and above section headers when called out. The
+   leading dot is the accent moment so the eye anchors there before
+   reading the label. */
+.ae-step-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--color-muted);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.ae-step-label::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  flex: none;
+  box-shadow: 0 0 6px 0 var(--color-accent);
+}
+
+.ae-step-label .ae-step-num {
+  color: var(--color-accent-text);
+  font-weight: 500;
+}
+
+.ae-step-label .ae-step-rule {
+  flex: 1;
+  height: 1px;
+  background: var(--color-border);
+  min-width: 28px;
+}
+
+/* Pill-shaped buttons — used for primary CTAs (Sign in, Get started,
+   New memo on the empty state, etc.) where the form factor needs more
+   visual weight than the usual square 4px-radius button. */
+.btn-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 9999px;
+  padding: 11px 26px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  transition: all 180ms ease;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.btn-pill:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.btn-pill-primary {
+  background: var(--color-accent);
+  color: var(--color-bg);
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 1px transparent, 0 6px 20px -8px rgba(139, 92, 246, 0.5);
+}
+
+.btn-pill-primary:hover:not(:disabled) {
+  background: var(--color-accent-2);
+  border-color: var(--color-accent-2);
+  box-shadow: 0 0 0 1px transparent, 0 8px 28px -6px rgba(139, 92, 246, 0.7);
+  transform: translateY(-1px);
+}
+
+.btn-pill-ghost {
+  background: transparent;
+  color: var(--color-fg);
+  border-color: var(--color-border-2);
+}
+
+.btn-pill-ghost:hover:not(:disabled) {
+  border-color: var(--color-accent);
+  color: var(--color-accent-text);
+}
+
+/* Heroic wordmark used on the unauthenticated landing (Login / Signup).
+   The serif lockup pairs with mono "CIO COCKPIT" subtitle; an accent
+   underline rule replaces the previous tiny dot for more hyperlane-ish
+   weight. */
+.ae-wordmark {
+  font-family: var(--font-serif);
+  font-size: 56px;
+  line-height: 1;
+  letter-spacing: -0.025em;
+  color: var(--color-fg);
+  font-weight: 400;
+}
+
+@media (max-width: 640px) {
+  .ae-wordmark { font-size: 42px; }
+}
+
+/* Compact density tightens the wordmark + step label so the auth pages
+   still feel composed at small heights. */
+html[data-density="compact"] .ae-wordmark { font-size: 44px; }
+html[data-density="compact"] .ae-step-label { font-size: 9.5px; gap: 8px; }
+
+/* Slow drift animation for the mesh backdrop — barely perceptible
+   horizontal shift so it doesn't read as static. Disabled for users
+   who prefer reduced motion. */
+@keyframes aeMeshDrift {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(-24px, 0, 0); }
+}
+
+.ae-mesh-bg.ae-mesh-drift {
+  animation: aeMeshDrift 60s linear infinite alternate;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ae-mesh-bg.ae-mesh-drift { animation: none; }
+  .btn-pill { transition: none; }
+  .btn-pill-primary:hover { transform: none; }
+}

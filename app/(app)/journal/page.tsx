@@ -12,7 +12,12 @@ export const dynamic = "force-dynamic";
 export default function JournalPage() {
   return (
     <>
-      <TopHeader title="Journal" subtitle="Trade log, strategy diagnostics, self-awareness" />
+      <TopHeader
+        step="03"
+        stepLabel="Trade Journal"
+        title="Journal"
+        subtitle="Trade log, strategy diagnostics, self-awareness"
+      />
       <Panel title="Strategy Matrix" subtitle="Win rate · Expectancy · Avg R:R · Hold time" className="mb-4">
         <StrategyMatrix />
       </Panel>

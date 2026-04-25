@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { clsx } from "@/lib/format";
 
 type NavItem = { href: string; label: string; exactMatch?: boolean };
-type NavGroup = { label: string; items: NavItem[] };
+type NavGroup = { label: string; num: string; items: NavItem[] };
 
 /**
  * Sidebar restructure for the CIO cockpit model:
@@ -27,8 +27,13 @@ type NavGroup = { label: string; items: NavItem[] };
  *     slides in when MobileTopBar dispatches `aeternum:sidebar` events.
  *     Backdrop click and any nav click both close the drawer.
  */
+// Hyperlane-style numbered groups — the prefix becomes part of the
+// group identity so the sidebar reads as a sectioned table of contents
+// rather than three loose lists. Numbers stay zero-padded for visual
+// alignment even after the codebase grows past 9 groups.
 const NAV: NavGroup[] = [
   {
+    num: "01",
     label: "Firm",
     items: [
       { href: "/dashboard", label: "Command Center" },
@@ -39,6 +44,7 @@ const NAV: NavGroup[] = [
     ],
   },
   {
+    num: "02",
     label: "Books",
     items: [
       { href: "/books/investing", label: "Investing" },
@@ -47,6 +53,7 @@ const NAV: NavGroup[] = [
     ],
   },
   {
+    num: "03",
     label: "Tools",
     items: [
       { href: "/watchlist", label: "Watchlist" },
@@ -100,19 +107,27 @@ export function Sidebar() {
       >
         <div className="px-4 pt-5 pb-3 border-b border-border">
           <div className="flex items-baseline gap-2">
-            <span className="w-[6px] h-[6px] rounded-full bg-accent inline-block" />
-            <span className="serif text-[15px] text-fg">Aeternum</span>
+            <span
+              className="w-[6px] h-[6px] rounded-full bg-accent inline-block"
+              style={{ boxShadow: "0 0 8px 0 var(--color-accent)" }}
+            />
+            <span className="serif text-[16px] text-fg tracking-[-0.01em]">Aeternum</span>
           </div>
-          <div className="mono text-[10px] text-muted-2 mt-[2px] pl-[14px]">
+          <div className="mono text-[9.5px] text-muted-2 mt-[3px] pl-[14px] tracking-[0.18em] uppercase">
             CIO cockpit
           </div>
         </div>
         <nav className="flex-1 overflow-y-auto py-3">
           {NAV.map((group, gi) => (
-            <div key={gi} className={gi > 0 ? "mt-3" : ""}>
+            <div key={gi} className={gi > 0 ? "mt-4" : ""}>
               {group.label && (
-                <div className="px-[14px] py-1 text-[9.5px] text-muted-2 uppercase tracking-[0.14em]">
-                  {group.label}
+                <div className="px-[14px] py-1 mb-[2px] flex items-center gap-2 text-[9.5px] uppercase tracking-[0.18em]">
+                  <span className="mono text-accent-text">{group.num}</span>
+                  <span className="text-muted-2">{group.label}</span>
+                  <span
+                    className="flex-1 h-px bg-border"
+                    aria-hidden
+                  />
                 </div>
               )}
               {group.items.map((item) => {

@@ -17,7 +17,12 @@ export default async function RiskPage({
   const book = (params.book || "all") as BookFilter;
   return (
     <>
-      <TopHeader title="Risk" subtitle="Vol, beta, drawdown, VaR, concentration">
+      <TopHeader
+        step="02"
+        stepLabel="Firm Risk"
+        title="Risk"
+        subtitle="Vol, beta, drawdown, VaR, concentration"
+      >
         <BookSwitcher current={book} />
       </TopHeader>
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-4 mb-4">

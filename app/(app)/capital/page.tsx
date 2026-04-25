@@ -24,6 +24,8 @@ export default function CapitalPage() {
   return (
     <>
       <TopHeader
+        step="01"
+        stepLabel="Capital Allocation"
         title="Capital Allocation"
         subtitle="Target vs actual drift per arm · cross-arm correlation · firm mandate view"
       />

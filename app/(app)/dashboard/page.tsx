@@ -50,7 +50,12 @@ export default async function DashboardPage({
 
   return (
     <>
-      <TopHeader title="Command Center" subtitle={greeting()}>
+      <TopHeader
+        step="00"
+        stepLabel="Firm Pulse"
+        title="Command Center"
+        subtitle={greeting()}
+      >
         <AsOfStamp />
         <FxTicker from="USD" to="IDR" />
         <CurrencyToggle current={ccy} />

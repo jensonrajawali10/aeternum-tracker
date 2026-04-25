@@ -35,7 +35,7 @@ export function MemosClient() {
         <button
           type="button"
           onClick={() => setDialogOpen(true)}
-          className="bg-accent text-bg hover:bg-accent/90 px-3 py-[6px] rounded text-[10.5px] font-semibold uppercase tracking-[0.12em]"
+          className="btn-pill btn-pill-primary !py-[8px] !px-[20px] !text-[10.5px]"
         >
           + New memo
         </button>
