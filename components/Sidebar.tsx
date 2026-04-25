@@ -35,6 +35,7 @@ const NAV: NavGroup[] = [
       { href: "/capital", label: "Capital" },
       { href: "/risk", label: "Firm Risk" },
       { href: "/journal", label: "Journal" },
+      { href: "/memos", label: "Memos" },
     ],
   },
   {

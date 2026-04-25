@@ -7,8 +7,8 @@ export const dynamic = "force-dynamic";
 
 /**
  * Book notes tab — the "mandate" page for this arm.  Shows what the arm is
- * for, who runs it, the risk budget.  Placeholder today — later this is where
- * decision memos + recent debrief posts live.
+ * for, who runs it, the risk budget.  Decision memos live at /memos (firm-wide,
+ * not book-scoped); this page links there.
  */
 export default async function BookNotesPage({
   params,
@@ -58,9 +58,12 @@ export default async function BookNotesPage({
             .
           </p>
           <p className="text-muted-2 pt-2 border-t border-border">
-            Decision memos (dated decided / why / expected / invalidation /
-            outcome) are on the roadmap but not live yet. For now, journal
-            rationale lives on the{" "}
+            Decision memos are live at{" "}
+            <Link href="/memos" className="text-accent hover:underline">
+              /memos
+            </Link>
+            {" "}— record decided / why / expected / invalidation up front so
+            post-mortems have ground truth. Trade-by-trade journal lives on the{" "}
             <Link href="/journal" className="text-accent hover:underline">
               firm journal
             </Link>{" "}
