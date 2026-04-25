@@ -21,7 +21,14 @@ const PatchSchema = z
       .min(1, "expected_outcome must not be empty")
       .optional(),
     invalidation: z.string().trim().min(1, "invalidation must not be empty").optional(),
-    linked_ticker: z.string().trim().optional().nullable(),
+    linked_ticker: z
+      .string()
+      .trim()
+      .optional()
+      .nullable()
+      // Match POST: upper-case the ticker so partial updates can't
+      // re-introduce lower-case rows.
+      .transform((v) => (v == null ? v : v === "" ? "" : v.toUpperCase())),
     linked_book: z.enum(LINKED_BOOKS).optional().nullable(),
     realized_outcome: z.string().trim().optional().nullable(),
     realized_at: z

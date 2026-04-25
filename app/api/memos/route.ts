@@ -21,7 +21,10 @@ const PostSchema = z.object({
     .min(1)
     .optional()
     .nullable()
-    .transform((v) => (v === "" ? null : v ?? null)),
+    // Coerce to upper-case so MAPB.JK and mapb.jk round-trip identically.
+    // Tickers in this codebase are uniformly upper-cased (idx Yahoo .JK
+    // suffix, US tickers, crypto symbols) — the memo store should match.
+    .transform((v) => (v === "" || v == null ? null : v.toUpperCase())),
   linked_book: z.enum(LINKED_BOOKS).optional().nullable(),
 });
 
@@ -45,7 +48,10 @@ export async function GET() {
     .from("decision_memos")
     .select(MEMO_COLUMNS)
     .eq("user_id", user.id)
-    .order("decided_at", { ascending: false });
+    .order("decided_at", { ascending: false })
+    // Tiebreak on insertion order so two memos recorded the same calendar
+    // day surface in stable order (newest insert on top).
+    .order("created_at", { ascending: false });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ memos: data || [] });
 }

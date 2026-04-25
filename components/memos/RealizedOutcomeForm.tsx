@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useSWRConfig } from "swr";
 import { fmtDate } from "@/lib/format";
 
 interface Props {
@@ -28,6 +29,10 @@ export function RealizedOutcomeForm({
   initialRealizedAt,
 }: Props) {
   const router = useRouter();
+  // Global SWR mutate so the /memos list cache picks up the new status
+  // pill ("Open" -> "Outcome recorded") on back-nav, instead of waiting
+  // up to 60s for the next refreshInterval poll.
+  const { mutate } = useSWRConfig();
   const hasOutcome = !!initialOutcome && initialOutcome.trim().length > 0;
   const [mode, setMode] = useState<"read" | "edit">(hasOutcome ? "read" : "edit");
   const [draft, setDraft] = useState<string>(initialOutcome ?? "");
@@ -53,7 +58,11 @@ export function RealizedOutcomeForm({
       return;
     }
     setMode("read");
+    // router.refresh re-renders the detail server component so the new
+    // realized_at timestamp shows up in read mode.  mutate refreshes the
+    // list cache so the back-nav pill reflects the recorded outcome.
     router.refresh();
+    mutate("/api/memos");
   }
 
   if (mode === "read" && hasOutcome) {

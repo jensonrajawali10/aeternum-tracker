@@ -5,6 +5,11 @@ import { BookBadge } from "@/components/Badge";
 import { fmtDate, clsx } from "@/lib/format";
 import type { BookType } from "@/lib/types";
 
+// linked_book widens BookType with "firm" (capital-allocation memos that
+// span the whole portfolio rather than one arm). The migration's CHECK
+// constraint allows the same four values, so this matches the wire shape.
+export type MemoLinkedBook = BookType | "firm";
+
 export interface DecisionMemo {
   id: string;
   user_id: string;
@@ -14,7 +19,7 @@ export interface DecisionMemo {
   expected_outcome: string;
   invalidation: string;
   linked_ticker: string | null;
-  linked_book: BookType | null;
+  linked_book: MemoLinkedBook | null;
   realized_outcome: string | null;
   realized_at: string | null;
   created_at: string;
@@ -88,7 +93,11 @@ export function MemosTable({ memos, isLoading }: Props) {
                   </Link>
                 </td>
                 <td className="py-[6px] px-2">
-                  <Link href={`/memos/${m.id}`} className="block text-fg">
+                  <Link
+                    href={`/memos/${m.id}`}
+                    title={m.decision}
+                    className="block text-fg"
+                  >
                     {truncate(m.decision, 80)}
                   </Link>
                 </td>

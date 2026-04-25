@@ -13,11 +13,19 @@ const ASSET_STYLE: Record<AssetClass, string> = {
   other: "bg-elevated text-muted border-border",
 };
 
-const BOOK_STYLE: Record<BookType, string> = {
+// "firm" widens the BookBadge so capital-allocation / firm-level memos can
+// label themselves without forcing every BookType consumer (positions,
+// trades, KPI rows, etc.) to widen too — those tables only ever hold the
+// three real books. The accent styling differentiates a firm-scoped item
+// at a glance from the muted three-book tags.
+type BookOrFirm = BookType | "firm";
+
+const BOOK_STYLE: Record<BookOrFirm, string> = {
   investing: "bg-elevated text-muted border-border",
   idx_trading: "bg-elevated text-muted border-border",
   crypto_trading: "bg-elevated text-muted border-border",
   other: "bg-elevated text-muted border-border",
+  firm: "bg-accent/10 text-accent border-accent/30",
 };
 
 const SEVERITY_STYLE: Record<Severity, string> = {
@@ -50,9 +58,17 @@ export function AssetBadge({ cls }: { cls: AssetClass }) {
   return <Badge className={ASSET_STYLE[cls]}>{label}</Badge>;
 }
 
-export function BookBadge({ book }: { book: BookType }) {
+export function BookBadge({ book }: { book: BookOrFirm }) {
   const label =
-    book === "investing" ? "inv" : book === "idx_trading" ? "idx" : book === "crypto_trading" ? "crypto" : "other";
+    book === "investing"
+      ? "inv"
+      : book === "idx_trading"
+        ? "idx"
+        : book === "crypto_trading"
+          ? "crypto"
+          : book === "firm"
+            ? "firm"
+            : "other";
   return <Badge className={BOOK_STYLE[book]}>{label}</Badge>;
 }
 
