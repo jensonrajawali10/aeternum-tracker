@@ -9,6 +9,8 @@ import { SectorDoughnut } from "@/components/SectorDoughnut";
 import { StrategyMatrix } from "@/components/StrategyMatrix";
 import { FxTicker } from "@/components/FxTicker";
 import { AsOfStamp } from "@/components/AsOfStamp";
+import { TopMovers } from "@/components/TopMovers";
+import { QuickAddWatchlist } from "@/components/QuickAddWatchlist";
 
 export const dynamic = "force-dynamic";
 
@@ -69,10 +71,26 @@ export default async function DashboardPage({
         <BooksStrip />
       </div>
 
-      {/* Action panel — signals / movers / catalysts / exceptions */}
+      {/* Top movers — Day P&L + best/worst performer (3-cell performance card) */}
       <div className="mt-5">
+        <Panel
+          title="Top movers · today"
+          subtitle="Day P&L · best and worst by daily % change"
+        >
+          <TopMovers book="all" />
+        </Panel>
+      </div>
+
+      {/* Action panel + quick-add watchlist side-by-side on wide screens */}
+      <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-4 mt-5">
         <Panel title="Needs attention" subtitle="Triage feed across all books">
           <ActionPanel />
+        </Panel>
+        <Panel
+          title="Quick add to watchlist"
+          subtitle="Record intent without leaving the dashboard"
+        >
+          <QuickAddWatchlist />
         </Panel>
       </div>
 
