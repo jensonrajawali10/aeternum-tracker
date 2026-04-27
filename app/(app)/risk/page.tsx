@@ -18,8 +18,7 @@ export default async function RiskPage({
   return (
     <>
       <TopHeader
-        step="02"
-        stepLabel="Firm Risk"
+        stepLabel="Firm · Risk"
         title="Risk"
         subtitle="Vol, beta, drawdown, VaR, concentration"
       >

@@ -74,12 +74,38 @@ export function TopMovers({ book = "all" }: { book?: string }) {
   }
 
   if (live.length === 0) {
+    // Render the same 3-cell skeleton structure even when there's no
+    // live data, plus a one-line "why" under it.  Top-tier dashboards
+    // never look empty — the panel always communicates its layout, the
+    // text explains what's missing.
     return (
-      <div className="text-[11.5px] text-muted-2 leading-relaxed">
-        No live day-change data on file yet. Daily % movement needs live quotes
-        on at least one open position — check Positions once Yahoo / CoinGecko
-        / Hyperliquid quotes hydrate.
-      </div>
+      <>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          {[
+            { label: "Day P&L", placeholder: "—" },
+            { label: "Best today", placeholder: "—" },
+            { label: "Worst today", placeholder: "—" },
+          ].map((c) => (
+            <div
+              key={c.label}
+              className="bg-panel-2 border border-border rounded-[8px] px-4 py-3 opacity-70"
+            >
+              <div className="text-[10px] uppercase tracking-[0.14em] text-muted-2">
+                {c.label}
+              </div>
+              <div className="mt-[6px] text-[18px] font-medium leading-tight text-muted-2">
+                {c.placeholder}
+              </div>
+              <div className="mt-[3px] text-[11px] text-muted-2">awaiting live quotes</div>
+            </div>
+          ))}
+        </div>
+        <div className="mt-3 text-[10.5px] text-muted-2 leading-relaxed">
+          Day-change needs live Yahoo / CoinGecko / Hyperliquid quotes on at
+          least one open position. Movers populate as soon as the quote cache
+          hydrates.
+        </div>
+      </>
     );
   }
 

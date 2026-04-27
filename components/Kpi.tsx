@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { clsx } from "@/lib/format";
 
 export function Kpi({
@@ -8,6 +9,7 @@ export function Kpi({
   hint,
   delta,
   deltaClass,
+  trend,
   compact = false,
 }: {
   label: string;
@@ -15,6 +17,10 @@ export function Kpi({
   hint?: string;
   delta?: string;
   deltaClass?: string;
+  /** Optional sparkline / trend element rendered top-right of the tile.  Pass
+      a Sparkline or any inline SVG; the tile reserves space for it so layout
+      stays steady whether or not a trend is provided. */
+  trend?: ReactNode;
   compact?: boolean;
 }) {
   return (
@@ -24,7 +30,10 @@ export function Kpi({
         compact ? "px-3 py-3" : "px-4 py-[14px]",
       )}
     >
-      <div className="text-[11px] text-muted">{label}</div>
+      <div className="flex items-start justify-between gap-2">
+        <div className="text-[11px] text-muted">{label}</div>
+        {trend && <div className="opacity-90">{trend}</div>}
+      </div>
       <div className="mono mt-[4px] text-[20px] font-medium text-fg leading-tight tracking-[-0.01em]">
         {value}
       </div>

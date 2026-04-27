@@ -15,8 +15,7 @@ export default function MemosPage() {
   return (
     <>
       <TopHeader
-        step="04"
-        stepLabel="Decision Memos"
+        stepLabel="Firm · Memos"
         title="Decision Memos"
         subtitle="Dated record of why · what I expected · what invalidates the call"
       />

@@ -11,6 +11,8 @@ import { FxTicker } from "@/components/FxTicker";
 import { AsOfStamp } from "@/components/AsOfStamp";
 import { TopMovers } from "@/components/TopMovers";
 import { QuickAddWatchlist } from "@/components/QuickAddWatchlist";
+import { NavVsBenchmarkChart } from "@/components/NavVsBenchmarkChart";
+import { DrawdownChart } from "@/components/DrawdownChart";
 
 export const dynamic = "force-dynamic";
 
@@ -53,7 +55,6 @@ export default async function DashboardPage({
   return (
     <>
       <TopHeader
-        step="00"
         stepLabel="Firm Pulse"
         title="Command Center"
         subtitle={greeting()}
@@ -69,6 +70,24 @@ export default async function DashboardPage({
       {/* Books strip — one card per arm with click-through to workspace */}
       <div className="mt-5">
         <BooksStrip />
+      </div>
+
+      {/* NAV equity curve + drawdown — the visual depth a CIO cockpit
+          needs. NAV vs JCI vs S&P on top, drawdown directly below so
+          the eye can read the shape and the floor in one glance. */}
+      <div className="grid grid-cols-1 xl:grid-cols-[1.6fr_1fr] gap-4 mt-5">
+        <Panel
+          title="NAV vs benchmarks"
+          subtitle="Rebased to 100 · firm-wide"
+        >
+          <NavVsBenchmarkChart book="all" height={260} />
+        </Panel>
+        <Panel
+          title="Drawdown"
+          subtitle="Peak-to-trough on NAV · firm-wide"
+        >
+          <DrawdownChart book="all" height={260} />
+        </Panel>
       </div>
 
       {/* Top movers — Day P&L + best/worst performer (3-cell performance card) */}

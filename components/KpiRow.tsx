@@ -2,6 +2,7 @@
 
 import useSWR from "swr";
 import { Kpi } from "./Kpi";
+import { Sparkline } from "./Sparkline";
 import { fmtCurrency, fmtPct, signClass } from "@/lib/format";
 
 interface NavResp {
@@ -22,6 +23,11 @@ interface MetricsResp {
   var_30d_95_pct: number;
 }
 
+interface BenchResp {
+  dates: string[];
+  nav: (number | null)[];
+}
+
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 export function KpiRow({
@@ -32,12 +38,28 @@ export function KpiRow({
   currency: "IDR" | "USD";
 }) {
   const bookParam = book === "all" ? "" : `?book=${book}`;
+  const benchBook = book === "all" ? "" : `&book=${book}`;
   const { data: nav } = useSWR<NavResp>(`/api/portfolio/nav${bookParam}`, fetcher, {
     refreshInterval: 60_000,
   });
   const { data: metrics } = useSWR<MetricsResp>(`/api/portfolio/metrics${bookParam}`, fetcher, {
     refreshInterval: 60_000,
   });
+  // YTD-window NAV history feeds the per-tile sparkline.  Same endpoint
+  // as the big benchmark chart on the dashboard so SWR dedupes the
+  // request when both are mounted on the same page.
+  const { data: bench } = useSWR<BenchResp>(
+    `/api/portfolio/benchmark?range=YTD${benchBook}`,
+    fetcher,
+    { refreshInterval: 120_000 },
+  );
+
+  const navSeries = bench?.nav ?? [];
+  // Build a synthetic unrealised-P&L proxy from the rebased NAV series:
+  // the whole-period delta from start (100) is the cumulative move; the
+  // sparkline doesn't need precise units, only direction + shape.
+  const unrealSeries = navSeries.map((v) => (v == null || !isFinite(v) ? null : v - 100));
+  const ytdSeries = navSeries; // already YTD by construction
 
   const navValue = nav ? (currency === "IDR" ? nav.nav_idr : nav.nav_usd) : null;
   const unrealValue = nav
@@ -72,6 +94,7 @@ export function KpiRow({
         label={navLabel}
         value={navValue != null ? fmtCurrency(navValue, currency) : "—"}
         hint={navHint}
+        trend={<Sparkline values={navSeries} width={72} height={22} />}
       />
       <Kpi
         label="Unrealized P&L"
@@ -82,12 +105,14 @@ export function KpiRow({
             : ""
         }
         deltaClass={signClass(nav?.unrealized_pnl_idr)}
+        trend={<Sparkline values={unrealSeries} width={72} height={22} />}
       />
       <Kpi
         label="YTD return"
         value={metrics ? fmtPct(metrics.ytd_return_pct, 2, true) : "—"}
         hint={ytdValue != null ? fmtCurrency(ytdValue, currency) : "—"}
         deltaClass={signClass(metrics?.ytd_return_pct)}
+        trend={<Sparkline values={ytdSeries} width={72} height={22} />}
       />
       <Kpi
         label="Gross exposure"

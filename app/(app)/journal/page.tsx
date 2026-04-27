@@ -13,8 +13,7 @@ export default function JournalPage() {
   return (
     <>
       <TopHeader
-        step="03"
-        stepLabel="Trade Journal"
+        stepLabel="Firm · Journal"
         title="Journal"
         subtitle="Trade log, strategy diagnostics, self-awareness"
       />

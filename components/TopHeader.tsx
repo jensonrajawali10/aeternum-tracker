@@ -40,9 +40,9 @@ export function TopHeader({
   return (
     <div className="ae-topheader flex flex-wrap items-end justify-between gap-3 pb-4 border-b border-border mb-5">
       <div>
-        {step && (
+        {(step || stepLabel) && (
           <div className="ae-step-label mb-2">
-            <span className="ae-step-num">{step}</span>
+            {step && <span className="ae-step-num">{step}</span>}
             {stepLabel && <span>{stepLabel}</span>}
           </div>
         )}
