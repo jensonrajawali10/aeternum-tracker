@@ -3,12 +3,20 @@
 import { useEffect, useState } from "react";
 
 type Market = "IDX" | "NYSE" | "CRYPTO";
-type State = "OPEN" | "PRE" | "CLOSED" | "AFTER";
+type State = "OPEN" | "PRE" | "CLOSED" | "AFTER" | "LUNCH";
 
 /**
  * Compute IDX session state from the current time in WIB.
- *   Mon-Fri: pre 08:55-09:00, open 09:00-12:00 + 13:30-16:00
- *   Sat/Sun: closed
+ *   Mon-Fri:
+ *     08:55-09:00  PRE
+ *     09:00-12:00  OPEN  (Session 1)
+ *     12:00-13:30  LUNCH (midday break)
+ *     13:30-15:50  OPEN  (Session 2 — IDX actually closes 15:50 not 16:00)
+ *   Sat/Sun: CLOSED
+ *
+ * Lunch is its own pill state so the dashboard reads honestly during
+ * the midday break -- previously this period rendered OPEN for an
+ * hour and a half when the exchange was actually shut.
  */
 function idxState(now: Date): State {
   const wib = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Jakarta" }));
@@ -17,7 +25,8 @@ function idxState(now: Date): State {
   const minutes = wib.getHours() * 60 + wib.getMinutes();
   if (minutes >= 8 * 60 + 55 && minutes < 9 * 60) return "PRE";
   if (minutes >= 9 * 60 && minutes < 12 * 60) return "OPEN";
-  if (minutes >= 13 * 60 + 30 && minutes < 16 * 60) return "OPEN";
+  if (minutes >= 12 * 60 && minutes < 13 * 60 + 30) return "LUNCH";
+  if (minutes >= 13 * 60 + 30 && minutes < 15 * 60 + 50) return "OPEN";
   return "CLOSED";
 }
 
@@ -41,7 +50,8 @@ function nyseState(now: Date): State {
 
 function stateColor(state: State): string {
   if (state === "OPEN") return "var(--color-up)";
-  if (state === "PRE" || state === "AFTER") return "var(--color-accent)";
+  if (state === "PRE" || state === "AFTER" || state === "LUNCH")
+    return "var(--color-accent)";
   return "var(--color-muted-2)";
 }
 
@@ -93,7 +103,12 @@ export function MarketStatePill({ market }: { market: Market }) {
         style={{
           fontSize: 9,
           letterSpacing: "0.14em",
-          color: state === "OPEN" ? "var(--color-up)" : "var(--color-muted)",
+          color:
+            state === "OPEN"
+              ? "var(--color-up)"
+              : state === "LUNCH" || state === "PRE" || state === "AFTER"
+                ? "var(--color-accent)"
+                : "var(--color-muted)",
         }}
       >
         {label}
