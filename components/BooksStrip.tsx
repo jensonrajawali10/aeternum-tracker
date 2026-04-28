@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import useSWR from "swr";
-import { fmtCurrency, fmtPct, signClass, clsx } from "@/lib/format";
+import { fmtCurrency, fmtPct } from "@/lib/format";
+import { DeltaNumber } from "./shell/DeltaNumber";
 import { BOOKS } from "@/lib/books/meta";
 import type { BookType } from "@/lib/types";
 
@@ -72,11 +73,21 @@ function BookCard({
         </div>
       )}
       <div className="mt-1 flex items-center gap-3 text-[11px]">
-        <span className={clsx("mono", signClass(ytd))}>
-          YTD {ytd != null ? fmtPct(ytd, 1, true) : "—"}
+        <span className="flex items-center gap-1">
+          <span className="text-muted-2 mono">YTD</span>
+          {ytd != null ? (
+            <DeltaNumber value={ytd} text={fmtPct(ytd, 1, true)} />
+          ) : (
+            <span className="mono text-muted-2">—</span>
+          )}
         </span>
-        <span className={clsx("mono", signClass(unreal))}>
-          Unreal {unreal != null ? fmtCurrency(unreal, "IDR") : "—"}
+        <span className="flex items-center gap-1">
+          <span className="text-muted-2 mono">Unreal</span>
+          {unreal != null ? (
+            <DeltaNumber value={unreal} text={fmtCurrency(unreal, "IDR")} />
+          ) : (
+            <span className="mono text-muted-2">—</span>
+          )}
         </span>
       </div>
     </Link>

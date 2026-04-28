@@ -2,7 +2,8 @@
 
 import useSWR from "swr";
 import Link from "next/link";
-import { fmtPct, fmtCurrency, signClass, clsx } from "@/lib/format";
+import { fmtPct, fmtCurrency } from "@/lib/format";
+import { DeltaNumber } from "./shell/DeltaNumber";
 import type { AssetClass } from "@/lib/types";
 
 interface Position {
@@ -36,14 +37,23 @@ function Row({
         </span>
       </div>
       <div className="flex items-center gap-3 shrink-0">
-        <span className={clsx("mono", signClass(p.day_change_pct))}>
-          {p.day_change_pct != null ? fmtPct(p.day_change_pct, 2, true) : "—"}
-        </span>
-        <span className={clsx("mono text-[10.5px]", signClass(p.unrealized_pnl_idr))}>
-          {p.unrealized_pnl_idr != null
-            ? fmtCurrency(p.unrealized_pnl_idr, "IDR")
-            : "—"}
-        </span>
+        {p.day_change_pct != null ? (
+          <DeltaNumber
+            value={p.day_change_pct}
+            text={fmtPct(p.day_change_pct, 2, true)}
+          />
+        ) : (
+          <span className="mono text-muted-2">—</span>
+        )}
+        {p.unrealized_pnl_idr != null ? (
+          <DeltaNumber
+            value={p.unrealized_pnl_idr}
+            text={fmtCurrency(p.unrealized_pnl_idr, "IDR")}
+            className="text-[10.5px]"
+          />
+        ) : (
+          <span className="mono text-[10.5px] text-muted-2">—</span>
+        )}
       </div>
     </div>
   );

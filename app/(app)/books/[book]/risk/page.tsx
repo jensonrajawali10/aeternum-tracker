@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { Panel } from "@/components/Panel";
 import { RiskSnapshot } from "@/components/RiskSnapshot";
 import { ExposureBars } from "@/components/ExposureBars";
-import { SectorDoughnut } from "@/components/SectorDoughnut";
+import { ConcentrationBars } from "@/components/ConcentrationBars";
 import { getBookMeta } from "@/lib/books/meta";
 
 export const dynamic = "force-dynamic";
@@ -31,7 +31,7 @@ export default async function BookRiskPage({
         </Panel>
       </div>
       <Panel title="Concentration by ticker" subtitle="Top 7 + rest">
-        <SectorDoughnut book={meta.book} />
+        <ConcentrationBars book={meta.book} />
       </Panel>
     </>
   );

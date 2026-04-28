@@ -1,7 +1,9 @@
 "use client";
 
+import type { ReactNode } from "react";
 import useSWR from "swr";
-import { fmtPct, fmtNumber, signClass } from "@/lib/format";
+import { fmtPct, fmtNumber } from "@/lib/format";
+import { DeltaNumber } from "./shell/DeltaNumber";
 
 interface MetricsResp {
   ytd_return_pct: number;
@@ -17,6 +19,11 @@ interface MetricsResp {
 }
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
+
+function delta(value: number | null | undefined, text: string): ReactNode {
+  if (value == null || !Number.isFinite(value)) return <span>{text}</span>;
+  return <DeltaNumber value={value} text={text} />;
+}
 
 export function RiskSnapshot({ book }: { book: string }) {
   const bookParam = book === "all" ? "" : `?book=${book}`;
@@ -37,21 +44,49 @@ export function RiskSnapshot({ book }: { book: string }) {
     data.beta_vs_ihsg == null &&
     data.beta_vs_spx == null;
 
-  const rows: {
-    label: string;
-    value: string;
-    signClass?: string;
-  }[] = [
-    { label: "YTD Return", value: data ? fmtPct(data.ytd_return_pct, 2, true) : "—", signClass: signClass(data?.ytd_return_pct) },
-    { label: "MTD Return", value: data ? fmtPct(data.mtd_return_pct, 2, true) : "—", signClass: signClass(data?.mtd_return_pct) },
-    { label: "Vol (30D ann)", value: data ? fmtPct(data.vol_30d_annualized_pct, 1) : "—" },
-    { label: "Vol (90D ann)", value: data ? fmtPct(data.vol_90d_annualized_pct, 1) : "—" },
-    { label: "Sharpe (YTD)", value: data ? fmtNumber(data.sharpe_ytd, 2) : "—", signClass: signClass(data?.sharpe_ytd) },
-    { label: "Sortino (YTD)", value: data ? fmtNumber(data.sortino_ytd, 2) : "—", signClass: signClass(data?.sortino_ytd) },
-    { label: "Beta vs JCI", value: data?.beta_vs_ihsg != null ? fmtNumber(data.beta_vs_ihsg, 2) : "—" },
-    { label: "Beta vs S&P", value: data?.beta_vs_spx != null ? fmtNumber(data.beta_vs_spx, 2) : "—" },
-    { label: "Max Drawdown", value: data ? fmtPct(data.max_drawdown_pct, 1) : "—", signClass: "neg" },
-    { label: "30D VaR (95%)", value: data ? fmtPct(data.var_30d_95_pct, 2) : "—", signClass: "neg" },
+  // Directional rows render through DeltaNumber → ▲/▼ glyph + colour;
+  // non-directional rows (vol, beta, MDD, VaR) keep a plain mono value.
+  const rows: { label: string; node: ReactNode }[] = [
+    {
+      label: "YTD Return",
+      node: data ? delta(data.ytd_return_pct, fmtPct(data.ytd_return_pct, 2, true)) : "—",
+    },
+    {
+      label: "MTD Return",
+      node: data ? delta(data.mtd_return_pct, fmtPct(data.mtd_return_pct, 2, true)) : "—",
+    },
+    {
+      label: "Vol (30D ann)",
+      node: data ? fmtPct(data.vol_30d_annualized_pct, 1) : "—",
+    },
+    {
+      label: "Vol (90D ann)",
+      node: data ? fmtPct(data.vol_90d_annualized_pct, 1) : "—",
+    },
+    {
+      label: "Sharpe (YTD)",
+      node: data ? delta(data.sharpe_ytd, fmtNumber(data.sharpe_ytd, 2)) : "—",
+    },
+    {
+      label: "Sortino (YTD)",
+      node: data ? delta(data.sortino_ytd, fmtNumber(data.sortino_ytd, 2)) : "—",
+    },
+    {
+      label: "Beta vs JCI",
+      node: data?.beta_vs_ihsg != null ? fmtNumber(data.beta_vs_ihsg, 2) : "—",
+    },
+    {
+      label: "Beta vs S&P",
+      node: data?.beta_vs_spx != null ? fmtNumber(data.beta_vs_spx, 2) : "—",
+    },
+    {
+      label: "Max Drawdown",
+      node: data ? <span className="neg">{fmtPct(data.max_drawdown_pct, 1)}</span> : "—",
+    },
+    {
+      label: "30D VaR (95%)",
+      node: data ? <span className="neg">{fmtPct(data.var_30d_95_pct, 2)}</span> : "—",
+    },
   ];
 
   return (
@@ -60,7 +95,7 @@ export function RiskSnapshot({ book }: { book: string }) {
         {rows.map((r) => (
           <div key={r.label} className="flex items-baseline justify-between">
             <dt className="text-muted text-[11px]">{r.label}</dt>
-            <dd className={r.signClass}>{r.value}</dd>
+            <dd className="mono">{r.node}</dd>
           </div>
         ))}
       </dl>

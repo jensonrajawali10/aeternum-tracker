@@ -5,6 +5,7 @@ import { Sidebar } from "@/components/Sidebar";
 import { MobileTopBar } from "@/components/MobileTopBar";
 import { TopBar } from "@/components/shell/TopBar";
 import { Footer } from "@/components/shell/Footer";
+import { TickerTape } from "@/components/TickerTape";
 import { SWRProvider } from "@/components/SWRProvider";
 import { DensityProvider } from "@/components/DensityProvider";
 import { CommandPalette } from "@/components/CommandPalette";
@@ -34,6 +35,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <DensityProvider>
         <div className="min-h-screen flex flex-col bg-bg text-fg">
           <TopBar />
+          <TickerTape />
           <div className="flex flex-1 min-h-0">
             <Sidebar />
             <div className="flex-1 min-w-0 flex flex-col">

@@ -2,7 +2,16 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 const PUBLIC_PATHS = ["/login", "/signup", "/auth/callback"];
-const PUBLIC_PREFIXES = ["/api/sync/sheets", "/api/agents/webhook", "/api/cron"];
+const PUBLIC_PREFIXES = [
+  "/api/sync/sheets",
+  "/api/agents/webhook",
+  "/api/cron",
+  // Market data feeds with no user-specific data — kept public so the edge
+  // cache (s-maxage on the response) actually fires. The TickerTape and KPI
+  // sparklines SWR-poll these from the dashboard.
+  "/api/quotes",
+  "/api/macro",
+];
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;

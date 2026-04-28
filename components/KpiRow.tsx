@@ -2,8 +2,8 @@
 
 import useSWR from "swr";
 import { Kpi } from "./Kpi";
-import { Sparkline } from "./Sparkline";
-import { fmtCurrency, fmtPct, signClass } from "@/lib/format";
+import { DeltaNumber } from "./shell/DeltaNumber";
+import { fmtCurrency, fmtPct, fmtNumber, signClass } from "@/lib/format";
 
 interface NavResp {
   nav_idr: number;
@@ -21,6 +21,7 @@ interface MetricsResp {
   ytd_return_pct: number;
   vol_30d_annualized_pct: number;
   var_30d_95_pct: number;
+  sharpe_ytd: number;
 }
 
 interface BenchResp {
@@ -88,31 +89,50 @@ export function KpiRow({
     : "—";
   const navLabel = isFlatBook ? "Book realized P&L" : "Portfolio NAV";
 
+  const unrealPct =
+    nav && nav.nav_idr > 0 ? (nav.unrealized_pnl_idr / nav.nav_idr) * 100 : null;
+  const sharpe = metrics?.sharpe_ytd;
+  const sharpeFinite = sharpe != null && Number.isFinite(sharpe);
+  const sharpeHint = sharpeFinite
+    ? sharpe >= 1
+      ? "good"
+      : sharpe >= 0
+        ? "fair"
+        : "negative"
+    : undefined;
+
   return (
-    <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-5">
       <Kpi
         label={navLabel}
         value={navValue != null ? fmtCurrency(navValue, currency) : "—"}
         hint={navHint}
-        trend={<Sparkline values={navSeries} width={72} height={22} />}
+        sparkline={navSeries}
       />
       <Kpi
         label="Unrealized P&L"
         value={unrealValue != null ? fmtCurrency(unrealValue, currency) : "—"}
         delta={
-          metrics && nav && nav.nav_idr > 0
-            ? fmtPct((nav.unrealized_pnl_idr / nav.nav_idr) * 100, 2, true)
-            : ""
+          unrealPct != null ? (
+            <DeltaNumber value={unrealPct} text={fmtPct(unrealPct, 2, true)} />
+          ) : undefined
         }
-        deltaClass={signClass(nav?.unrealized_pnl_idr)}
-        trend={<Sparkline values={unrealSeries} width={72} height={22} />}
+        sparkline={unrealSeries}
       />
       <Kpi
         label="YTD return"
-        value={metrics ? fmtPct(metrics.ytd_return_pct, 2, true) : "—"}
+        value={
+          metrics ? (
+            <DeltaNumber
+              value={metrics.ytd_return_pct}
+              text={fmtPct(metrics.ytd_return_pct, 2, true)}
+            />
+          ) : (
+            "—"
+          )
+        }
         hint={ytdValue != null ? fmtCurrency(ytdValue, currency) : "—"}
-        deltaClass={signClass(metrics?.ytd_return_pct)}
-        trend={<Sparkline values={ytdSeries} width={72} height={22} />}
+        sparkline={ytdSeries}
       />
       <Kpi
         label="Gross exposure"
@@ -126,6 +146,17 @@ export function KpiRow({
         // VaR carries its own sign — let fmtPct convey it instead of forcing red
         // on the label (would paint red on "—" during data-loading states)
         deltaClass={metrics && metrics.var_30d_95_pct < 0 ? "neg" : undefined}
+      />
+      <Kpi
+        label="Sharpe (YTD)"
+        value={
+          sharpeFinite ? (
+            <span className={signClass(sharpe)}>{fmtNumber(sharpe, 2)}</span>
+          ) : (
+            "—"
+          )
+        }
+        hint={sharpeHint}
       />
     </div>
   );

@@ -1,7 +1,8 @@
 "use client";
 
 import useSWR from "swr";
-import { clsx, fmtPct, fmtCurrency, signClass } from "@/lib/format";
+import { fmtPct, fmtCurrency } from "@/lib/format";
+import { DeltaNumber } from "./shell/DeltaNumber";
 
 interface Position {
   ticker: string;
@@ -77,14 +78,17 @@ export function ExceptionsList() {
             ticker: p.ticker,
             right: (
               <span className="flex items-center gap-2">
-                <span className={clsx("mono", signClass(p.unrealized_pnl_pct))}>
-                  {fmtPct(p.unrealized_pnl_pct, 1, true)}
-                </span>
-                <span className={clsx("mono text-[10px]", signClass(p.unrealized_pnl_idr))}>
-                  {p.unrealized_pnl_idr != null
-                    ? fmtCurrency(p.unrealized_pnl_idr, "IDR")
-                    : ""}
-                </span>
+                <DeltaNumber
+                  value={p.unrealized_pnl_pct}
+                  text={fmtPct(p.unrealized_pnl_pct, 1, true)}
+                />
+                {p.unrealized_pnl_idr != null && (
+                  <DeltaNumber
+                    value={p.unrealized_pnl_idr}
+                    text={fmtCurrency(p.unrealized_pnl_idr, "IDR")}
+                    className="text-[10px]"
+                  />
+                )}
               </span>
             ),
           }))}

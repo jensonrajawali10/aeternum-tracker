@@ -2,7 +2,7 @@ import { TopHeader } from "@/components/TopHeader";
 import { Panel } from "@/components/Panel";
 import { RiskSnapshot } from "@/components/RiskSnapshot";
 import { ExposureBars } from "@/components/ExposureBars";
-import { SectorDoughnut } from "@/components/SectorDoughnut";
+import { ConcentrationBars } from "@/components/ConcentrationBars";
 import { BookSwitcher } from "@/components/BookSwitcher";
 import type { BookFilter } from "@/lib/types";
 
@@ -33,7 +33,7 @@ export default async function RiskPage({
         </Panel>
       </div>
       <Panel title="Top Concentrations">
-        <SectorDoughnut book={book} />
+        <ConcentrationBars book={book} />
       </Panel>
     </>
   );

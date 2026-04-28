@@ -2,6 +2,7 @@
 
 import useSWR from "swr";
 import { fmtPct, fmtNumber, fmtCurrency, signClass } from "@/lib/format";
+import { DeltaNumber } from "./shell/DeltaNumber";
 
 interface Row {
   strategy: string;
@@ -57,8 +58,12 @@ export function StrategyMatrix() {
               <td className={`py-[7px] px-2 text-right ${signClass(r.expectancy)}`}>
                 {fmtPct(r.expectancy, 2, true)}
               </td>
-              <td className={`py-[7px] px-2 text-right ${signClass(r.net_pnl_idr)}`}>
-                {fmtCurrency(r.net_pnl_idr, "IDR")}
+              <td className="py-[7px] px-2 text-right">
+                <DeltaNumber
+                  value={r.net_pnl_idr}
+                  text={fmtCurrency(r.net_pnl_idr, "IDR")}
+                  className="justify-end"
+                />
               </td>
               <td className="py-[7px] px-2 text-right text-muted">
                 {r.avg_hold_hours != null ? `${r.avg_hold_hours.toFixed(1)}h` : "—"}

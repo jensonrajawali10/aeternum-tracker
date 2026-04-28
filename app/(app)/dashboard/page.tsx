@@ -1,16 +1,13 @@
-import { TopHeader } from "@/components/TopHeader";
+import { DashboardCrumb } from "@/components/shell/DashboardCrumb";
 import { Panel } from "@/components/Panel";
 import { KpiRow } from "@/components/KpiRow";
 import { BooksStrip } from "@/components/BooksStrip";
 import { ActionPanel } from "@/components/ActionPanel";
 import { CurrencyToggle } from "@/components/CurrencyToggle";
 import { RiskSnapshot } from "@/components/RiskSnapshot";
-import { SectorDoughnut } from "@/components/SectorDoughnut";
+import { ConcentrationBars } from "@/components/ConcentrationBars";
 import { StrategyMatrix } from "@/components/StrategyMatrix";
-import { FxTicker } from "@/components/FxTicker";
-import { AsOfStamp } from "@/components/AsOfStamp";
 import { TopMovers } from "@/components/TopMovers";
-import { QuickAddWatchlist } from "@/components/QuickAddWatchlist";
 import { NavVsBenchmarkChart } from "@/components/NavVsBenchmarkChart";
 import { DrawdownChart } from "@/components/DrawdownChart";
 
@@ -43,6 +40,10 @@ function greeting(): string {
  * performance charts (NAV-vs-benchmark, rolling alpha, attribution) moved
  * into each book workspace at /books/[slug]/performance so the firm view
  * doesn't double up on what the book tabs already show.
+ *
+ * AsOfStamp + FxTicker live in the global TopBar now, so they're not
+ * mounted here — the crumb only carries the live-state pill + currency
+ * toggle on the right.
  */
 export default async function DashboardPage({
   searchParams,
@@ -54,15 +55,9 @@ export default async function DashboardPage({
 
   return (
     <>
-      <TopHeader
-        stepLabel="Firm Pulse"
-        title="Command Center"
-        subtitle={greeting()}
-      >
-        <AsOfStamp />
-        <FxTicker from="USD" to="IDR" />
+      <DashboardCrumb greeting={greeting()}>
         <CurrencyToggle current={ccy} />
-      </TopHeader>
+      </DashboardCrumb>
 
       {/* Firm Pulse — single KPI row across all books */}
       <KpiRow book="all" currency={ccy} />
@@ -100,22 +95,18 @@ export default async function DashboardPage({
         </Panel>
       </div>
 
-      {/* Action panel + quick-add watchlist side-by-side on wide screens */}
-      <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-4 mt-5">
+      {/* Action panel takes the full width now that QuickAddWatchlist
+          moved into the cmdk command palette flow (Phase 3).  The
+          dedicated /watchlist page still owns its own add UI. */}
+      <div className="mt-5">
         <Panel title="Needs attention" subtitle="Triage feed across all books">
           <ActionPanel />
-        </Panel>
-        <Panel
-          title="Quick add to watchlist"
-          subtitle="Record intent without leaving the dashboard"
-        >
-          <QuickAddWatchlist />
         </Panel>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-5">
         <Panel title="Concentration by ticker" subtitle="Top 7 positions + rest · firm-wide">
-          <SectorDoughnut book="all" />
+          <ConcentrationBars book="all" />
         </Panel>
         <Panel title="Risk snapshot" subtitle="Vol, Sharpe, Sortino, beta vs JCI + S&P">
           <RiskSnapshot book="all" />

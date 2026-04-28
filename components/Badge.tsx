@@ -28,10 +28,38 @@ const BOOK_STYLE: Record<BookOrFirm, string> = {
   firm: "bg-accent/10 text-accent border-accent/30",
 };
 
+/* Severity tones — terminal redesign:
+ *   info     → cyan tone, label SIGNAL    (informational signal landed)
+ *   warning  → amber tone, label WATCH    (something to keep an eye on)
+ *   critical → down-red tone, label BREACH (threshold broken / drawdown)
+ *
+ * Built with rgba() colour-mix tokens so the chip background stays
+ * consistent with the palette no matter how the @theme tokens change. */
 const SEVERITY_STYLE: Record<Severity, string> = {
-  info: "bg-[rgba(139,92,246,0.12)] text-[#B794F6] border-transparent",
-  warning: "bg-[rgba(184,104,104,0.12)] text-loss border-transparent",
-  critical: "bg-[rgba(184,104,104,0.2)] text-loss border-transparent",
+  info: "text-cyan border",
+  warning: "text-amber border",
+  critical: "text-down border",
+};
+
+const SEVERITY_INLINE: Record<Severity, React.CSSProperties> = {
+  info: {
+    background: "color-mix(in srgb, var(--color-cyan) 10%, transparent)",
+    borderColor: "color-mix(in srgb, var(--color-cyan) 30%, transparent)",
+  },
+  warning: {
+    background: "color-mix(in srgb, var(--color-accent) 10%, transparent)",
+    borderColor: "color-mix(in srgb, var(--color-accent) 30%, transparent)",
+  },
+  critical: {
+    background: "color-mix(in srgb, var(--color-down) 10%, transparent)",
+    borderColor: "color-mix(in srgb, var(--color-down) 30%, transparent)",
+  },
+};
+
+const SEVERITY_LABEL: Record<Severity, string> = {
+  info: "signal",
+  warning: "watch",
+  critical: "breach",
 };
 
 export function Badge({
@@ -73,5 +101,15 @@ export function BookBadge({ book }: { book: BookOrFirm }) {
 }
 
 export function SeverityBadge({ sev }: { sev: Severity }) {
-  return <Badge className={SEVERITY_STYLE[sev]}>{sev}</Badge>;
+  return (
+    <span
+      className={clsx(
+        "inline-flex items-center px-[7px] py-[2px] border rounded-[3px] text-[10.5px] font-medium mono uppercase tracking-[0.10em]",
+        SEVERITY_STYLE[sev],
+      )}
+      style={SEVERITY_INLINE[sev]}
+    >
+      {SEVERITY_LABEL[sev]}
+    </span>
+  );
 }

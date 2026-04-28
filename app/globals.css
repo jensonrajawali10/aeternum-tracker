@@ -412,3 +412,27 @@ html[data-density="compact"] .ae-step-label { font-size: 9.5px; gap: 8px; }
   .btn-pill { transition: none; }
   .btn-pill-primary:hover { transform: none; }
 }
+
+/* ======== Ticker tape scroll ========
+   The TickerTape component renders its quote list twice side-by-side and
+   slides the inner div by -50% so the loop is seamless.  90s linear gives
+   a calm Bloomberg-feel cadence — fast enough to feel live, slow enough
+   that a label is readable mid-scroll.  Pause-on-hover lets the operator
+   pin a row.  Reduced motion drops the animation entirely. */
+@keyframes aeTickerScroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+.ae-ticker-tape {
+  animation: aeTickerScroll 90s linear infinite;
+  will-change: transform;
+}
+
+.ae-ticker-tape:hover {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ae-ticker-tape { animation: none; }
+}

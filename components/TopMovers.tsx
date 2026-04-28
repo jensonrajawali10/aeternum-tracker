@@ -1,7 +1,8 @@
 "use client";
 
 import useSWR from "swr";
-import { fmtCurrency, fmtPct, signClass, clsx } from "@/lib/format";
+import { fmtCurrency, fmtPct } from "@/lib/format";
+import { DeltaNumber } from "./shell/DeltaNumber";
 
 interface Position {
   ticker: string;
@@ -114,16 +115,14 @@ export function TopMovers({ book = "all" }: { book?: string }) {
       <Cell
         label="Day P&L"
         primary={
-          <span className={clsx("mono", signClass(dayPnlIdr))}>
-            {dayPnlIdr >= 0 ? "+" : ""}
-            {fmtCurrency(dayPnlIdr, "IDR")}
-          </span>
+          <DeltaNumber
+            value={dayPnlIdr}
+            text={`${dayPnlIdr >= 0 ? "+" : ""}${fmtCurrency(dayPnlIdr, "IDR")}`}
+          />
         }
         secondary={
           <span className="flex items-center gap-2">
-            <span className={clsx("mono", signClass(dayPnlPct))}>
-              {fmtPct(dayPnlPct, 2, true)}
-            </span>
+            <DeltaNumber value={dayPnlPct} text={fmtPct(dayPnlPct, 2, true)} />
             <span className="text-muted-2">·</span>
             <span className="text-muted-2 mono">
               {live.length} live position{live.length === 1 ? "" : "s"}
@@ -142,7 +141,10 @@ export function TopMovers({ book = "all" }: { book?: string }) {
         }
         secondary={
           best && best.day_change_pct != null ? (
-            <span className="mono pos">{fmtPct(best.day_change_pct, 2, true)}</span>
+            <DeltaNumber
+              value={best.day_change_pct}
+              text={fmtPct(best.day_change_pct, 2, true)}
+            />
           ) : null
         }
       />
@@ -157,7 +159,10 @@ export function TopMovers({ book = "all" }: { book?: string }) {
         }
         secondary={
           worst && worst.day_change_pct != null ? (
-            <span className="mono neg">{fmtPct(worst.day_change_pct, 2, true)}</span>
+            <DeltaNumber
+              value={worst.day_change_pct}
+              text={fmtPct(worst.day_change_pct, 2, true)}
+            />
           ) : null
         }
       />
