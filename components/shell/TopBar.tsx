@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { BrandMark } from "./BrandMark";
 import { LiveClock } from "./LiveClock";
