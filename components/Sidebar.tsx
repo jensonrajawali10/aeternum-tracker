@@ -98,22 +98,39 @@ export function Sidebar() {
       <aside
         className={clsx(
           "border-r border-border bg-panel flex flex-col",
-          // Desktop: inline 172px column, sticky to viewport.
-          "md:w-[172px] md:shrink-0 md:flex md:h-screen md:sticky md:top-0 md:translate-x-0",
+          // Desktop: inline 172px column. Height fills remaining vertical
+          // space below the global TopBar (no longer h-screen since we
+          // now have a topbar+footer chrome above/below).
+          "md:w-[172px] md:shrink-0 md:flex md:h-auto md:self-stretch md:translate-x-0",
           // Mobile: fixed-position drawer, 85vw wide max 300px, slides from left.
-          "fixed inset-y-0 left-0 z-50 w-[85vw] max-w-[300px] h-screen transition-transform duration-200",
+          "fixed inset-y-0 left-0 z-50 w-[85vw] max-w-[300px] h-screen transition-transform duration-200 md:relative md:inset-auto md:h-auto",
           mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
         )}
       >
-        <div className="px-4 pt-5 pb-3 border-b border-border">
+        <div className="px-4 pt-4 pb-3 border-b border-border md:hidden">
+          {/* Mobile drawer header — desktop sidebar's header is rolled up
+              into the global TopBar, so we only need a wordmark here when
+              the drawer is the only chrome (mobile <md viewport). */}
           <div className="flex items-baseline gap-2">
             <span
-              className="w-[6px] h-[6px] rounded-full bg-accent inline-block"
-              style={{ boxShadow: "0 0 8px 0 var(--color-accent)" }}
+              className="w-[6px] h-[6px] rounded-full inline-block"
+              style={{
+                background: "var(--color-accent)",
+                boxShadow: "0 0 8px 0 var(--color-accent)",
+              }}
             />
-            <span className="serif text-[16px] text-fg tracking-[-0.01em]">Aeternum</span>
+            <span
+              className="font-medium text-fg"
+              style={{
+                fontFamily: "var(--font-sans)",
+                fontSize: 14,
+                letterSpacing: "-0.01em",
+              }}
+            >
+              Aeternum
+            </span>
           </div>
-          <div className="mono text-[9.5px] text-muted-2 mt-[3px] pl-[14px] tracking-[0.18em] uppercase">
+          <div className="mono text-[9px] text-muted-2 mt-[3px] pl-[14px] tracking-[0.18em] uppercase">
             CIO cockpit
           </div>
         </div>
@@ -122,7 +139,10 @@ export function Sidebar() {
             <div key={gi} className={gi > 0 ? "mt-4" : ""}>
               {group.label && (
                 <div className="px-[14px] py-1 mb-[2px] flex items-center gap-2 text-[9.5px] uppercase tracking-[0.18em]">
-                  <span className="mono text-accent-text">{group.num}</span>
+                  {/* Group number stays amber — brand-mark spine.
+                      Active page state inside the group lights up
+                      in purple instead. */}
+                  <span className="mono text-amber">{group.num}</span>
                   <span className="text-muted-2">{group.label}</span>
                   <span
                     className="flex-1 h-px bg-border"
@@ -142,12 +162,24 @@ export function Sidebar() {
                     className={clsx(
                       "relative block pl-[14px] pr-3 py-[6px] text-[12px] transition-all duration-150",
                       active
-                        ? "text-fg bg-elevated"
+                        ? "text-fg"
                         : "text-muted hover:text-fg hover:bg-elevated hover:translate-x-[1px]",
                     )}
+                    style={
+                      active
+                        ? { background: "var(--color-purple-bg)" }
+                        : undefined
+                    }
                   >
                     {active && (
-                      <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-[12px] bg-accent rounded-[1px]" />
+                      // Active rail switched from amber accent to purple
+                      // chrome per the terminal brief — purple is reserved
+                      // for active nav state and :focus-visible outlines.
+                      <span
+                        className="absolute left-0 top-0 bottom-0 w-[2px]"
+                        style={{ background: "var(--color-purple)" }}
+                        aria-hidden
+                      />
                     )}
                     {item.label}
                   </Link>

@@ -1,42 +1,67 @@
 @import "tailwindcss";
 
 @theme {
+  /* === Terminal redesign tokens (Phase 1) ============================
+   * Bloomberg / Sekuritas-style trading workstation palette:
+   *   - Amber is the brand accent (primary CTAs, focus rings, brand mark).
+   *   - Purple is chrome, reserved for the active sidebar nav state and
+   *     :focus-visible outlines.  Never on primary buttons.
+   *   - Pure up/down red+green for every P&L number — paired with ▲/▼
+   *     glyphs for colourblind safety.
+   *   - Categorical palette used for chart series and concentration bars.
+   * ================================================================ */
+
   /* Base surfaces */
   --color-bg: #0A0A0B;
   --color-bg-2: #0A0A0B;
-  --color-panel: #141418;
-  --color-surface: #141418;
-  --color-panel-2: #1A1A1E;
-  --color-elevated: #1A1A1E;
-  --color-border: #242428;
-  --color-border-2: #2E2E34;
+  --color-panel: #131316;
+  --color-surface: #131316;
+  --color-panel-2: #18181C;
+  --color-elevated: #18181C;
+  --color-border: rgba(255, 255, 255, 0.06);
+  --color-border-2: rgba(255, 255, 255, 0.10);
+  --color-border-strong: rgba(255, 255, 255, 0.10);
 
   /* Text tiers */
-  --color-text: #E4E4E7;
-  --color-fg: #E4E4E7;
-  --color-muted: #A1A1AA;
+  --color-text: #E8E8EA;
+  --color-fg: #E8E8EA;
+  --color-muted: #8A8A93;
   --color-muted-2: #6B6B73;
   --color-tertiary: #6B6B73;
 
-  /* Accent — violet-500, used sparingly */
-  --color-accent: #8B5CF6;
-  --color-accent-dim: #7C4DF1;
-  --color-accent-2: #A78BFA;
-  --color-accent-text: #B794F6;
+  /* Accent — amber (was violet).  Drives buttons, brand mark, active
+     timeframe pills, focus rings.  --color-purple is now chrome only. */
+  --color-accent: #FFA726;
+  --color-accent-dim: #C97F1A;
+  --color-accent-2: #FFB347;
+  --color-accent-text: #FFA726;
 
-  /* Muted status */
-  --color-green: #4A9D7C;
-  --color-success: #4A9D7C;
-  --color-red: #B86868;
-  --color-loss: #B86868;
+  /* Purple chrome — reserved for active sidebar nav + focus rings */
+  --color-purple: #A78BFA;
+  --color-purple-dim: #7C4DF1;
+  --color-purple-bg: rgba(167, 139, 250, 0.08);
+
+  /* Spectral up/down — pure red + pure green, no pastels */
+  --color-up: #22C55E;
+  --color-down: #EF4444;
+  --color-green: #22C55E;
+  --color-success: #22C55E;
+  --color-red: #EF4444;
+  --color-loss: #EF4444;
+
+  /* Categorical palette for charts & concentration bars */
+  --color-cyan: #22D3EE;
+  --color-magenta: #D946EF;
+  --color-teal: #14B8A6;
+  --color-yellow: #FACC15;
 
   /* Hover */
-  --color-hover: #1A1A1E;
+  --color-hover: #18181C;
 
-  /* Fonts */
-  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+  /* Fonts — Inter Tight + JetBrains Mono per terminal brief */
+  --font-sans: "Inter Tight", "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
   --font-serif: "Source Serif 4", "Charter", Georgia, serif;
-  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --font-mono: "JetBrains Mono", "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
 }
 
 :root {
@@ -53,7 +78,27 @@ html, body {
   font-feature-settings: "tnum" 1, "cv11" 1, "ss01" 1;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  letter-spacing: 0;
+  letter-spacing: -0.005em;
+}
+
+/* Mono helper now also enables zero-style + tabular-nums for terminal
+   number alignment.  Apply via .mono utility or font-mono.  Numbers
+   in P&L cells should always be wrapped in this. */
+.mono, .font-mono {
+  font-family: var(--font-mono) !important;
+  font-feature-settings: "tnum" 1, "zero" 1;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Terminal label helper — 10px ALL CAPS with letter-spacing 0.10em.
+   Drop on every column header, KPI label, panel section title. */
+.label {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.10em;
+  color: var(--color-muted);
 }
 
 body { min-height: 100vh; }
@@ -64,22 +109,33 @@ body { min-height: 100vh; }
 .mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 .serif { font-family: var(--font-serif); font-feature-settings: "liga" 1; letter-spacing: -0.01em; }
 
-/* P&L colors — raised specificity to beat higher-specificity number selectors */
-.pos, span.pos, div.pos, td.pos, .num.pos, .delta.pos { color: var(--color-success) !important; }
-.neg, span.neg, div.neg, td.neg, .num.neg, .delta.neg { color: var(--color-loss) !important; }
+/* P&L colors — pure spectral red/green per terminal brief.  Raised
+   specificity to beat higher-specificity number selectors.  Always
+   pair with ▲/▼ glyph (DeltaNumber component) for colourblind safety. */
+.pos, span.pos, div.pos, td.pos, .num.pos, .delta.pos { color: var(--color-up) !important; }
+.neg, span.neg, div.neg, td.neg, .num.neg, .delta.neg { color: var(--color-down) !important; }
+.text-up { color: var(--color-up); }
+.text-down { color: var(--color-down); }
+.text-amber { color: var(--color-accent); }
+.text-purple { color: var(--color-purple); }
+.text-cyan { color: var(--color-cyan); }
+.text-magenta { color: var(--color-magenta); }
+.text-teal { color: var(--color-teal); }
+.text-yellow { color: var(--color-yellow); }
 
 /* Legacy wrappers — now flat, no shadows, no gradients */
 .panel-elev { box-shadow: none; }
 .panel-gradient { background: var(--color-panel); }
 
-/* Focus */
+/* Focus rings — purple chrome.  2px outline + 1px offset matches the
+   terminal brief's `:focus-visible` rule. */
 button:focus-visible,
 a:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 1px solid var(--color-accent);
-  outline-offset: 2px;
+  outline: 2px solid var(--color-purple);
+  outline-offset: 1px;
 }
 
 /* Form inputs */
