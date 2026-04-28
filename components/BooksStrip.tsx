@@ -20,7 +20,17 @@ interface MetricsResp {
 
 const fetcher = (u: string) => fetch(u).then((r) => r.json());
 
-function BookCard({
+// Categorical colour per book — cyan / amber / magenta in the same
+// order as BOOKS so the bar on each row gives Jenson an instant
+// visual key without reading the title.
+const BOOK_COLOR: Record<BookType, string> = {
+  investing: "var(--color-cyan)",
+  idx_trading: "var(--color-accent)",
+  crypto_trading: "var(--color-magenta)",
+  other: "var(--color-muted-2)",
+};
+
+function BookRow({
   slug,
   book,
   title,
@@ -36,58 +46,74 @@ function BookCard({
   const { data: nav } = useSWR<NavResp>(`/api/portfolio/nav?book=${book}`, fetcher, {
     refreshInterval: 60_000,
   });
-  const { data: metrics } = useSWR<MetricsResp>(`/api/portfolio/metrics?book=${book}`, fetcher, {
-    refreshInterval: 60_000,
-  });
+  const { data: metrics } = useSWR<MetricsResp>(
+    `/api/portfolio/metrics?book=${book}`,
+    fetcher,
+    { refreshInterval: 60_000 },
+  );
 
   const navIdr = nav?.nav_idr ?? null;
   const unreal = nav?.unrealized_pnl_idr ?? null;
   const ytd = metrics?.ytd_return_pct ?? null;
-  // Flat book = cumulative realized P&L only (no open positions to mark).
-  // Signal this on the card so the headline number reads honestly.
   const isFlatBook = !!nav && nav.gross_mv_idr === 0 && Math.abs(nav.nav_idr) > 0;
 
   return (
     <Link
       href={`/books/${slug}`}
       prefetch
-      className="group block bg-panel border border-border rounded-[10px] px-4 py-3 hover:border-accent/60 transition-colors"
+      className="group relative block bg-panel border border-border rounded-[6px] pl-4 pr-3 py-2.5 hover:border-border-2 transition-colors overflow-hidden"
     >
-      <div className="flex items-start justify-between">
-        <div>
-          <div className="text-[13px] font-medium text-fg tracking-[-0.01em]">{title}</div>
-          <div className="text-[10.5px] text-muted-2 mt-[1px]">
-            {pm} · {budget}% target
+      {/* 3px coloured rail on the left edge — categorical book key */}
+      <span
+        aria-hidden
+        className="absolute left-0 top-0 bottom-0"
+        style={{ width: 3, background: BOOK_COLOR[book] }}
+      />
+
+      <div className="flex items-center gap-3">
+        {/* Name + meta — left column, takes whatever's left */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-baseline gap-2">
+            <span className="text-[13px] font-medium text-fg tracking-[-0.01em] truncate">
+              {title}
+            </span>
+            <span className="text-[10px] mono uppercase tracking-[0.10em] text-muted-2 shrink-0">
+              {pm} · {budget}%
+            </span>
+          </div>
+          {isFlatBook && (
+            <div className="text-[9.5px] uppercase tracking-[0.12em] text-muted-2 mt-[1px]">
+              realized only · no positions
+            </div>
+          )}
+        </div>
+
+        {/* NAV (right-aligned, mono) */}
+        <div className="text-right shrink-0">
+          <div className="mono text-[14px] text-fg tracking-[-0.01em] leading-none">
+            {navIdr != null ? fmtCurrency(navIdr, "IDR") : "—"}
+          </div>
+          <div className="flex items-center justify-end gap-2 text-[10.5px] mt-1">
+            <span className="text-muted-2 mono uppercase tracking-[0.10em]">YTD</span>
+            {ytd != null ? (
+              <DeltaNumber value={ytd} text={fmtPct(ytd, 1, true)} />
+            ) : (
+              <span className="mono text-muted-2">—</span>
+            )}
+            <span className="text-muted-2 mono uppercase tracking-[0.10em]">PnL</span>
+            {unreal != null ? (
+              <DeltaNumber value={unreal} text={fmtCurrency(unreal, "IDR")} />
+            ) : (
+              <span className="mono text-muted-2">—</span>
+            )}
           </div>
         </div>
-        <span className="text-[10px] text-muted group-hover:text-accent transition-colors">
+
+        <span
+          aria-hidden
+          className="text-[10px] text-muted-2 group-hover:text-accent-text transition-colors shrink-0"
+        >
           →
-        </span>
-      </div>
-      <div className="mt-3 text-[17px] mono text-fg tracking-[-0.01em]">
-        {navIdr != null ? fmtCurrency(navIdr, "IDR") : "—"}
-      </div>
-      {isFlatBook && (
-        <div className="mt-[2px] text-[9.5px] uppercase tracking-[0.12em] text-muted-2">
-          realized only · no open positions
-        </div>
-      )}
-      <div className="mt-1 flex items-center gap-3 text-[11px]">
-        <span className="flex items-center gap-1">
-          <span className="text-muted-2 mono">YTD</span>
-          {ytd != null ? (
-            <DeltaNumber value={ytd} text={fmtPct(ytd, 1, true)} />
-          ) : (
-            <span className="mono text-muted-2">—</span>
-          )}
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="text-muted-2 mono">Unreal</span>
-          {unreal != null ? (
-            <DeltaNumber value={unreal} text={fmtCurrency(unreal, "IDR")} />
-          ) : (
-            <span className="mono text-muted-2">—</span>
-          )}
         </span>
       </div>
     </Link>
@@ -95,16 +121,19 @@ function BookCard({
 }
 
 /**
- * Three mini-cards representing each trading arm.  Sits beneath the firm
- * KPI row on the Command Center dashboard so Jenson sees how each book is
- * contributing in one glance, and can click through to the arm workspace.
+ * Compact one-row-per-book strip on the Command Center.  Each row has a
+ * 3px categorical rail (cyan/amber/magenta) on the left edge so the
+ * book key is readable at a glance, name + PM/budget meta in the middle,
+ * and NAV / YTD / unrealised P&L right-aligned in mono.  Replaces the
+ * previous large square cards — same data per book, ~55% the vertical
+ * footprint, much higher density.
  */
 export function BooksStrip() {
   const books = Object.values(BOOKS);
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+    <div className="grid grid-cols-1 gap-2">
       {books.map((b) => (
-        <BookCard
+        <BookRow
           key={b.slug}
           slug={b.slug}
           book={b.book}

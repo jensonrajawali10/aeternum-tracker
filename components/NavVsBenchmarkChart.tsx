@@ -38,35 +38,43 @@ export function NavVsBenchmarkChart({ book, height = 260 }: { book: string; heig
 
   const chartData = useMemo(() => {
     const labels = data?.dates || [];
+    // Track the index of the last real (non-null) NAV point so we can
+    // bump the endpoint marker — the latest data point gets a fatter
+    // dot (4px vs the regular 2.5px sample dots) so the eye lands there
+    // first, matching the terminal-mock spec.
+    const navSeries = data?.nav || [];
+    let lastNavIdx = -1;
+    for (let i = navSeries.length - 1; i >= 0; i--) {
+      const v = navSeries[i];
+      if (v != null && Number.isFinite(v)) { lastNavIdx = i; break; }
+    }
     return {
       labels,
       datasets: [
         {
           label: "NAV",
-          data: data?.nav || [],
-          // Aeternum gold — brand accent per brief §10.  Was #E4E4E7 (identical
-          // grey to the bench lines) which made the three series visually
-          // indistinguishable on the chart.
-          borderColor: "#d4a64a",
+          data: navSeries,
+          // Terminal palette: amber for NAV (brand spine), cyan dashed
+          // for JCI, magenta dashed for S&P.  Solid 1.6px on NAV vs 1.2px
+          // on benchmarks so the eye reads "this is the line that matters".
+          borderColor: "#FFA726",
           backgroundColor: "transparent",
           fill: false,
-          // Show a dot on each real NAV point so a single-point NAV is still visible
-          pointRadius: (ctx: { raw: unknown }) =>
-            ctx.raw == null || !isFinite(ctx.raw as number) ? 0 : 2.5,
-          pointBackgroundColor: "#d4a64a",
+          pointRadius: (ctx: { dataIndex: number; raw: unknown }) => {
+            if (ctx.raw == null || !isFinite(ctx.raw as number)) return 0;
+            return ctx.dataIndex === lastNavIdx ? 4 : 2.5;
+          },
+          pointBackgroundColor: "#FFA726",
+          pointBorderColor: "#FFA726",
           pointBorderWidth: 0,
-          borderWidth: 1.8,
+          borderWidth: 1.6,
           tension: 0.18,
-          // spanGaps:true so sparse NAV snapshots connect into a line across
-          // weekends/holidays — this reads as a proper performance curve rather
-          // than 3 disconnected dots when nav_history is thin.
           spanGaps: true,
         },
         {
           label: "JCI",
           data: data?.ihsg || [],
-          // Desaturated blue for IHSG — clearly separate from gold + green.
-          borderColor: "#7fa2d6",
+          borderColor: "#22D3EE",
           borderDash: [4, 3],
           pointRadius: 0,
           borderWidth: 1.2,
@@ -76,8 +84,7 @@ export function NavVsBenchmarkChart({ book, height = 260 }: { book: string; heig
         {
           label: "S&P 500",
           data: data?.spx || [],
-          // Soft green for S&P — matches pos colour so "US stacks the deck green".
-          borderColor: "#7fb98c",
+          borderColor: "#D946EF",
           borderDash: [2, 3],
           pointRadius: 0,
           borderWidth: 1.2,
@@ -120,17 +127,35 @@ export function NavVsBenchmarkChart({ book, height = 260 }: { book: string; heig
       scales: {
         x: {
           grid: { display: false },
-          border: { color: "#242428" },
-          ticks: { color: "#6B6B73", maxTicksLimit: 8, maxRotation: 0, font: { family: "JetBrains Mono", size: 10 } },
+          border: { color: "rgba(255,255,255,0.06)" },
+          ticks: {
+            color: "#8A8A93",
+            maxTicksLimit: 8,
+            maxRotation: 0,
+            font: { family: "JetBrains Mono", size: 10 },
+          },
         },
         y: {
-          grid: { display: false },
+          // Faint horizontal gridlines at every major tick + bold zero
+          // (the rebased-to-100 baseline).  Reading the chart should be
+          // "where am I vs where I started" — the bold 100 line makes
+          // the answer visible without a tooltip.
+          grid: {
+            display: true,
+            color: (ctx: { tick: { value: number } }) =>
+              ctx.tick.value === 100
+                ? "rgba(255,255,255,0.18)"
+                : "rgba(255,255,255,0.04)",
+            lineWidth: (ctx: { tick: { value: number } }) =>
+              ctx.tick.value === 100 ? 1.2 : 1,
+            drawTicks: false,
+          },
           border: { display: false },
           ticks: {
-            color: "#6B6B73",
-            maxTicksLimit: 5,
+            color: "#8A8A93",
+            maxTicksLimit: 6,
             // Axis shows performance — "+10%" / "-5%" instead of "110" / "95".
-            // This is a rebased-to-100 series, so value − 100 = % since period start.
+            // Rebased-to-100 series, so value − 100 = % since period start.
             callback: (v: number | string) => {
               const pct = Number(v) - 100;
               const sign = pct > 0 ? "+" : "";
@@ -155,9 +180,9 @@ export function NavVsBenchmarkChart({ book, height = 260 }: { book: string; heig
     <div>
       <div className="flex items-center justify-between gap-3 mb-3">
         <div className="flex items-center gap-5 text-[11px]">
-          <LegendKey stroke="#d4a64a" label="NAV" value={navPct} solid />
-          <LegendKey stroke="#7fa2d6" label="JCI" value={ihsgPct} dashed />
-          <LegendKey stroke="#7fb98c" label="S&P" value={spxPct} dotted />
+          <LegendKey stroke="#FFA726" label="NAV" value={navPct} solid />
+          <LegendKey stroke="#22D3EE" label="JCI" value={ihsgPct} dashed />
+          <LegendKey stroke="#D946EF" label="S&P" value={spxPct} dotted />
         </div>
         <div className="flex gap-1">
           {RANGES.map((r) => (

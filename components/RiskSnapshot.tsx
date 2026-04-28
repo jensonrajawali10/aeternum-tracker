@@ -91,16 +91,30 @@ export function RiskSnapshot({ book }: { book: string }) {
 
   return (
     <div className="space-y-2">
-      <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-[12px] tabular-nums">
+      <dl className="grid grid-cols-2 gap-x-6 text-[12px] tabular-nums">
         {rows.map((r) => (
-          <div key={r.label} className="flex items-baseline justify-between">
-            <dt className="text-muted text-[11px]">{r.label}</dt>
-            <dd className="mono">{r.node}</dd>
+          <div
+            key={r.label}
+            className="flex items-baseline justify-between py-[5px]"
+            style={{
+              // Dashed underline per row for terminal-mock dense feel —
+              // gives the eye an alignment guide between the label and
+              // the value without the heavy weight of a solid border.
+              borderBottom: "1px dashed var(--color-border)",
+            }}
+          >
+            <dt
+              className="text-muted-2 text-[10px] uppercase"
+              style={{ letterSpacing: "0.12em" }}
+            >
+              {r.label}
+            </dt>
+            <dd className="mono text-[12px]">{r.node}</dd>
           </div>
         ))}
       </dl>
       {sparse && (
-        <div className="text-[10.5px] text-muted-2 leading-relaxed pt-1 border-t border-border/60">
+        <div className="text-[10.5px] text-muted-2 leading-relaxed pt-2">
           Insufficient history · vol, Sharpe, Sortino and beta populate once
           ≥30 aligned daily NAV snapshots are on file. Daily snapshots are
           written at 05:00 WIB.

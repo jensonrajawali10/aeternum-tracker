@@ -60,13 +60,21 @@ export function DrawdownChart({ book, height = 200 }: { book: string; height?: n
 
   const drawdown = useMemo(() => computeDrawdown(data?.nav || []), [data?.nav]);
 
-  const maxDd = useMemo(() => {
+  // Track the trough — both the drawdown value AND the index where it
+  // hit so we can paint a marker dot at that point on the curve.
+  const trough = useMemo(() => {
     let worst = 0;
-    for (const v of drawdown) {
-      if (v != null && Number.isFinite(v) && v < worst) worst = v;
+    let idx = -1;
+    for (let i = 0; i < drawdown.length; i++) {
+      const v = drawdown[i];
+      if (v != null && Number.isFinite(v) && v < worst) {
+        worst = v;
+        idx = i;
+      }
     }
-    return worst;
+    return { value: worst, idx };
   }, [drawdown]);
+  const maxDd = trough.value;
 
   const chartData = useMemo(
     () => ({
@@ -75,17 +83,24 @@ export function DrawdownChart({ book, height = 200 }: { book: string; height?: n
         {
           label: "Drawdown",
           data: drawdown,
-          borderColor: "#B86868",
-          backgroundColor: "rgba(184, 104, 104, 0.18)",
+          // Pure spectral red per terminal palette (was muted #B86868).
+          borderColor: "#EF4444",
+          backgroundColor: "rgba(239, 68, 68, 0.16)",
           fill: true,
-          pointRadius: 0,
+          // Bump only the trough point so the eye lands on the worst
+          // moment without cluttering every sample with a dot.
+          pointRadius: (ctx: { dataIndex: number }) =>
+            ctx.dataIndex === trough.idx ? 4.5 : 0,
+          pointBackgroundColor: "#EF4444",
+          pointBorderColor: "#0A0A0B",
+          pointBorderWidth: 1.5,
           borderWidth: 1.4,
           tension: 0.18,
           spanGaps: true,
         },
       ],
     }),
-    [data?.dates, drawdown],
+    [data?.dates, drawdown, trough.idx],
   );
 
   const options = useMemo(
@@ -151,8 +166,17 @@ export function DrawdownChart({ book, height = 200 }: { book: string; height?: n
         <div className="flex items-center gap-3 text-[11px]">
           <span className="text-muted">Max DD</span>
           <span className={clsx("mono", maxDd < 0 ? "neg" : "text-muted-2")}>
-            {empty ? "—" : fmtPct(maxDd, 2, true)}
+            {empty ? "—" : `${maxDd < 0 ? "▼ " : ""}${fmtPct(maxDd, 2, true)}`}
           </span>
+          {!empty && trough.idx >= 0 && data?.dates?.[trough.idx] && (
+            <span className="text-muted-2 mono">
+              ·{" "}
+              {new Date(data.dates[trough.idx]).toLocaleDateString("en-GB", {
+                day: "numeric",
+                month: "short",
+              })}
+            </span>
+          )}
         </div>
         <div className="flex gap-1">
           {RANGES.map((r) => (
