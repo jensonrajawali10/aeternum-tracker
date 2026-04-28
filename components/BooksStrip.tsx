@@ -20,13 +20,18 @@ interface MetricsResp {
 
 const fetcher = (u: string) => fetch(u).then((r) => r.json());
 
-// Categorical colour per book — cyan / amber / magenta in the same
-// order as BOOKS so the bar on each row gives Jenson an instant
-// visual key without reading the title.
+// Categorical colour per book — picked from the palette but tuned to
+// avoid clashing with brand chrome:
+//   - amber stays brand-only (CTAs, brand mark, active timeframe pills)
+//     so we don't use it on a categorical rail alongside cyan/magenta
+//   - magenta read as carnival-pink at the 3px rail scale, swapped for
+//     yellow which sits closer in temperature to the other two
+// Result: cool → warm sequence (cyan, teal, yellow) that reads as a
+// coherent set rather than three random saturated hues.
 const BOOK_COLOR: Record<BookType, string> = {
   investing: "var(--color-cyan)",
-  idx_trading: "var(--color-accent)",
-  crypto_trading: "var(--color-magenta)",
+  idx_trading: "var(--color-teal)",
+  crypto_trading: "var(--color-yellow)",
   other: "var(--color-muted-2)",
 };
 
