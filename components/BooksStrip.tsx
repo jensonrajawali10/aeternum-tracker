@@ -20,19 +20,15 @@ interface MetricsResp {
 
 const fetcher = (u: string) => fetch(u).then((r) => r.json());
 
-// Categorical colour per book — picked from the palette but tuned to
-// avoid clashing with brand chrome:
-//   - amber stays brand-only (CTAs, brand mark, active timeframe pills)
-//     so we don't use it on a categorical rail alongside cyan/magenta
-//   - magenta read as carnival-pink at the 3px rail scale, swapped for
-//     yellow which sits closer in temperature to the other two
-// Result: cool → warm sequence (cyan, teal, yellow) that reads as a
-// coherent set rather than three random saturated hues.
+// Single rail colour for every book — the categorical hues read as
+// noise at this density (3px rails on calm chrome). Going monochrome
+// amber lets the titles differentiate the books and ties the strip
+// into the brand accent already used elsewhere on the dashboard.
 const BOOK_COLOR: Record<BookType, string> = {
-  investing: "var(--color-cyan)",
-  idx_trading: "var(--color-teal)",
-  crypto_trading: "var(--color-yellow)",
-  other: "var(--color-muted-2)",
+  investing: "var(--color-accent)",
+  idx_trading: "var(--color-accent)",
+  crypto_trading: "var(--color-accent)",
+  other: "var(--color-accent)",
 };
 
 function BookRow({
