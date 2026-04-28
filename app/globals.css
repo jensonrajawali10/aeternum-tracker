@@ -395,6 +395,60 @@ html[data-density="compact"] main { padding-top: 16px; padding-bottom: 16px; }
 html[data-density="compact"] .ae-wordmark { font-size: 44px; }
 html[data-density="compact"] .ae-step-label { font-size: 9.5px; gap: 8px; }
 
+/* Command-palette rows — terminal-mock styling for cmdk's data-attr
+   selection state.  cmdk applies data-selected="true" on the active
+   item via keyboard nav; we paint that as a faint amber-tinted bg
+   with an amber accent on the leading element. */
+.cmd-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  user-select: none;
+  color: var(--color-fg);
+}
+
+.cmd-row[data-selected="true"] {
+  background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+  color: var(--color-fg);
+}
+
+.cmd-row[data-disabled="true"],
+.cmd-row.cmd-row-disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.cmd-row:hover:not([data-disabled="true"]) {
+  background: var(--color-elevated);
+}
+
+.cmd-hint {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  padding: 1px 6px;
+  border-radius: 2px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border-strong);
+  color: var(--color-muted);
+}
+
+.cmdpal-list [cmdk-group-heading] {
+  padding: 8px 10px 4px;
+  font-family: var(--font-sans);
+  font-size: 9.5px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--color-muted-2);
+}
+
+.cmdpal-list [cmdk-group]:not(:first-child) {
+  margin-top: 4px;
+}
+
 /* Slow drift animation for the mesh backdrop — barely perceptible
    horizontal shift so it doesn't read as static. Disabled for users
    who prefer reduced motion. */

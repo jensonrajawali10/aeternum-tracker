@@ -40,9 +40,13 @@ export function TopBar() {
           background: "var(--color-panel-2)",
           minWidth: 220,
         }}
-        title="Command palette (⌘K) — wires up in Phase 3"
+        title="Open command palette · ⌘K or /"
         aria-label="Open command palette"
-        disabled
+        onClick={() => {
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(new CustomEvent("aeternum:command-palette"));
+          }
+        }}
       >
         <svg width="11" height="11" viewBox="0 0 11 11" fill="none" aria-hidden>
           <circle cx="4.5" cy="4.5" r="3.2" stroke="currentColor" strokeWidth="1" />

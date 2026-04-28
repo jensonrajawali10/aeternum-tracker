@@ -27,7 +27,10 @@ export function ActionPanel() {
 
   return (
     <div>
-      <div className="flex items-center gap-1 border-b border-border -mx-4 px-4 mb-3 overflow-x-auto">
+      <div
+        className="flex items-center gap-1 border-b -mx-4 px-4 mb-3 overflow-x-auto"
+        style={{ borderColor: "var(--color-border)" }}
+      >
         {TABS.map((t) => {
           const active = tab === t.key;
           return (
@@ -36,13 +39,18 @@ export function ActionPanel() {
               type="button"
               onClick={() => setTab(t.key)}
               className={clsx(
-                "relative px-3 py-2 text-[11.5px] tracking-wide transition-colors whitespace-nowrap",
-                active ? "text-fg" : "text-muted hover:text-fg",
+                "relative px-3 py-2 mono uppercase whitespace-nowrap transition-colors",
+                active ? "text-fg" : "text-muted-2 hover:text-fg",
               )}
+              style={{ fontSize: 10.5, letterSpacing: "0.14em" }}
             >
               {t.label}
               {active && (
-                <span className="absolute left-2 right-2 -bottom-px h-[2px] bg-accent rounded-t" />
+                <span
+                  className="absolute left-3 right-3 -bottom-px h-[2px]"
+                  style={{ background: "var(--color-accent)" }}
+                  aria-hidden
+                />
               )}
             </button>
           );
