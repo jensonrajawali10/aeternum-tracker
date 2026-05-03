@@ -186,12 +186,16 @@ export function PositionsTable({
               <tr key={p.ticker + p.book} className="border-b border-border hover:bg-elevated transition-colors">
                 <td className="py-[8px] px-2 mono font-medium text-fg">
                   <span className="flex items-center gap-1.5">
-                    <span>{p.ticker}</span>
-                    {/* G5 memo link — jumps to /memos filtered by this
-                        ticker.  Per-ticker count would be ideal but it'd
-                        cost an extra fetch per row; the button is
-                        permanent and the ticker filter handles empty
-                        results gracefully. */}
+                    {/* G2: ticker label is now a Link to the per-symbol
+                        deep-dive (/tickers/[ticker]).  G5 "M" badge
+                        still jumps to memos filtered by this ticker. */}
+                    <Link
+                      href={`/tickers/${encodeURIComponent(p.ticker)}`}
+                      title={`Deep dive on ${p.ticker}`}
+                      className="text-fg hover:text-amber"
+                    >
+                      {p.ticker}
+                    </Link>
                     <Link
                       href={`/memos?ticker=${encodeURIComponent(p.ticker)}`}
                       title={`Memos for ${p.ticker}`}

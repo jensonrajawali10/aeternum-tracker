@@ -272,9 +272,7 @@ export function CommandPalette() {
               <Command.Item
                 key={`tk-${t.ticker}`}
                 value={`ticker ${t.ticker} ${t.source}`}
-                onSelect={() =>
-                  go(`/watchlist?ticker=${encodeURIComponent(t.ticker)}`)
-                }
+                onSelect={() => go(`/tickers/${encodeURIComponent(t.ticker)}`)}
                 className="cmd-row"
               >
                 <span
