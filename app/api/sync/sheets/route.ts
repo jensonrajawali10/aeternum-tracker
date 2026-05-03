@@ -164,6 +164,37 @@ export async function POST(req: NextRequest) {
     synced_at: new Date().toISOString(),
   };
 
+  // B1 dedupe: when a sheet sync (especially the friend's holdings sheet) sends
+  // a row with no position size for a closed trade, AND a real-size trade with
+  // the same identity already exists, the row is a phantom duplicate.  Skip it
+  // silently — the trading-sheet sync owns the canonical row.  Open positions
+  // (exit_price IS NULL) are kept even when zero-size so the friend's holdings
+  // sheet can still surface them as "real but malformed" upstream-fix items.
+  const isPhantomCandidate =
+    (row.position_size == null || row.position_size <= 0) && exit_price != null;
+  if (isPhantomCandidate) {
+    const { data: existing } = await supabase
+      .from("trades")
+      .select("id")
+      .eq("user_id", user_id)
+      .eq("ticker", ticker)
+      .eq("trade_date", trade_date)
+      .eq("direction", direction)
+      .eq("entry_price", entry_price ?? 0)
+      .gt("position_size", 0)
+      .limit(1)
+      .maybeSingle();
+    if (existing?.id) {
+      return NextResponse.json({
+        ok: true,
+        skipped: "phantom_duplicate",
+        existing_trade_id: existing.id,
+        reason:
+          "Closed-trade row arrived without position_size and a real-size sibling exists.",
+      });
+    }
+  }
+
   const { data, error } = await supabase
     .from("trades")
     .upsert(row, { onConflict: "user_id,source_sheet_row_id" })

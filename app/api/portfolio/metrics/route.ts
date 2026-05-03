@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { supabaseServer } from "@/lib/supabase/server";
-import { computeMetrics } from "@/lib/analytics/metrics";
+import { computeMetrics, type CashFlow } from "@/lib/analytics/metrics";
 import type { BookFilter } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -15,6 +15,11 @@ interface BenchRow {
   snapshot_date: string;
   close: number;
   symbol: string;
+}
+interface FlowRow {
+  flow_date: string;
+  amount_idr: number;
+  book: string;
 }
 
 export async function GET(req: NextRequest) {
@@ -40,6 +45,24 @@ export async function GET(req: NextRequest) {
     .in("symbol", ["^JKSE", "^GSPC"])
     .order("snapshot_date", { ascending: true });
 
+  // B3 fix: cash flows feed into the TWR / vol / sharpe / sortino calc so
+  // contributions and withdrawals don't read as fake returns.  At the
+  // firm level ('all') we union flows across every book; at book scope
+  // we filter to that book + 'firm'-tagged flows that affect every book.
+  let flowsQuery = supabase
+    .from("cash_flows")
+    .select("flow_date, amount_idr, book")
+    .eq("user_id", user.id)
+    .order("flow_date", { ascending: true });
+  if (bookFilter !== "all") {
+    flowsQuery = flowsQuery.in("book", [bookFilter, "firm"]);
+  }
+  const { data: flowRows } = await flowsQuery;
+  const flows: CashFlow[] = ((flowRows || []) as FlowRow[]).map((r) => ({
+    date: r.flow_date,
+    amount_idr: Number(r.amount_idr),
+  }));
+
   const portfolio = (navRows || []).map((r: NavRow) => ({ date: r.snapshot_date, value: Number(r.nav_idr) }));
   const ihsg = ((benchRows || []) as BenchRow[])
     .filter((r) => r.symbol === "^JKSE")
@@ -53,6 +76,6 @@ export async function GET(req: NextRequest) {
   // book and crypto noise on non-trading days is just the crypto book tracking
   // itself (no forced weekend bias).
   const periods = bookFilter === "crypto_trading" ? 365 : 252;
-  const metrics = computeMetrics(portfolio, ihsg, spx, new Date(), periods);
+  const metrics = computeMetrics(portfolio, ihsg, spx, new Date(), periods, flows);
   return NextResponse.json(metrics);
 }

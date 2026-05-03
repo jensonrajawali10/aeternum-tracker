@@ -1,5 +1,4 @@
 import {
-  dailyReturns,
   stdev,
   beta,
   sharpe,
@@ -48,31 +47,71 @@ function sliceFrom(
   return series.filter((r) => r.date >= startDate);
 }
 
+export interface CashFlow {
+  /** ISO date string YYYY-MM-DD that the flow lands on. */
+  date: string;
+  /** Net IDR; > 0 = inflow (contribution / dividend), < 0 = outflow
+      (withdrawal / fee / tax). */
+  amount_idr: number;
+}
+
 /**
- * Time-weighted return with a cashflow-outlier filter. Chains daily
- * returns geometrically and skips any single-day move whose magnitude
- * exceeds CASHFLOW_FILTER_ABS — those are almost always capital
- * additions / withdrawals, not investment returns.
+ * Build per-day flow-adjusted returns from a NAV series + an optional
+ * cash-flows ledger.  Modified-Dietz collapsed to daily granularity:
  *
- * Returns 0 when there aren't enough observations to compute a return.
- * Returns NaN (frontend renders "—") when the series is malformed.
+ *     r_t = (V_t - V_{t-1} - CF_t) / V_{t-1}
+ *
+ * CF_t is the net IDR cash flow that landed on day t (between the
+ * previous close and today's close).  When no flows ledger is supplied,
+ * we still apply the >50% magnitude filter as a backstop — that catches
+ * the firm-level 'all' NAV jumping when a new book is seeded mid-year.
+ *
+ * Returned array has one entry per (prev, curr) step where both prevs
+ * are > 0.  Cashflow-flagged steps (residual r > 50% after the flow
+ * subtraction) are dropped — those represent flows the user hasn't
+ * recorded yet, and shouldn't pollute vol / sharpe / TWR.
  */
-function timeWeightedReturn(
+function flowAdjustedReturns(
   series: { date: string; value: number }[],
-): number {
-  if (series.length < 2) return 0;
-  let multiplier = 1;
-  let counted = 0;
+  flows?: CashFlow[],
+): number[] {
+  if (series.length < 2) return [];
+  const flowByDate = new Map<string, number>();
+  for (const f of flows ?? []) {
+    if (Number.isFinite(f.amount_idr)) {
+      flowByDate.set(f.date, (flowByDate.get(f.date) ?? 0) + f.amount_idr);
+    }
+  }
+  const out: number[] = [];
   for (let i = 1; i < series.length; i++) {
     const prev = series[i - 1].value;
     const curr = series[i].value;
     if (prev <= 0 || curr <= 0) continue;
-    const r = curr / prev - 1;
-    if (Math.abs(r) > CASHFLOW_FILTER_ABS) continue; // skip capital flows
-    multiplier *= 1 + r;
-    counted++;
+    const cf = flowByDate.get(series[i].date) ?? 0;
+    const r = (curr - prev - cf) / prev;
+    // Backstop: even after flow subtraction, a residual >50% move is
+    // almost certainly an unrecorded flow. Keep dropping these.
+    if (Math.abs(r) > CASHFLOW_FILTER_ABS) continue;
+    out.push(r);
   }
-  if (counted === 0) return 0;
+  return out;
+}
+
+/**
+ * Time-weighted return — chains the flow-adjusted daily returns
+ * geometrically and returns the cumulative period return as a
+ * percentage.
+ *
+ * Returns 0 when there aren't enough observations to compute a return.
+ */
+function timeWeightedReturn(
+  series: { date: string; value: number }[],
+  flows?: CashFlow[],
+): number {
+  const rs = flowAdjustedReturns(series, flows);
+  if (rs.length === 0) return 0;
+  let multiplier = 1;
+  for (const r of rs) multiplier *= 1 + r;
   return (multiplier - 1) * 100;
 }
 
@@ -127,6 +166,13 @@ export function computeMetrics(
    * Using 252 for crypto underestimates vol by √(365/252) ≈ 1.20×.
    */
   periods: number = 252,
+  /**
+   * Optional cash-flows ledger.  When provided, every metric that consumes
+   * daily returns (TWR, vol, sharpe, sortino) subtracts the day's net flow
+   * from the numerator before computing the rate.  Without flows, the
+   * function still falls back to the magnitude-only filter.
+   */
+  flows?: CashFlow[],
 ): RiskMetrics {
   if (!portfolio.length) {
     return {
@@ -148,17 +194,19 @@ export function computeMetrics(
   const ytdSlice = sliceFrom(portfolio, ytdStart);
   const mtdSlice = sliceFrom(portfolio, mtdStart);
 
-  // Time-weighted returns with cashflow filter — robust to capital flows
-  // that would otherwise make firm-level 'all' YTD read 124% when books
-  // were seeded incrementally through the year.
-  const ytd_return_pct = timeWeightedReturn(ytdSlice);
-  const mtd_return_pct = timeWeightedReturn(mtdSlice);
+  // Time-weighted returns with flow-aware adjustment — when the caller
+  // supplies a cash-flows ledger we subtract CF_t from each day's
+  // numerator (modified Dietz collapsed to daily). Without flows, the
+  // magnitude filter still drops single-day >50% moves as unrecorded
+  // capital additions / withdrawals.
+  const ytd_return_pct = timeWeightedReturn(ytdSlice, flows);
+  const mtd_return_pct = timeWeightedReturn(mtdSlice, flows);
 
-  // Clean the return stream for vol/sharpe/sortino — exclude cashflow days
-  const returnsYtdAll = dailyReturns(ytdSlice.map((r) => r.value));
-  const returnsYtd = returnsYtdAll.filter((r) => Math.abs(r) <= CASHFLOW_FILTER_ABS);
-  const returnsFullAll = dailyReturns(portfolio.map((r) => r.value));
-  const returnsFull = returnsFullAll.filter((r) => Math.abs(r) <= CASHFLOW_FILTER_ABS);
+  // Vol / sharpe / sortino consume the same flow-adjusted return stream
+  // (was: dailyReturns() with magnitude-only filter). With recorded
+  // flows, a 30% withdrawal day no longer pollutes annualized vol.
+  const returnsYtd = flowAdjustedReturns(ytdSlice, flows);
+  const returnsFull = flowAdjustedReturns(portfolio, flows);
 
   const last30 = returnsFull.slice(-30);
   const last90 = returnsFull.slice(-90);
