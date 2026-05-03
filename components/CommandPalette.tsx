@@ -30,6 +30,7 @@ const FIRM_NAV: { href: string; label: string; hint?: string }[] = [
   { href: "/risk", label: "Firm Risk", hint: "g r" },
   { href: "/journal", label: "Journal", hint: "g j" },
   { href: "/memos", label: "Memos", hint: "g m" },
+  { href: "/catalysts", label: "Catalysts", hint: "g k" },
 ];
 
 const BOOK_NAV: { href: string; label: string }[] = [

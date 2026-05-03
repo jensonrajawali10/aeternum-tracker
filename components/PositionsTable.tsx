@@ -1,6 +1,7 @@
 "use client";
 
 import useSWR, { mutate } from "swr";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AssetBadge, BookBadge } from "./Badge";
 import { fmtCurrency, fmtPct, fmtQty, fmtNumber, signClass, clsx } from "@/lib/format";
@@ -183,7 +184,23 @@ export function PositionsTable({
             const upl = currency === "IDR" ? p.unrealized_pnl_idr : p.unrealized_pnl_usd;
             return (
               <tr key={p.ticker + p.book} className="border-b border-border hover:bg-elevated transition-colors">
-                <td className="py-[8px] px-2 mono font-medium text-fg">{p.ticker}</td>
+                <td className="py-[8px] px-2 mono font-medium text-fg">
+                  <span className="flex items-center gap-1.5">
+                    <span>{p.ticker}</span>
+                    {/* G5 memo link — jumps to /memos filtered by this
+                        ticker.  Per-ticker count would be ideal but it'd
+                        cost an extra fetch per row; the button is
+                        permanent and the ticker filter handles empty
+                        results gracefully. */}
+                    <Link
+                      href={`/memos?ticker=${encodeURIComponent(p.ticker)}`}
+                      title={`Memos for ${p.ticker}`}
+                      className="text-muted-2 hover:text-amber text-[9px] uppercase tracking-[0.08em] no-underline"
+                    >
+                      M
+                    </Link>
+                  </span>
+                </td>
                 <td className="py-[8px] px-2"><AssetBadge cls={p.asset_class} /></td>
                 <td className="py-[8px] px-2"><BookBadge book={p.book} /></td>
                 <td className="py-[8px] px-2 text-right mono">{fmtQty(p.qty)}</td>

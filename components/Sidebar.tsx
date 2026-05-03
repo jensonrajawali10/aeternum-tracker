@@ -41,6 +41,7 @@ const NAV: NavGroup[] = [
       { href: "/risk", label: "Firm Risk" },
       { href: "/journal", label: "Journal" },
       { href: "/memos", label: "Memos" },
+      { href: "/catalysts", label: "Catalysts" },
     ],
   },
   {
