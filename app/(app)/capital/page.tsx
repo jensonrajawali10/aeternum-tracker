@@ -4,6 +4,7 @@ import { CapitalSummary } from "@/components/capital/CapitalSummary";
 import { AllocationDriftTable } from "@/components/capital/AllocationDriftTable";
 import { CorrelationHeatmap } from "@/components/capital/CorrelationHeatmap";
 import { RecentRebalances } from "@/components/capital/RecentRebalances";
+import { CashFlowsLedger } from "@/components/capital/CashFlowsLedger";
 
 export const dynamic = "force-dynamic";
 
@@ -81,6 +82,13 @@ export default function CapitalPage() {
           </div>
         </Panel>
       </div>
+      <Panel
+        title="Cash flows ledger"
+        subtitle="Contributions · withdrawals · dividends · fees · taxes — drives the TWR calc"
+        className="mt-5"
+      >
+        <CashFlowsLedger />
+      </Panel>
       <Panel
         title="Rebalance journal"
         subtitle="Dated decisions — most recent first"

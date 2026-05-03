@@ -1,9 +1,9 @@
 "use client";
 
 import useSWR, { mutate } from "swr";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { AssetBadge, BookBadge } from "./Badge";
-import { fmtCurrency, fmtPct, fmtQty, fmtNumber, signClass } from "@/lib/format";
+import { fmtCurrency, fmtPct, fmtQty, fmtNumber, signClass, clsx } from "@/lib/format";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import type { AssetClass, BookType } from "@/lib/types";
 
@@ -43,10 +43,28 @@ export function PositionsTable({
 }) {
   const bookParam = book === "all" ? "" : `?book=${book}`;
   const key = `/api/positions${bookParam}`;
+
+  // Track when SWR last successfully delivered a payload so we can render
+  // a freshness chip (G17 from the audit). onSuccess fires outside React
+  // reconciliation so it's safe to setState there. Lazy initialiser
+  // avoids Date.now() in render body (React 19 strict-purity).
+  const [lastFetchedAt, setLastFetchedAt] = useState<number | null>(null);
+
   const { data, isLoading } = useSWR<PositionsResp>(key, fetcher, {
     refreshInterval: 30_000,
     keepPreviousData: true,
+    onSuccess: () => setLastFetchedAt(Date.now()),
   });
+
+  // Tick `now` every 5s so the freshness chip's seconds counter updates
+  // without re-fetching the data.  Driven by setInterval, not a
+  // requestAnimationFrame loop -- the resolution we care about is
+  // seconds, not 60fps.
+  const [now, setNow] = useState<number>(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 5_000);
+    return () => clearInterval(t);
+  }, []);
 
   // Realtime: any INSERT/UPDATE on trades (from Sheets sync) triggers an
   // immediate refetch so the positions table reflects the new row without
@@ -69,8 +87,59 @@ export function PositionsTable({
   const positions = data?.positions ?? [];
   const rows = limit ? positions.slice(0, limit) : positions;
 
+  // G17 freshness colouring: green <30s (one full poll cycle), amber
+  // 30-120s (poll-skip / SWR-deduping window), red >120s (truly stale).
+  // Renders nothing until the first fetch lands so the chip doesn't
+  // flash "stale" on initial mount.
+  let freshness: { label: string; tone: "live" | "warn" | "stale" } | null = null;
+  if (lastFetchedAt != null) {
+    const ageS = Math.max(0, Math.floor((now - lastFetchedAt) / 1000));
+    const tone: "live" | "warn" | "stale" =
+      ageS < 30 ? "live" : ageS < 120 ? "warn" : "stale";
+    const label =
+      ageS < 60 ? `${ageS}s ago` : `${Math.floor(ageS / 60)}m ${ageS % 60}s ago`;
+    freshness = { label, tone };
+  }
+
   return (
     <div className="overflow-x-auto">
+      {freshness && (
+        <div className="flex items-center justify-end gap-2 mb-2 text-[10px] uppercase tracking-[0.10em]">
+          <span
+            className="inline-block w-[5px] h-[5px] rounded-full"
+            style={{
+              background:
+                freshness.tone === "live"
+                  ? "var(--color-up)"
+                  : freshness.tone === "warn"
+                    ? "var(--color-accent)"
+                    : "var(--color-down)",
+              boxShadow:
+                freshness.tone === "live"
+                  ? "0 0 5px var(--color-up)"
+                  : "none",
+            }}
+            aria-hidden
+          />
+          <span
+            className={clsx(
+              "mono",
+              freshness.tone === "live"
+                ? "text-up"
+                : freshness.tone === "warn"
+                  ? "text-amber"
+                  : "text-down",
+            )}
+          >
+            {freshness.tone === "live"
+              ? "Live"
+              : freshness.tone === "warn"
+                ? "Lag"
+                : "Stale"}
+          </span>
+          <span className="text-muted-2 mono">· {freshness.label} · 30s poll</span>
+        </div>
+      )}
       <table className="w-full text-[12px]">
         <thead>
           <tr className="text-muted-2 text-[11px] border-b border-border">
