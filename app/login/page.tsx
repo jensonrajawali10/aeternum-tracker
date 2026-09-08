@@ -98,16 +98,6 @@ export default function LoginPage() {
         className="-top-12 -left-12"
       />
 
-      {/* Faint accent halo behind the wordmark */}
-      <div
-        className="pointer-events-none absolute left-1/2 top-[28%] -translate-x-1/2 w-[640px] h-[200px] rounded-full"
-        style={{
-          background:
-            "radial-gradient(closest-side, rgba(139,92,246,0.18), rgba(139,92,246,0) 70%)",
-        }}
-        aria-hidden
-      />
-
       <div className="relative w-full max-w-[440px]">
         <header className="text-center mb-10">
           <div className="ae-step-label justify-center mb-5">
