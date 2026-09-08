@@ -42,15 +42,6 @@ export default function SignupPage() {
   return (
     <div className="relative min-h-screen overflow-hidden bg-bg flex items-center justify-center px-4 py-12">
       <AsciiMesh density="loose" rows={48} cols={140} drift className="-top-12 -left-12" />
-      <div
-        className="pointer-events-none absolute left-1/2 top-[28%] -translate-x-1/2 w-[640px] h-[200px] rounded-full"
-        style={{
-          background:
-            "radial-gradient(closest-side, rgba(139,92,246,0.18), rgba(139,92,246,0) 70%)",
-        }}
-        aria-hidden
-      />
-
       <div className="relative w-full max-w-[440px]">
         <header className="text-center mb-10">
           <div className="ae-step-label justify-center mb-5">

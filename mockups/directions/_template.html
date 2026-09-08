@@ -1,0 +1,327 @@
+<title>Three Cockpits for Aeternum</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,400;12..96,75..100,600;12..96,75..100,700&family=Public+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Spline+Sans+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ground:#EAECEE; --surface:#FFFFFF; --sunk:#DFE2E5; --raise:#F5F6F8;
+  --ink:#16181C; --ink-2:#414852; --ink-3:#5E666F;
+  --line:rgba(22,24,28,.13); --line-2:rgba(22,24,28,.24);
+  --acc:#3F5468; --acc-soft:rgba(63,84,104,.10);
+  --ok:#0E6B3E; --warn:#A8341F; --cau:#7A5310;
+  --f-disp:"Bricolage Grotesque","Public Sans",sans-serif;
+  --f:"Public Sans",-apple-system,BlinkMacSystemFont,sans-serif;
+  --f-m:"Spline Sans Mono",ui-monospace,Menlo,monospace;
+  --mx:1180px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --ground:#131519; --surface:#191C21; --sunk:#0E1013; --raise:#20242A;
+  --ink:#E7E9EC; --ink-2:#AEB6BE; --ink-3:#8B939C;
+  --line:rgba(231,233,236,.13); --line-2:rgba(231,233,236,.24);
+  --acc:#9CB4CA; --acc-soft:rgba(156,180,202,.12);
+  --ok:#4ECB86; --warn:#FF7A6B; --cau:#E0A94A;
+}}
+:root[data-theme="dark"]{
+  --ground:#131519; --surface:#191C21; --sunk:#0E1013; --raise:#20242A;
+  --ink:#E7E9EC; --ink-2:#AEB6BE; --ink-3:#8B939C;
+  --line:rgba(231,233,236,.13); --line-2:rgba(231,233,236,.24);
+  --acc:#9CB4CA; --acc-soft:rgba(156,180,202,.12);
+  --ok:#4ECB86; --warn:#FF7A6B; --cau:#E0A94A;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--f);font-size:15px;line-height:1.6;
+  -webkit-font-smoothing:antialiased}
+.wrap{max-width:var(--mx);margin:0 auto;padding:0 22px}
+h1,h2,h3{text-wrap:balance;margin:0}
+.mono{font-family:var(--f-m);font-variant-numeric:tabular-nums}
+a{color:var(--acc)}
+
+/* ── masthead ─────────────────────────────────────────── */
+header{padding:44px 0 26px;border-bottom:1px solid var(--line-2)}
+.eyebrow{font-family:var(--f-m);font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--ink-3)}
+h1{font-family:var(--f-disp);font-size:clamp(30px,4.4vw,46px);font-weight:600;letter-spacing:-.025em;
+  line-height:1.04;margin:14px 0 12px;max-width:19ch}
+.standfirst{font-size:16.5px;color:var(--ink-2);max-width:64ch}
+.standfirst b{color:var(--ink);font-weight:600}
+
+/* ── the audit callout ────────────────────────────────── */
+.audit{margin:26px 0 0;border:1px solid var(--line);background:var(--surface);border-radius:6px;overflow:hidden}
+.audit-h{padding:11px 16px;border-bottom:1px solid var(--line);font-family:var(--f-m);font-size:11px;
+  letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
+.audit ul{margin:0;padding:12px 16px 14px 34px}
+.audit li{margin:5px 0;color:var(--ink-2);font-size:14.5px}
+.audit li b{color:var(--ink);font-weight:600}
+.audit code{font-family:var(--f-m);font-size:12.5px;background:var(--sunk);padding:1px 5px;border-radius:3px;color:var(--ink)}
+
+/* ── sticky switcher ──────────────────────────────────── */
+.bar{position:sticky;top:0;z-index:30;background:color-mix(in srgb,var(--ground) 92%,transparent);
+  backdrop-filter:blur(9px);border-bottom:1px solid var(--line);margin-top:34px}
+.bar-in{max-width:var(--mx);margin:0 auto;padding:9px 22px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.seg{display:flex;border:1px solid var(--line-2);border-radius:6px;overflow:hidden}
+.seg button{font-family:var(--f);font-size:13px;font-weight:500;padding:6px 14px;border:0;background:transparent;
+  color:var(--ink-2);cursor:pointer;border-right:1px solid var(--line-2)}
+.seg button:last-child{border-right:0}
+.seg button:hover{background:var(--acc-soft);color:var(--ink)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--ground);font-weight:600}
+.bar .sp{flex:1}
+.tgl{font-family:var(--f-m);font-size:11.5px;letter-spacing:.06em;padding:6px 11px;border:1px solid var(--line-2);
+  border-radius:6px;background:transparent;color:var(--ink-2);cursor:pointer}
+.tgl:hover{background:var(--acc-soft);color:var(--ink)}
+.hint{font-family:var(--f-m);font-size:11px;color:var(--ink-3);letter-spacing:.04em}
+button:focus-visible,a:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+
+/* ── preview frames ───────────────────────────────────── */
+main{padding:0 0 70px}
+.stage{padding-top:24px}
+.pv{position:relative;overflow:hidden;border:1px solid var(--line-2);border-radius:7px;background:var(--sunk)}
+.pv iframe{width:1440px;border:0;transform-origin:top left;display:block}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.card{display:flex;flex-direction:column;gap:9px;min-width:0}
+.card .pv{aspect-ratio:16/10.5;cursor:pointer}
+.card .pv:hover{border-color:var(--acc)}
+.cap .nm{font-family:var(--f-disp);font-size:17px;font-weight:600;letter-spacing:-.015em}
+.cap .gn{font-family:var(--f-m);font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3);margin-top:2px}
+.cap p{font-size:13.5px;color:var(--ink-2);margin:7px 0 0;line-height:1.5}
+
+/* ── spec ─────────────────────────────────────────────── */
+.spec{margin-top:34px}
+.dh{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;padding-bottom:10px;border-bottom:2px solid var(--ink)}
+.dh .ltr{font-family:var(--f-m);font-size:12px;letter-spacing:.14em;color:var(--ink-3)}
+.dh h2{font-family:var(--f-disp);font-size:30px;font-weight:600;letter-spacing:-.025em}
+.dh .gn{font-family:var(--f-m);font-size:11.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3)}
+.dh .open{margin-left:auto;font-size:12.5px}
+
+.thesis{font-size:16px;line-height:1.62;color:var(--ink-2);max-width:68ch;margin:18px 0 0}
+.thesis b{color:var(--ink);font-weight:600}
+.stances{display:grid;grid-template-columns:repeat(3,1fr);gap:0;margin:20px 0 0;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--surface)}
+.stances div{padding:13px 15px;border-right:1px solid var(--line)}
+.stances div:last-child{border-right:0}
+.stances .l{font-family:var(--f-m);font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-3)}
+.stances p{margin:6px 0 0;font-size:13.5px;color:var(--ink-2);line-height:1.5}
+
+h3.sub{font-family:var(--f-m);font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--ink-3);
+  margin:30px 0 11px;padding-bottom:7px;border-bottom:1px solid var(--line)}
+
+.swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(126px,1fr));gap:9px}
+.sw{border:1px solid var(--line);border-radius:5px;overflow:hidden;background:var(--surface)}
+.sw .chip{height:44px}
+.sw .m{padding:6px 8px 7px}
+.sw .m b{display:block;font-size:11.5px;font-weight:600}
+.sw .m code{font-family:var(--f-m);font-size:10.5px;color:var(--ink-3)}
+
+.tbl{width:100%;border-collapse:collapse;font-size:13.5px;background:var(--surface);
+  border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.tbl th{text-align:left;font-family:var(--f-m);font-size:10px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--ink-3);padding:9px 13px;border-bottom:1px solid var(--line);font-weight:600;white-space:nowrap}
+.tbl td{padding:8px 13px;border-bottom:1px solid var(--line);vertical-align:top;color:var(--ink-2)}
+.tbl tr:last-child td{border-bottom:0}
+.tbl td:first-child{color:var(--ink);font-weight:600;white-space:nowrap}
+.tbl code{font-family:var(--f-m);font-size:12px;color:var(--ink);background:var(--sunk);padding:1px 5px;border-radius:3px}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+
+.rules{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px}
+.rule{border:1px solid var(--line);border-radius:6px;padding:13px 15px;background:var(--surface)}
+.rule .l{font-family:var(--f-m);font-size:10px;letter-spacing:.13em;text-transform:uppercase;margin-bottom:7px}
+.rule.does .l{color:var(--ok)} .rule.never .l{color:var(--warn)}
+.rule ul{margin:0;padding-left:17px}
+.rule li{font-size:13.5px;color:var(--ink-2);margin:4px 0;line-height:1.5}
+
+/* ── verdict ──────────────────────────────────────────── */
+.verdict{margin-top:52px;border:1px solid var(--line-2);border-radius:8px;background:var(--surface);overflow:hidden}
+.verdict-h{padding:16px 22px;border-bottom:1px solid var(--line);display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.verdict-h h2{font-family:var(--f-disp);font-size:24px;font-weight:600;letter-spacing:-.02em}
+.verdict-h .pick{font-family:var(--f-m);font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ground);background:var(--ink);padding:3px 10px;border-radius:4px}
+.verdict-b{padding:18px 22px 22px}
+.verdict-b p{margin:0 0 13px;color:var(--ink-2);max-width:70ch;font-size:15px}
+.verdict-b p:last-child{margin-bottom:0}
+.verdict-b b{color:var(--ink);font-weight:600}
+.ranked{display:grid;gap:9px;margin:16px 0}
+.rk{display:grid;grid-template-columns:26px 1fr;gap:12px;padding:12px 14px;border:1px solid var(--line);border-radius:6px}
+.rk.win{border-color:var(--acc);background:var(--acc-soft)}
+.rk .p{font-family:var(--f-m);font-size:17px;color:var(--ink-3);font-weight:600}
+.rk .nm{font-weight:600;font-size:14.5px}
+.rk p{margin:4px 0 0;font-size:13.5px;color:var(--ink-2)}
+
+footer{border-top:1px solid var(--line);margin-top:44px;padding:20px 0 0;
+  font-family:var(--f-m);font-size:11.5px;color:var(--ink-3);display:flex;gap:18px;flex-wrap:wrap}
+@media(max-width:900px){
+  .grid3{grid-template-columns:1fr}
+  .stances,.rules{grid-template-columns:1fr}
+  .stances div{border-right:0;border-bottom:1px solid var(--line)}
+}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Aeternum Research &middot; visual &amp; interaction language</div>
+    <h1>Three cockpits for a fund of one</h1>
+    <p class="standfirst">Three complete design directions for the Aeternum Portfolio Tracker &mdash; each a different answer to
+      what a solo CIO&rsquo;s daily instrument should feel like. Same data, same routes, same Chart.js and cmdk.
+      <b>Nothing here changes behaviour</b>; this is tokens, density, component vocabulary and motion.</p>
+
+    <div class="audit">
+      <div class="audit-h">What I found in the current build</div>
+      <ul>
+        <li><b>Three design languages are stacked on top of each other.</b> The violet/mono pass, the Hyperlane pass
+          (ASCII mesh, <code>01 /</code> numbered steps, pill CTAs) and the terminal pass all still live in
+          <code>globals.css</code>. The login screen shows all three at once.</li>
+        <li><b>A two-accent system that fights itself.</b> Amber is the brand accent, violet is &ldquo;chrome&rdquo; for
+          nav and focus rings. Two accents means neither reads as <em>the</em> accent.</li>
+        <li><b>A leftover from the violet era is still shipping.</b> <code>.btn-pill-primary</code> paints an amber
+          background under a <code>rgba(139,92,246,.5)</code> violet glow &mdash; a purple shadow beneath an orange button.</li>
+        <li><b>Amber collides with its own semantics.</b> <code>#FFA726</code> is the brand accent <em>and</em> the
+          <code>warning</code> severity colour. A caution chip and a primary button are the same hue.</li>
+        <li><b>Your brand and your app are different products.</b> The Aeternum Capital site is paper and ink, a serif
+          wordmark at <code>0.22em</code>, Roman numerals, 0.5px hairlines. The app is near-black, Inter Tight and
+          bright amber. Direction A closes that gap on purpose; B and C deliberately do not.</li>
+      </ul>
+    </div>
+  </header>
+</div>
+
+<div class="bar">
+  <div class="bar-in">
+    <div class="seg" role="group" aria-label="Choose a direction">
+      <button data-v="all" aria-pressed="true">Compare all</button>
+      <button data-v="a" aria-pressed="false">A &middot; Ledger</button>
+      <button data-v="b" aria-pressed="false">B &middot; Tape</button>
+      <button data-v="c" aria-pressed="false">C &middot; Instrument</button>
+    </div>
+    <div class="sp"></div>
+    <button class="tgl" id="themeBtn">Previews: as designed</button>
+    <span class="hint">&larr; &rarr; to page</span>
+  </div>
+</div>
+
+<div class="wrap"><main>
+  <div class="stage" id="stage"></div>
+  <div id="specs"></div>
+
+  <div class="verdict">
+    <div class="verdict-h">
+      <h2>What I&rsquo;d ship</h2>
+      <span class="pick">C &middot; Instrument</span>
+    </div>
+    <div class="verdict-b">
+      <p><b>Instrument, with Ledger&rsquo;s type discipline folded into it.</b> The reason is not that it is the
+        prettiest &mdash; Ledger is. It is that Instrument is the only one of the three whose visual language
+        <em>does work you currently do in your head</em>.</p>
+      <p>Every number in Instrument sits on a calibrated band: current value, a cyan tick for the benchmark, a magenta
+        tick for your target. That is not decoration, it is the concentrated-fund problem rendered directly. With 1&ndash;3
+        core positions and a 25% single-name limit, the question you ask all day is never &ldquo;what is BBRI worth&rdquo;
+        &mdash; it is &ldquo;how far is BBRI from where I said it should be.&rdquo; Ledger and Tape both make you compute
+        that difference yourself. Instrument draws it. The <span class="mono">Weight vs target</span> column in the
+        positions table is the whole argument in one control.</p>
+      <p>The colour system is the second reason. Borrowing the aviation glass-cockpit code &mdash;
+        <b>white = actual, cyan = reference, magenta = target, green/amber/red = status</b> &mdash; gives you a rule
+        that resolves the exact collision the current build has. The accent hue is no longer competing with the
+        severity palette, because the accent <em>is</em> a semantic. Nothing is coloured for decoration, so when
+        something turns red it means one thing.</p>
+      <p>What I&rsquo;d take from Ledger: its figure treatment. Instrument sets numbers in Archivo with
+        <code>tabular-nums</code>, which is correct and modern, but Ledger&rsquo;s mono column alignment in the
+        positions table is more scannable at seven rows and would be more so at thirty. Use Archivo for KPI display
+        figures and a mono for table columns.</p>
+      <div class="ranked">
+        <div class="rk win"><span class="p">1</span><div><div class="nm">C &middot; Instrument</div>
+          <p>Does analytical work for you, resolves the accent/semantic collision, dual-mode without compromise.
+            Risk: the band vocabulary needs target weights to exist in the data model &mdash; today they don&rsquo;t.</p></div></div>
+        <div class="rk"><span class="p">2</span><div><div class="nm">A &middot; Ledger</div>
+          <p>The most beautiful and the most <em>Aeternum</em> &mdash; it is your actual brand, finally applied to the
+            product. Best for memos, journal and theses. Weakest for a live tape: paper wants to be read, not watched.
+            Pick this if the cockpit is mostly for thinking.</p></div></div>
+        <div class="rk"><span class="p">3</span><div><div class="nm">B &middot; Tape</div>
+          <p>Genuinely the densest &mdash; it fits identical content in <b>1,388px</b> against Ledger&rsquo;s 1,945px,
+            a 29% saving. But all-mono prose is tiring over a long session, and a solo CIO reading his own research
+            is doing more reading than a sell-side trader. Keep its keyboard model and its status line; leave the
+            monospace body behind.</p></div></div>
+      </div>
+      <p>All three are dark-first-capable and every text token in all six palettes clears <b>WCAG AA at 4.5:1</b>
+        (measured, not assumed &mdash; the lowest is 4.54). Gain and loss are never carried by colour alone: each pairs
+        a &#9650;/&#9660; glyph and an explicit sign with the hue.</p>
+    </div>
+  </div>
+
+  <footer>
+    <span>Aeternum Portfolio Tracker</span><span>Visual language study &middot; Sep 2026</span>
+    <span>Mockups render live at 1440&times;, scaled to fit</span>
+  </footer>
+</main></div>
+
+<script>
+const SRC = __SRC__;
+const META = {
+  a:{ltr:"A",nm:"Ledger",gn:"Paper &middot; editorial &middot; two-ink",dark:"dark",def:"light",
+      blurb:"The cockpit as an audited workpaper. Newsreader and IBM Plex, hairlines, zero radius, zero shadow. Reads like a research publication that happens to be live."},
+  b:{ltr:"B",nm:"Tape",gn:"Terminal &middot; all-mono &middot; reverse-video",dark:"",def:"dark",
+      blurb:"An actual terminal rather than a web app dressed as one. Everything on a 7.2px character cell, no cards at all, selection by reverse video. The densest by a wide margin."},
+  c:{ltr:"C",nm:"Instrument",gn:"Glass cockpit &middot; calibrated &middot; Swiss",dark:"",def:"dark",
+      blurb:"An instrument panel. Every reading sits on a scale with ticks for benchmark and target, so you see position-in-range, not just value. Aviation colour semantics."}
+};
+const SPEC = __SPEC__;
+const stage=document.getElementById('stage'), specs=document.getElementById('specs');
+let view='all', theme='auto';
+
+function frame(k,scaleTo,h){
+  const d=document.createElement('div'); d.className='pv';
+  const f=document.createElement('iframe');
+  f.setAttribute('title',META[k].nm+' dashboard mockup'); f.setAttribute('loading','eager');
+  f.srcdoc=SRC[k]; f.style.height=h+'px';
+  d.appendChild(f);
+  f.addEventListener('load',()=>applyTheme(f,k));
+  requestAnimationFrame(()=>{
+    const s=(scaleTo||d.clientWidth)/1440; f.style.transform='scale('+s+')';
+    if(!d.style.aspectRatio) d.style.height=(h*s)+'px';
+  });
+  return d;
+}
+function applyTheme(f,k){
+  try{const r=f.contentDocument.documentElement; const m=META[k];
+    if(theme==='auto'){ r.removeAttribute('data-theme'); }
+    else if(theme==='dark'){ m.def==='dark'?r.removeAttribute('data-theme'):r.setAttribute('data-theme','dark'); }
+    else { m.def==='light'?r.removeAttribute('data-theme'):r.setAttribute('data-theme','light'); }
+  }catch(e){}
+}
+function render(){
+  stage.innerHTML=''; specs.innerHTML='';
+  if(view==='all'){
+    const g=document.createElement('div'); g.className='grid3';
+    ['a','b','c'].forEach(k=>{
+      const c=document.createElement('div'); c.className='card';
+      const p=frame(k,null,1000); p.style.aspectRatio='16/10.5';
+      p.setAttribute('role','button'); p.setAttribute('tabindex','0');
+      p.addEventListener('click',()=>go(k));
+      p.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go(k);}});
+      const cap=document.createElement('div'); cap.className='cap';
+      cap.innerHTML='<div class="nm">'+META[k].ltr+' &middot; '+META[k].nm+'</div><div class="gn">'+META[k].gn+
+        '</div><p>'+META[k].blurb+'</p>';
+      c.appendChild(p); c.appendChild(cap); g.appendChild(c);
+    });
+    stage.appendChild(g);
+    specs.innerHTML=SPEC.a+SPEC.b+SPEC.c;
+  } else {
+    stage.appendChild(frame(view,null,2050));
+    specs.innerHTML=SPEC[view];
+  }
+  document.querySelectorAll('.seg button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===view)));
+}
+function go(v){view=v;render();window.scrollTo({top:document.querySelector('.bar').offsetTop-1,behavior:'smooth'});}
+document.querySelectorAll('.seg button').forEach(b=>b.addEventListener('click',()=>go(b.dataset.v)));
+document.getElementById('themeBtn').addEventListener('click',e=>{
+  theme = theme==='auto'?'dark':theme==='dark'?'light':'auto';
+  e.target.textContent='Previews: '+(theme==='auto'?'as designed':theme);
+  document.querySelectorAll('.pv iframe').forEach(f=>{
+    const k=Object.keys(META).find(k=>f.getAttribute('title').startsWith(META[k].nm)); applyTheme(f,k);});
+});
+addEventListener('keydown',e=>{
+  if(e.target.matches('input,textarea'))return;
+  const o=['all','a','b','c']; const i=o.indexOf(view);
+  if(e.key==='ArrowRight')go(o[(i+1)%4]); if(e.key==='ArrowLeft')go(o[(i+3)%4]);
+});
+addEventListener('resize',()=>{
+  document.querySelectorAll('.pv').forEach(d=>{const f=d.querySelector('iframe');
+    if(!f)return; const s=d.clientWidth/1440; f.style.transform='scale('+s+')';
+    if(!d.style.aspectRatio) d.style.height=(parseFloat(f.style.height)*s)+'px';});
+});
+render();
+</script>

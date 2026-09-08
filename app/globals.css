@@ -1,365 +1,341 @@
 @import "tailwindcss";
 
 @theme {
-  /* === Terminal redesign tokens (Phase 1) ============================
-   * Bloomberg / Sekuritas-style trading workstation palette:
-   *   - Amber is the brand accent (primary CTAs, focus rings, brand mark).
-   *   - Purple is chrome, reserved for the active sidebar nav state and
-   *     :focus-visible outlines.  Never on primary buttons.
-   *   - Pure up/down red+green for every P&L number — paired with ▲/▼
-   *     glyphs for colourblind safety.
-   *   - Categorical palette used for chart series and concentration bars.
+  /* === Direction B · "Tape" ==========================================
+   * A committed terminal, not a web app in terminal costume.
+   *
+   *   - Everything sits on a 7.2px character cell (1ch at 12px IBM Plex
+   *     Mono). Widths and horizontal padding are expressed in `ch`.
+   *   - There are no cards. `panel` IS `bg`; separation is 1px rules and
+   *     column gutters. Radius is 0 everywhere, no exceptions.
+   *   - ONE accent: ice cyan. It is deliberately a hue with no P&L
+   *     meaning, so green / red / amber each mean exactly one thing.
+   *     (The previous build used amber as both brand accent AND the
+   *     `warning` severity, and violet as a second "chrome" accent.)
+   *   - Selection and active state are REVERSE VIDEO — a solid fill with
+   *     the ground punched out of it — never a tinted background.
+   *
+   * Token NAMES are unchanged from the terminal build so every existing
+   * component keeps working; only the values moved.
    * ================================================================ */
 
-  /* Base surfaces */
-  --color-bg: #0A0A0B;
-  --color-bg-2: #0A0A0B;
-  --color-panel: #131316;
-  --color-surface: #131316;
-  --color-panel-2: #18181C;
-  --color-elevated: #18181C;
-  --color-border: rgba(255, 255, 255, 0.06);
-  --color-border-2: rgba(255, 255, 255, 0.10);
-  --color-border-strong: rgba(255, 255, 255, 0.10);
+  /* Base surfaces. Note panel == bg: this direction has no card ground. */
+  --color-bg: #080B10;
+  --color-bg-2: #05080C;
+  --color-panel: #080B10;
+  --color-surface: #080B10;
+  --color-panel-2: #0C1118;
+  --color-elevated: #0C1118;
+  --color-border: #18212B;
+  --color-border-2: #27333F;
+  --color-border-strong: #27333F;
 
-  /* Text tiers */
-  --color-text: #E8E8EA;
-  --color-fg: #E8E8EA;
-  --color-muted: #8A8A93;
-  --color-muted-2: #6B6B73;
-  --color-tertiary: #6B6B73;
+  /* Text tiers. Three tiers carry text; muted-2 is the AA floor at
+     4.54:1 on #080B10. There is no fourth text tier — anything dimmer
+     fails WCAG AA and is reserved for rules and tick marks. */
+  --color-text: #D9E1EA;
+  --color-fg: #D9E1EA;
+  --color-muted: #93A2B1;
+  --color-muted-2: #6C7B8A;
+  --color-tertiary: #6C7B8A;
 
-  /* Accent — amber (was violet).  Drives buttons, brand mark, active
-     timeframe pills, focus rings.  --color-purple is now chrome only. */
-  --color-accent: #FFA726;
-  --color-accent-dim: #C97F1A;
-  --color-accent-2: #FFB347;
-  --color-accent-text: #FFA726;
+  /* The single accent — ice cyan. Interactive only, never semantic. */
+  --color-accent: #57C9EA;
+  --color-accent-dim: #2E9DBE;
+  --color-accent-2: #7FD9F0;
+  --color-accent-text: #57C9EA;
 
-  /* Purple chrome — reserved for active sidebar nav + focus rings */
-  --color-purple: #A78BFA;
-  --color-purple-dim: #7C4DF1;
-  --color-purple-bg: rgba(167, 139, 250, 0.08);
+  /* Purple is retired. The two-accent system is gone; these aliases stay
+     so `text-purple` / `bg-purple-bg` call sites keep compiling, and all
+     resolve to the one accent. */
+  --color-purple: #57C9EA;
+  --color-purple-dim: #2E9DBE;
+  --color-purple-bg: rgba(87, 201, 234, 0.12);
 
-  /* Spectral up/down — pure red + pure green, no pastels */
-  --color-up: #22C55E;
-  --color-down: #EF4444;
-  --color-green: #22C55E;
-  --color-success: #22C55E;
-  --color-red: #EF4444;
-  --color-loss: #EF4444;
+  /* Spectral up/down. Always paired with a sign and a ▲/▼ glyph. */
+  --color-up: #33D68C;
+  --color-down: #FF5C52;
+  --color-green: #33D68C;
+  --color-success: #33D68C;
+  --color-red: #FF5C52;
+  --color-loss: #FF5C52;
 
-  /* Categorical palette for charts & concentration bars */
-  --color-cyan: #22D3EE;
-  --color-magenta: #D946EF;
-  --color-teal: #14B8A6;
-  --color-yellow: #FACC15;
+  /* Categorical / semantic. Yellow is `warning` ONLY — it is no longer
+     shared with the brand accent. */
+  --color-cyan: #57C9EA;
+  --color-magenta: #E86FD0;
+  --color-teal: #2FBFA8;
+  --color-yellow: #F2C14E;
 
-  /* Hover */
-  --color-hover: #18181C;
+  --color-hover: #0C1118;
 
-  /* Fonts — Inter Tight + JetBrains Mono per terminal brief */
-  --font-sans: "Inter Tight", "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-serif: "Source Serif 4", "Charter", Georgia, serif;
-  --font-mono: "JetBrains Mono", "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  /* Two monospace faces and nothing else. Plex carries all data and
+     prose; Martian is chrome only — column heads, section rules, the
+     wordmark. `--font-serif` is aliased to the chrome face: this
+     direction has no serif. */
+  --font-sans: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --font-chrome: "Martian Mono", "IBM Plex Mono", monospace;
+  --font-serif: "Martian Mono", "IBM Plex Mono", monospace;
 }
 
 :root {
   color-scheme: dark;
+  /* The character cell. Every horizontal measure derives from this. */
+  --ch: 7.2px;
 }
 
 html, body {
   background: var(--color-bg);
   color: var(--color-text);
-  font-family: var(--font-sans);
+  font-family: var(--font-mono);
   font-weight: 400;
-  font-size: 13px;
-  line-height: 1.5;
-  font-feature-settings: "tnum" 1, "cv11" 1, "ss01" 1;
+  font-size: 12px;
+  line-height: 18px;
+  font-feature-settings: "tnum" 1, "zero" 1;
+  font-variant-numeric: tabular-nums;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  letter-spacing: -0.005em;
+  letter-spacing: 0;
 }
 
-/* Mono helper now also enables zero-style + tabular-nums for terminal
-   number alignment.  Apply via .mono utility or font-mono.  Numbers
-   in P&L cells should always be wrapped in this. */
 .mono, .font-mono {
   font-family: var(--font-mono) !important;
   font-feature-settings: "tnum" 1, "zero" 1;
   font-variant-numeric: tabular-nums;
 }
 
-/* Terminal label helper — 10px ALL CAPS with letter-spacing 0.10em.
-   Drop on every column header, KPI label, panel section title. */
+/* Chrome label — Martian Mono, the wide face. Column heads, KPI labels,
+   panel section titles. Tighter tracking than the old build because
+   Martian is already wide by construction. */
 .label {
-  font-family: var(--font-sans);
-  font-size: 10px;
-  font-weight: 500;
+  font-family: var(--font-chrome);
+  font-size: 8.5px;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.10em;
-  color: var(--color-muted);
+  letter-spacing: 0.06em;
+  color: var(--color-muted-2);
 }
 
 body { min-height: 100vh; }
 * { box-sizing: border-box; }
 
-/* Typography helpers */
 .tabular-nums { font-variant-numeric: tabular-nums; }
-.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
-.serif { font-family: var(--font-serif); font-feature-settings: "liga" 1; letter-spacing: -0.01em; }
+.serif { font-family: var(--font-chrome); letter-spacing: 0.02em; }
 
-/* P&L colors — pure spectral red/green per terminal brief.  Raised
-   specificity to beat higher-specificity number selectors.  Always
-   pair with ▲/▼ glyph (DeltaNumber component) for colourblind safety. */
+/* P&L colours. Always accompanied by a sign and a ▲/▼ glyph from
+   DeltaNumber — colour is never the only channel. */
 .pos, span.pos, div.pos, td.pos, .num.pos, .delta.pos { color: var(--color-up) !important; }
 .neg, span.neg, div.neg, td.neg, .num.neg, .delta.neg { color: var(--color-down) !important; }
 .text-up { color: var(--color-up); }
 .text-down { color: var(--color-down); }
-.text-amber { color: var(--color-accent); }
-.text-purple { color: var(--color-purple); }
+.text-amber { color: var(--color-yellow); }
+.text-purple { color: var(--color-accent); }
 .text-cyan { color: var(--color-cyan); }
 .text-magenta { color: var(--color-magenta); }
 .text-teal { color: var(--color-teal); }
 .text-yellow { color: var(--color-yellow); }
 
-/* Legacy wrappers — now flat, no shadows, no gradients */
-.panel-elev { box-shadow: none; }
-.panel-gradient { background: var(--color-panel); }
+/* ======== Reverse video =========================================
+   The selection idiom. A solid fill with the ground punched out —
+   the strongest emphasis available, and the only one this direction
+   uses for "active" / "selected". */
+.rv   { background: var(--color-fg);     color: var(--color-bg); padding: 0 4px; }
+.rv-a { background: var(--color-accent); color: var(--color-bg); padding: 0 4px; }
+.rv-u { background: var(--color-up);     color: var(--color-bg); padding: 0 4px; }
+.rv-d { background: var(--color-down);   color: var(--color-bg); padding: 0 4px; }
+.rv-c { background: var(--color-yellow); color: var(--color-bg); padding: 0 4px; }
 
-/* Focus rings — purple chrome.  2px outline + 1px offset matches the
-   terminal brief's `:focus-visible` rule. */
+/* ======== No cards ==============================================
+   Panels lose their radius and their distinct ground. What remains is
+   a 1px rule — which is the whole point. */
+.ae-panel { border-radius: 0 !important; }
+.ae-panel-header { border-bottom: 1px solid var(--color-border); }
+
+/* Anything that still asks for a radius gets none. */
+[class*="rounded"] { border-radius: 0 !important; }
+.live-dot, .ae-live-dot { border-radius: 50% !important; }
+
+/* Focus — the accent, so it can never be confused with gain/loss.
+   Square, like everything else. */
 button:focus-visible,
 a:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 2px solid var(--color-purple);
-  outline-offset: 1px;
+  outline: 2px solid var(--color-accent);
+  outline-offset: 0;
 }
 
-/* Form inputs */
 input, select, textarea, button {
   font-family: inherit;
   font-size: inherit;
-  transition: border-color 150ms ease, background-color 150ms ease, color 150ms ease;
+  transition: none;
 }
 
 input[type="text"], input[type="email"], input[type="password"],
 input[type="number"], input[type="date"], select, textarea {
-  background: var(--color-panel-2);
+  background: var(--color-bg-2);
   border: 1px solid var(--color-border);
   color: var(--color-text);
-  padding: 6px 10px;
-  border-radius: 4px;
+  padding: 5px calc(var(--ch));
+  border-radius: 0;
 }
 
 input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focus,
 input[type="number"]:focus, input[type="date"]:focus, select:focus, textarea:focus {
   border-color: var(--color-accent);
-  background: var(--color-panel);
+  background: var(--color-bg);
   outline: none;
 }
 
 input::placeholder { color: var(--color-muted-2); }
 
-button { transition: all 150ms ease; }
-a { transition: color 150ms ease; }
+/* No easing anywhere. Hover is instant, as it is in a terminal. */
+button { transition: none; }
+a { transition: none; }
 
-/* Scrollbar — narrow and muted */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: var(--color-border-2); }
+::-webkit-scrollbar-thumb { background: var(--color-border-2); border-radius: 0; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-muted-2); }
 
-/* Tables */
+/* Tables — denser. 22px rows against the old ~30px. */
 table { border-collapse: collapse; }
-th, td { padding-top: 6px; padding-bottom: 6px; }
+th, td { padding-top: 2px; padding-bottom: 2px; }
+tbody tr { height: 22px; }
 
-/* Live dot for "live" indicators */
 .live-dot {
   display: inline-block;
   width: 6px; height: 6px;
   background: var(--color-success);
-  border-radius: 50%;
 }
 
-/* Chart canvas line style bindings — used by Chart.js registrars but we also expose for inline SVG */
 .chart-nav { stroke: var(--color-text); }
 .chart-jci { stroke: var(--color-muted); }
 .chart-spx { stroke: var(--color-tertiary); }
 
-/* ======== Smoothness: skeleton shimmer + page fade-in ======== */
+/* ======== Motion ================================================
+   This direction allows exactly two things to move: a tick flash on a
+   changed value, and the ticker tape. Everything else is instant. */
 
-/* Fade page content in on route change — replaces the blank flash between
-   server-rendered navigations. 180ms is short enough to feel instant but
-   long enough to mask the hydration pop. */
-@keyframes aeFadeIn {
-  from { opacity: 0; transform: translateY(2px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-.fade-in { animation: aeFadeIn 180ms ease-out both; }
+/* Route change: no fade. Kept as a no-op so `.fade-in` call sites
+   don't need editing. */
+.fade-in { animation: none; }
 
-/* Skeleton rows used everywhere data is loading instead of plain "Loading…" text.
-   Uses a slow subtle pulse so multiple skeletons in view don't feel frantic. */
 @keyframes aeShimmer {
   0%, 100% { opacity: 0.35; }
   50%      { opacity: 0.7;  }
 }
 .skel {
   background: var(--color-panel-2);
-  border-radius: 3px;
+  border-radius: 0;
   animation: aeShimmer 1.4s ease-in-out infinite;
   display: inline-block;
 }
 
-/* Hover bg used for row interactions across tables / cards */
-button, a, tr { /* no-op — hover handled per-component */ }
+/* Tick flash — stepped, not eased. The Bloomberg idiom: one frame to a
+   34% fill, then out. Apply `.tick-up` / `.tick-down` to a cell when its
+   value changes. */
+@keyframes aeTickUp {
+  0%   { background: color-mix(in srgb, var(--color-up) 34%, transparent); }
+  100% { background: transparent; }
+}
+@keyframes aeTickDown {
+  0%   { background: color-mix(in srgb, var(--color-down) 34%, transparent); }
+  100% { background: transparent; }
+}
+.tick-up   { animation: aeTickUp 900ms steps(1, end) 1; }
+.tick-down { animation: aeTickDown 900ms steps(1, end) 1; }
 
-/* ======== Typography hierarchy (documentation) ========
+/* ======== Density ===============================================
+   Compact tightens the cell grid rather than nudging font sizes. */
+html[data-density="compact"] .ae-topheader { padding-bottom: 8px; margin-bottom: 12px; }
+html[data-density="compact"] .ae-h1        { font-size: 13px; }
+html[data-density="compact"] .ae-h1-sub    { font-size: 11px; }
+html[data-density="compact"] .ae-panel-header { padding-top: 5px; padding-bottom: 5px; }
+html[data-density="compact"] .ae-h2        { font-size: 11px; }
+html[data-density="compact"] .ae-h2-sub    { font-size: 10px; }
+html[data-density="compact"] .ae-panel-body { padding: 6px calc(var(--ch)); }
+html[data-density="compact"] body { font-size: 11.5px; line-height: 17px; }
+html[data-density="compact"] tbody tr { height: 20px; }
+html[data-density="compact"] main { padding-top: 10px; padding-bottom: 10px; }
 
-   Four tiers, applied via component classes so a refactor never has
-   to touch every page:
+/* Comfortable is already dense here — panel chrome uses the chrome face. */
+.ae-h1 { font-family: var(--font-chrome); font-size: 14px; font-weight: 600; letter-spacing: -0.01em; text-transform: uppercase; }
+.ae-h2 { font-family: var(--font-chrome); font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
 
-     L1  Page title              .ae-h1   (TopHeader)
-     L2  Panel / section title   .ae-h2   (Panel)
-     L3  Card label              text-[10.5px] uppercase tracking-[0.14em]
-     L4  Body data               .mono + tabular-nums
-
-   Default (Comfortable) sizes are set in TopHeader and Panel.  Compact
-   density overrides below tighten everything by roughly one step. */
-
-/* ======== Density: compact overrides ======== */
-
-html[data-density="compact"] .ae-topheader { padding-bottom: 12px; margin-bottom: 16px; }
-html[data-density="compact"] .ae-h1        { font-size: 20px; }
-html[data-density="compact"] .ae-h1-sub    { font-size: 12px; }
-
-html[data-density="compact"] .ae-panel-header { padding-top: 8px; padding-bottom: 8px; }
-html[data-density="compact"] .ae-h2        { font-size: 12.5px; }
-html[data-density="compact"] .ae-h2-sub    { font-size: 10.5px; }
-html[data-density="compact"] .ae-panel-body { padding: 10px 12px; }
-
-/* Tighten default body font so dense tables fit one more row per screen */
-html[data-density="compact"] body { font-size: 12.5px; }
-
-/* Gaps on stacked panels closer together */
-html[data-density="compact"] main { padding-top: 16px; padding-bottom: 16px; }
-
-/* ======== Hyperlane-inspired decoration layer ========
-   Translates hyperlane.xyz's signature design DNA into the dashboard:
-     - ASCII `+` mesh backdrops as decorative motif behind hero sections
-     - Numbered section labels ("01 / FIRM PULSE") with accent dot
-     - Pill-shaped primary CTAs
-   The palette stays Aeternum (violet accent, near-black bg); only the
-   typography rhythm and decorative material is borrowed.
-*/
-
-/* ASCII mesh — used as a positioned absolute backdrop behind heroes
-   and hero-adjacent panels. Component AsciiMesh renders the literal
-   characters; this class scales typography + sets opacity so the mesh
-   reads as texture, not content. */
-.ae-mesh-bg {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  user-select: none;
-  font-family: var(--font-mono);
-  color: var(--color-muted-2);
-  opacity: 0.16;
-  font-size: 10px;
-  line-height: 14px;
-  letter-spacing: 0.06em;
-  white-space: pre;
-  overflow: hidden;
+/* ======== Retired decoration ====================================
+   The Hyperlane pass (ASCII mesh, numbered step labels, pill CTAs) is
+   removed. The classes remain so the components that reference them
+   still compile, but the mesh renders nothing and the step label
+   becomes a plain chrome caption. */
+.ae-mesh-bg,
+.ae-mesh-bg.ae-mesh-loose,
+.ae-mesh-bg.ae-mesh-tight,
+.ae-mesh-bg.ae-mesh-drift {
+  display: none;
 }
 
-.ae-mesh-bg.ae-mesh-loose {
-  opacity: 0.12;
-  font-size: 11px;
-  line-height: 18px;
-}
-
-.ae-mesh-bg.ae-mesh-tight {
-  opacity: 0.18;
-  font-size: 9px;
-  line-height: 12px;
-}
-
-/* Numbered step label — appears above page titles ("01 / FIRM PULSE"),
-   above sidebar groups, and above section headers when called out. The
-   leading dot is the accent moment so the eye anchors there before
-   reading the label. */
 .ae-step-label {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  font-family: var(--font-mono);
-  font-size: 10.5px;
-  color: var(--color-muted);
-  letter-spacing: 0.18em;
+  gap: calc(var(--ch));
+  font-family: var(--font-chrome);
+  font-size: 8.5px;
+  font-weight: 600;
+  color: var(--color-muted-2);
+  letter-spacing: 0.06em;
   text-transform: uppercase;
 }
-
-.ae-step-label::before {
-  content: "";
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--color-accent);
-  flex: none;
-  box-shadow: 0 0 6px 0 var(--color-accent);
-}
-
-.ae-step-label .ae-step-num {
-  color: var(--color-accent-text);
-  font-weight: 500;
-}
-
+.ae-step-label::before { content: none; }
+.ae-step-label .ae-step-num { color: var(--color-accent); font-weight: 600; }
 .ae-step-label .ae-step-rule {
   flex: 1;
   height: 1px;
   background: var(--color-border);
-  min-width: 28px;
+  min-width: calc(var(--ch) * 4);
 }
 
-/* Pill-shaped buttons — used for primary CTAs (Sign in, Get started,
-   New memo on the empty state, etc.) where the form factor needs more
-   visual weight than the usual square 4px-radius button. */
+/* Buttons — square, outlined, reverse-video on hover. The class name is
+   kept for its ~7 call sites; the pill shape is not.
+   (This also removes the violet `rgba(139,92,246,.5)` glow that was
+   still being painted under an amber button — a leftover from the
+   pre-terminal palette.) */
 .btn-pill {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  border-radius: 9999px;
-  padding: 11px 26px;
-  font-family: var(--font-sans);
-  font-size: 12px;
+  gap: calc(var(--ch));
+  border-radius: 0 !important;
+  padding: 5px calc(var(--ch) * 2);
+  font-family: var(--font-chrome);
+  font-size: 9px;
   font-weight: 600;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  transition: all 180ms ease;
+  transition: none;
   cursor: pointer;
-  border: 1px solid transparent;
+  border: 1px solid var(--color-border-2);
+  background: transparent;
+  color: var(--color-fg);
 }
 
-.btn-pill:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
+.btn-pill:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .btn-pill-primary {
-  background: var(--color-accent);
+  background: var(--color-fg);
   color: var(--color-bg);
-  border-color: var(--color-accent);
-  box-shadow: 0 0 0 1px transparent, 0 6px 20px -8px rgba(139, 92, 246, 0.5);
+  border-color: var(--color-fg);
+  box-shadow: none;
 }
 
 .btn-pill-primary:hover:not(:disabled) {
-  background: var(--color-accent-2);
-  border-color: var(--color-accent-2);
-  box-shadow: 0 0 0 1px transparent, 0 8px 28px -6px rgba(139, 92, 246, 0.7);
-  transform: translateY(-1px);
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-bg);
+  box-shadow: none;
+  transform: none;
 }
 
 .btn-pill-ghost {
@@ -369,110 +345,80 @@ html[data-density="compact"] main { padding-top: 16px; padding-bottom: 16px; }
 }
 
 .btn-pill-ghost:hover:not(:disabled) {
-  border-color: var(--color-accent);
-  color: var(--color-accent-text);
+  background: var(--color-fg);
+  border-color: var(--color-fg);
+  color: var(--color-bg);
 }
 
-/* Heroic wordmark used on the unauthenticated landing (Login / Signup).
-   The serif lockup pairs with mono "CIO COCKPIT" subtitle; an accent
-   underline rule replaces the previous tiny dot for more hyperlane-ish
-   weight. */
+/* Wordmark — the chrome face, wide-tracked. No serif in this direction. */
 .ae-wordmark {
-  font-family: var(--font-serif);
-  font-size: 56px;
+  font-family: var(--font-chrome);
+  font-size: 30px;
   line-height: 1;
-  letter-spacing: -0.025em;
+  letter-spacing: 0.02em;
   color: var(--color-fg);
-  font-weight: 400;
+  font-weight: 600;
+  text-transform: uppercase;
 }
 
 @media (max-width: 640px) {
-  .ae-wordmark { font-size: 42px; }
+  .ae-wordmark { font-size: 22px; }
 }
 
-/* Compact density tightens the wordmark + step label so the auth pages
-   still feel composed at small heights. */
-html[data-density="compact"] .ae-wordmark { font-size: 44px; }
-html[data-density="compact"] .ae-step-label { font-size: 9.5px; gap: 8px; }
+html[data-density="compact"] .ae-wordmark { font-size: 26px; }
+html[data-density="compact"] .ae-step-label { font-size: 8px; }
 
-/* Command-palette rows — terminal-mock styling for cmdk's data-attr
-   selection state.  cmdk applies data-selected="true" on the active
-   item via keyboard nav; we paint that as a faint amber-tinted bg
-   with an amber accent on the leading element. */
+/* Command palette — reverse video for the selected row, matching every
+   other "here" state in the app. */
 .cmd-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 7px 10px;
-  border-radius: 4px;
+  gap: calc(var(--ch) * 1.5);
+  padding: 4px calc(var(--ch));
+  border-radius: 0;
   cursor: pointer;
   user-select: none;
   color: var(--color-fg);
 }
 
 .cmd-row[data-selected="true"] {
-  background: color-mix(in srgb, var(--color-accent) 10%, transparent);
-  color: var(--color-fg);
+  background: var(--color-fg);
+  color: var(--color-bg);
+}
+.cmd-row[data-selected="true"] .cmd-hint {
+  background: transparent;
+  border-color: var(--color-bg);
+  color: var(--color-bg);
 }
 
 .cmd-row[data-disabled="true"],
-.cmd-row.cmd-row-disabled {
-  cursor: default;
-  opacity: 0.5;
-}
+.cmd-row.cmd-row-disabled { cursor: default; opacity: 0.5; }
 
-.cmd-row:hover:not([data-disabled="true"]) {
-  background: var(--color-elevated);
-}
+.cmd-row:hover:not([data-disabled="true"]) { background: var(--color-panel-2); }
 
 .cmd-hint {
   font-family: var(--font-mono);
   font-size: 9.5px;
-  padding: 1px 6px;
-  border-radius: 2px;
-  background: var(--color-bg);
-  border: 1px solid var(--color-border-strong);
-  color: var(--color-muted);
-}
-
-.cmdpal-list [cmdk-group-heading] {
-  padding: 8px 10px 4px;
-  font-family: var(--font-sans);
-  font-size: 9.5px;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
+  padding: 0 4px;
+  border-radius: 0;
+  background: transparent;
+  border: 1px solid var(--color-border-2);
   color: var(--color-muted-2);
 }
 
-.cmdpal-list [cmdk-group]:not(:first-child) {
-  margin-top: 4px;
+.cmdpal-list [cmdk-group-heading] {
+  padding: 6px calc(var(--ch)) 3px;
+  font-family: var(--font-chrome);
+  font-size: 8.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-muted-2);
 }
 
-/* Slow drift animation for the mesh backdrop — barely perceptible
-   horizontal shift so it doesn't read as static. Disabled for users
-   who prefer reduced motion. */
-@keyframes aeMeshDrift {
-  from { transform: translate3d(0, 0, 0); }
-  to   { transform: translate3d(-24px, 0, 0); }
-}
+.cmdpal-list [cmdk-group]:not(:first-child) { margin-top: 3px; }
 
-.ae-mesh-bg.ae-mesh-drift {
-  animation: aeMeshDrift 60s linear infinite alternate;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .ae-mesh-bg.ae-mesh-drift { animation: none; }
-  .btn-pill { transition: none; }
-  .btn-pill-primary:hover { transform: none; }
-}
-
-/* ======== Ticker tape scroll ========
-   The TickerTape component renders its quote list twice side-by-side and
-   slides the inner div by -50% so the loop is seamless.  90s linear gives
-   a calm Bloomberg-feel cadence — fast enough to feel live, slow enough
-   that a label is readable mid-scroll.  Pause-on-hover lets the operator
-   pin a row.  Reduced motion drops the animation entirely. */
+/* Ticker tape — the second and last permitted animation. */
 @keyframes aeTickerScroll {
   from { transform: translateX(0); }
   to   { transform: translateX(-50%); }
@@ -483,10 +429,10 @@ html[data-density="compact"] .ae-step-label { font-size: 9.5px; gap: 8px; }
   will-change: transform;
 }
 
-.ae-ticker-tape:hover {
-  animation-play-state: paused;
-}
+.ae-ticker-tape:hover { animation-play-state: paused; }
 
 @media (prefers-reduced-motion: reduce) {
   .ae-ticker-tape { animation: none; }
+  .tick-up, .tick-down { animation: none; }
+  .skel { animation: none; }
 }

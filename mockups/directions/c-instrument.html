@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Aeternum — Direction C · Instrument</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Azeret+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ground:#111316; --well:#171A1E; --raised:#1E2228; --sunk:#0C0E10;
+  --rule:rgba(255,255,255,.075); --rule-2:rgba(255,255,255,.14); --edge:rgba(255,255,255,.05);
+  --fg:#E8EBEE; --fg-2:#9BA4AD; --fg-3:#777F88; --fg-4:#4C545C;
+  /* aviation semantics: white=actual · cyan=reference · magenta=target/selected
+     green=in tolerance · amber=caution · red=warning */
+  --ref:#4FC3E8; --tgt:#F05FB4; --ok:#3FD182; --caution:#F5A524; --warn:#FF4D4D;
+  --f:"Archivo",-apple-system,BlinkMacSystemFont,sans-serif;
+  --f-m:"Azeret Mono",ui-monospace,Menlo,monospace;
+  --r:4px; --row:28px;
+}
+[data-theme="light"]{
+  --ground:#E6E9EC; --well:#F3F5F7; --raised:#FFFFFF; --sunk:#D8DCE0;
+  --rule:rgba(10,14,18,.10); --rule-2:rgba(10,14,18,.20); --edge:rgba(255,255,255,.9);
+  --fg:#14171A; --fg-2:#4B545C; --fg-3:#616971; --fg-4:#9AA2AA;
+  --ref:#0A6E93; --tgt:#B01E75; --ok:#0E7845; --caution:#8A5A00; --warn:#C22A22;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--ground);color:var(--fg);font-family:var(--f);font-size:12.5px;line-height:1.4;
+  -webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums lining-nums;
+  font-feature-settings:"tnum" 1,"lnum" 1;letter-spacing:-.005em}
+.n{font-variant-numeric:tabular-nums lining-nums;text-align:right;white-space:nowrap;letter-spacing:-.01em}
+.lb{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.11em;color:var(--fg-3)}
+.mm{font-family:var(--f-m);font-size:9px;letter-spacing:-.02em;color:var(--fg-3)}
+.ok{color:var(--ok)} .warn{color:var(--warn)} .cau{color:var(--caution)}
+.ref{color:var(--ref)} .tgt{color:var(--tgt)} .dim{color:var(--fg-3)}
+
+.app{display:grid;grid-template-columns:190px 1fr;min-height:100vh}
+.rail{background:var(--well);border-right:1px solid var(--rule);display:flex;flex-direction:column}
+.brand{padding:14px 16px 13px;border-bottom:1px solid var(--rule);display:flex;align-items:center;gap:9px}
+.led{width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 7px var(--ok);flex:none}
+.brand b{font-size:14px;font-weight:600;letter-spacing:.01em}
+.brand span{display:block;font-size:8.5px;font-weight:600;letter-spacing:.15em;color:var(--fg-3);text-transform:uppercase;margin-top:2px}
+nav{padding:12px 8px;flex:1}
+.grp{margin-bottom:14px}
+.grp-h{font-size:8.5px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--fg-3);padding:0 8px 6px}
+.ni{display:flex;align-items:center;gap:8px;padding:5px 8px;color:var(--fg-2);text-decoration:none;
+  border-radius:var(--r);font-size:12.5px;position:relative;font-weight:400}
+.ni:hover{background:var(--raised);color:var(--fg)}
+.ni.on{background:var(--raised);color:var(--fg);font-weight:500;box-shadow:inset 0 1px 0 var(--edge)}
+.ni.on::before{content:"";position:absolute;left:0;top:6px;bottom:6px;width:2px;background:var(--tgt);border-radius:2px}
+.ni .badge{margin-left:auto;font-size:9px;font-weight:600;padding:0 5px;border-radius:8px;
+  background:var(--warn);color:#fff;line-height:15px}
+.rail-ft{padding:10px 16px;border-top:1px solid var(--rule)}
+
+.main{display:flex;flex-direction:column;min-width:0}
+.tape{height:30px;background:var(--sunk);border-bottom:1px solid var(--rule);display:flex;align-items:center;
+  gap:22px;padding:0 18px;font-size:11.5px;white-space:nowrap;overflow:hidden}
+.tape .k{font-size:9px;font-weight:600;letter-spacing:.1em;color:var(--fg-3);text-transform:uppercase;margin-right:5px}
+.tape .r{margin-left:auto;display:flex;align-items:center;gap:14px}
+.pill{font-size:9.5px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;padding:2px 8px;border-radius:9px;
+  border:1px solid currentColor;line-height:14px}
+.body{padding:16px 18px 44px;min-width:0}
+
+.hdr{display:flex;align-items:flex-end;gap:14px;margin-bottom:14px}
+.hdr h1{font-size:20px;font-weight:600;letter-spacing:-.02em}
+.hdr .sub{font-size:12.5px;color:var(--fg-3)}
+.hdr .r{margin-left:auto;text-align:right}
+
+.sh{display:flex;align-items:center;gap:10px;margin:20px 0 9px}
+.sh h2{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--fg-2)}
+.sh .m{font-size:11px;color:var(--fg-3)}
+.sh .fill{flex:1;height:1px;background:var(--rule)}
+.sh .act{display:flex;gap:4px}
+
+/* ── the instrument: value + calibrated band ───────────── */
+.pulse{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
+.inst{background:var(--well);border:1px solid var(--rule);border-radius:var(--r);
+  box-shadow:inset 0 1px 0 var(--edge);padding:10px 12px 11px;min-width:0}
+.inst:hover{background:var(--raised)}
+.inst .v{font-size:21px;font-weight:600;letter-spacing:-.03em;margin-top:6px;line-height:1.1}
+.inst .v small{font-size:11px;font-weight:500;color:var(--fg-3);letter-spacing:0}
+.inst .d{font-size:11px;font-weight:500;margin-top:3px}
+/* band: the signature. current fill + reference tick + target tick */
+.band{margin-top:9px}
+.band .trk{height:5px;background:var(--sunk);border-radius:2px;position:relative;overflow:visible}
+.band .fill{position:absolute;inset:0 auto 0 0;background:var(--fg-2);border-radius:2px}
+.band .fill.g{background:var(--ok)} .band .fill.a{background:var(--caution)} .band .fill.r{background:var(--warn)}
+.band .tick{position:absolute;top:-3px;bottom:-3px;width:2px;border-radius:1px}
+.band .tick.ref{background:var(--ref)} .band .tick.tgt{background:var(--tgt)}
+.band .sc{display:flex;justify-content:space-between;margin-top:4px}
+.band .sc span{font-family:var(--f-m);font-size:8.5px;color:var(--fg-3)}
+
+.card{background:var(--well);border:1px solid var(--rule);border-radius:var(--r);box-shadow:inset 0 1px 0 var(--edge);overflow:hidden}
+.card-h{display:flex;align-items:center;gap:9px;padding:9px 13px;border-bottom:1px solid var(--rule)}
+.card-h h3{font-size:11px;font-weight:700;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-2)}
+.card-h .m{font-size:11px;color:var(--fg-3)}
+.card-h .r{margin-left:auto;display:flex;gap:4px}
+.card-b{padding:12px 13px}
+
+.bk{display:grid;grid-template-columns:1fr 130px 92px 150px 116px 16px;align-items:center;gap:12px;
+  padding:9px 13px;border-bottom:1px solid var(--rule);text-decoration:none;color:inherit}
+.bk:last-child{border-bottom:0}
+.bk:hover{background:var(--raised)}
+.bk .nm{font-size:13px;font-weight:600;letter-spacing:-.01em}
+.bk .mt{font-size:10px;color:var(--fg-3);margin-top:1px}
+.bk .a{color:var(--fg-3);text-align:right}
+.bk:hover .a{color:var(--tgt)}
+
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead th{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--fg-3);
+  text-align:left;padding:8px 11px;border-bottom:1px solid var(--rule-2);white-space:nowrap}
+thead th.r{text-align:right}
+tbody td{height:var(--row);padding:0 11px;border-bottom:1px solid var(--rule);white-space:nowrap}
+tbody tr:hover td{background:var(--raised)}
+tbody tr.sel td{background:color-mix(in srgb,var(--tgt) 11%,transparent)}
+tbody tr.sel td:first-child{box-shadow:inset 2px 0 0 var(--tgt)}
+tfoot td{height:30px;padding:0 11px;border-top:1px solid var(--rule-2);font-weight:600;background:var(--sunk)}
+.tk{font-weight:700;letter-spacing:.01em}
+.tk small{display:block;font-weight:400;font-size:9.5px;color:var(--fg-3);letter-spacing:0;margin-top:-1px}
+
+/* drift band inside the table — target weight as a magenta tick */
+.dband{width:78px;height:5px;background:var(--sunk);border-radius:2px;position:relative;display:inline-block;vertical-align:middle}
+.dband i{position:absolute;inset:0 auto 0 0;background:var(--fg-2);border-radius:2px}
+.dband .t{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--tgt);border-radius:1px}
+
+.chip{display:inline-flex;align-items:center;gap:4px;font-size:9.5px;font-weight:600;letter-spacing:.08em;
+  text-transform:uppercase;padding:2px 7px;border-radius:3px;line-height:14px;border:1px solid}
+.chip-w{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 45%,transparent);background:color-mix(in srgb,var(--warn) 12%,transparent)}
+.chip-c{color:var(--caution);border-color:color-mix(in srgb,var(--caution) 45%,transparent);background:color-mix(in srgb,var(--caution) 12%,transparent)}
+.chip-r{color:var(--ref);border-color:color-mix(in srgb,var(--ref) 45%,transparent);background:color-mix(in srgb,var(--ref) 12%,transparent)}
+.chip-n{color:var(--fg-3);border-color:var(--rule-2)}
+
+.fi{display:grid;grid-template-columns:50px 86px 1fr;gap:12px;padding:9px 13px;border-bottom:1px solid var(--rule);align-items:start}
+.fi:last-child{border-bottom:0}
+.fi:hover{background:var(--raised)}
+.fi .t{font-family:var(--f-m);font-size:9.5px;color:var(--fg-3);padding-top:2px}
+.fi .b{font-size:12px;line-height:1.5;color:var(--fg-2)}
+.fi .b b{color:var(--fg);font-weight:600}
+
+.grid2{display:grid;grid-template-columns:1.6fr 1fr;gap:8px}
+.leg{display:flex;gap:16px;font-size:10.5px;color:var(--fg-3);margin-bottom:8px;flex-wrap:wrap;align-items:center}
+.leg i{display:inline-block;width:13px;height:2px;border-radius:1px;vertical-align:middle;margin-right:6px}
+
+.rk{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--rule)}
+.rk div{background:var(--well);padding:9px 11px}
+.rk .l{font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--fg-3)}
+.rk .v{font-size:16px;font-weight:600;margin-top:3px;letter-spacing:-.02em}
+.rk .s{font-family:var(--f-m);font-size:8.5px;color:var(--fg-3);margin-top:2px}
+
+.conc{display:grid;grid-template-columns:52px 1fr 78px 52px;gap:10px;align-items:center;height:24px}
+.conc .cb{height:6px;background:var(--sunk);border-radius:2px;position:relative}
+.conc .cb i{position:absolute;inset:0 auto 0 0;border-radius:2px;background:var(--fg-2)}
+.conc .cb i.a{background:var(--caution)} .conc .cb i.r{background:var(--warn)}
+.conc .cb .t{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--tgt);border-radius:1px}
+.conc .cb .lim{position:absolute;top:-4px;bottom:-4px;width:1px;background:var(--warn)}
+
+.empty{padding:22px 8px;text-align:center}
+.empty .ic{font-size:19px;color:var(--fg-3)}
+.empty p{font-size:12px;color:var(--fg-3);margin-top:7px;line-height:1.55}
+.btn{font-family:var(--f);font-size:11px;font-weight:600;letter-spacing:.03em;padding:4px 11px;border-radius:var(--r);
+  border:1px solid var(--rule-2);background:var(--raised);color:var(--fg-2);cursor:pointer}
+.btn:hover{color:var(--fg);border-color:var(--fg-3)}
+.btn.on{background:var(--tgt);border-color:var(--tgt);color:#fff}
+</style></head>
+<body>
+<div class="app">
+  <aside class="rail">
+    <div class="brand"><span class="led"></span><div><b>Aeternum</b><span>CIO Cockpit</span></div></div>
+    <nav>
+      <div class="grp"><div class="grp-h">Firm</div>
+        <a class="ni on" href="#">Command Center</a><a class="ni" href="#">Capital</a>
+        <a class="ni" href="#">Firm Risk <span class="badge">1</span></a><a class="ni" href="#">Journal</a>
+        <a class="ni" href="#">Memos</a><a class="ni" href="#">Catalysts</a></div>
+      <div class="grp"><div class="grp-h">Books</div>
+        <a class="ni" href="#">Investing</a><a class="ni" href="#">IDX Trading</a><a class="ni" href="#">Crypto Trading</a></div>
+      <div class="grp"><div class="grp-h">Tools</div>
+        <a class="ni" href="#">Watchlist</a><a class="ni" href="#">Alerts</a><a class="ni" href="#">News</a>
+        <a class="ni" href="#">Earnings</a><a class="ni" href="#">Analysts</a><a class="ni" href="#">Settings</a></div>
+    </nav>
+    <div class="rail-ft"><div class="lb">Feed</div><div class="mm" style="margin-top:3px">7/7 marks &#183; sync 14:32:07</div></div>
+  </aside>
+
+  <div class="main">
+    <div class="tape">
+      <span><span class="k">USD/IDR</span>16,342 <span class="ok">&#9650;0.04%</span></span>
+      <span><span class="k">JCI</span>7,284.10 <span class="warn">&#9660;0.21%</span></span>
+      <span><span class="k">S&amp;P 500</span>6,118.44 <span class="ok">&#9650;0.33%</span></span>
+      <span><span class="k">Brent</span>74.20 <span class="warn">&#9660;0.62%</span></span>
+      <span><span class="k">Newcastle</span>122.00 <span class="dim">&#183;0.00%</span></span>
+      <div class="r"><span class="pill ok">IDX Open</span><span class="mm">14:32:07 WIB</span></div>
+    </div>
+
+    <div class="body">
+      <div class="hdr">
+        <div><h1>Command Center</h1><div class="sub">All books &#183; IDR &#183; marks live</div></div>
+        <div class="r"><div class="lb">As of</div><div class="mm" style="margin-top:2px">08 Sep 2026 &#183; 14:32:07 WIB</div></div>
+      </div>
+
+      <div class="pulse">
+        <div class="inst"><div class="lb">Net asset value</div>
+          <div class="v">78.41<small> bn</small></div>
+          <div class="d ok">&#9650; +0.98% today</div>
+          <div class="band"><div class="trk"><span class="fill" style="width:78%"></span><span class="tick tgt" style="left:86%"></span></div>
+            <div class="sc"><span>60bn</span><span class="tgt">plan 82bn</span><span>85bn</span></div></div></div>
+
+        <div class="inst"><div class="lb">Day P&amp;L</div>
+          <div class="v ok">+765.2<small> m</small></div>
+          <div class="d ok">&#9650; +0.98% of NAV</div>
+          <div class="band"><div class="trk"><span class="fill g" style="left:50%;width:19%"></span><span class="tick" style="left:50%;background:var(--fg-4)"></span></div>
+            <div class="sc"><span>&minus;2.5%</span><span>0</span><span>+2.5%</span></div></div></div>
+
+        <div class="inst"><div class="lb">Unrealised</div>
+          <div class="v ok">+5.56<small> bn</small></div>
+          <div class="d ok">&#9650; +8.19% on cost</div>
+          <div class="band"><div class="trk"><span class="fill g" style="width:64%"></span></div>
+            <div class="sc"><span>0</span><span class="mm">realised YTD +2.31bn</span></div></div></div>
+
+        <div class="inst"><div class="lb">Return YTD</div>
+          <div class="v ok">+14.20%</div>
+          <div class="d"><span class="ref">&#9650; +12.10 vs JCI</span></div>
+          <div class="band"><div class="trk"><span class="fill g" style="width:71%"></span>
+            <span class="tick ref" style="left:10.5%"></span><span class="tick tgt" style="left:60%"></span></div>
+            <div class="sc"><span>0</span><span class="ref">JCI 2.1</span><span class="tgt">plan 12</span><span>20%</span></div></div></div>
+
+        <div class="inst"><div class="lb">Gross exposure</div>
+          <div class="v">93.80%</div>
+          <div class="d dim">Net 93.80% &#183; no shorts</div>
+          <div class="band"><div class="trk"><span class="fill a" style="width:93.8%"></span><span class="tick tgt" style="left:90%"></span></div>
+            <div class="sc"><span>0</span><span class="tgt">max 90%</span><span>100%</span></div></div></div>
+
+        <div class="inst"><div class="lb">Max drawdown</div>
+          <div class="v warn">&minus;3.80%</div>
+          <div class="d dim">Trough 18 Apr &#183; recovered</div>
+          <div class="band"><div class="trk"><span class="fill g" style="width:25.3%"></span><span class="tick tgt" style="left:66.7%"></span></div>
+            <div class="sc"><span>0</span><span class="tgt">limit &minus;10%</span><span>&minus;15%</span></div></div></div>
+      </div>
+
+      <div class="sh"><h2>Books</h2><span class="m">3 arms &#183; attribution to firm NAV</span><span class="fill"></span></div>
+      <div class="card">
+        <a class="bk" href="#"><div><div class="nm">Investing</div><div class="mt">60% budget &#183; 3 positions</div></div>
+          <div class="n">47,042,400,000</div><div class="n ok">&#9650; 16.40%</div><div class="n ok">&#9650; +3,341,400,000</div>
+          <div><div class="dband"><i style="width:80%"></i><span class="t" style="left:60%"></span></div></div><div class="a">&#8250;</div></a>
+        <a class="bk" href="#"><div><div class="nm">IDX Trading</div><div class="mt">25% budget &#183; 2 positions</div></div>
+          <div class="n">16,295,000,000</div><div class="n ok">&#9650; 8.10%</div><div class="n ok">&#9650; +387,000,000</div>
+          <div><div class="dband"><i style="width:20.8%"></i><span class="t" style="left:25%"></span></div></div><div class="a">&#8250;</div></a>
+        <a class="bk" href="#"><div><div class="nm">Crypto Trading</div><div class="mt">15% budget &#183; 2 positions</div></div>
+          <div class="n">10,239,000,000</div><div class="n ok">&#9650; 22.70%</div><div class="n ok">&#9650; +1,833,000,000</div>
+          <div><div class="dband"><i style="width:13.1%"></i><span class="t" style="left:15%"></span></div></div><div class="a">&#8250;</div></a>
+      </div>
+
+      <div class="sh"><h2>Performance</h2><span class="m">rebased to 100 &#183; firm-wide</span><span class="fill"></span>
+        <span class="act"><button class="btn">1M</button><button class="btn">3M</button><button class="btn on">YTD</button><button class="btn">ALL</button></span></div>
+      <div class="grid2">
+        <div class="card"><div class="card-b">
+          <div class="leg">
+            <span><i style="background:var(--fg)"></i>NAV <b class="ok">+14.20%</b></span>
+            <span><i style="background:var(--ref)"></i>JCI <b>+2.10%</b></span>
+            <span><i style="background:var(--ref);opacity:.5"></i>S&amp;P 500 <b>+6.80%</b></span>
+            <span><i style="background:var(--tgt)"></i>Plan <b>+12.00%</b></span>
+          </div>
+          <svg viewBox="0 0 900 224" width="100%" height="200" preserveAspectRatio="none">
+            <g stroke="var(--rule)" stroke-width="1" vector-effect="non-scaling-stroke">
+              <line x1="0" y1="40" x2="900" y2="40"/><line x1="0" y1="93.3" x2="900" y2="93.3"/><line x1="0" y1="146.7" x2="900" y2="146.7"/>
+            </g>
+            <line x1="0" y1="200" x2="900" y2="200" stroke="var(--rule-2)" vector-effect="non-scaling-stroke"/>
+            <line x1="8" y1="200" x2="892" y2="72" stroke="var(--tgt)" stroke-width="1" stroke-dasharray="5 4" vector-effect="non-scaling-stroke"/>
+            <polyline fill="none" stroke="var(--ref)" stroke-opacity=".5" stroke-width="1.2" vector-effect="non-scaling-stroke" points="8,200 97,187.2 186,174.4 275,188.3 364,165.9 453,156.3 542,163.7 631,148.8 720,140.3 809,133.9 892,127.5"/>
+            <polyline fill="none" stroke="var(--ref)" stroke-width="1.4" vector-effect="non-scaling-stroke" points="8,200 97,190.4 186,182.9 275,195.7 364,188.3 453,174.4 542,187.2 631,193.6 720,180.8 809,172.3 892,177.6"/>
+            <polyline fill="none" stroke="var(--fg)" stroke-width="2" vector-effect="non-scaling-stroke" points="8,200 97,180.8 186,165.9 275,172.3 364,145.6 453,131.7 542,138.1 631,105.1 720,91.2 809,65.6 892,48.5"/>
+          </svg>
+          <div style="display:flex;justify-content:space-between;margin-top:4px">
+            <span class="mm">Jan</span><span class="mm">Mar</span><span class="mm">May</span><span class="mm">Jul</span><span class="mm">Sep</span><span class="mm">Now</span>
+          </div>
+        </div></div>
+        <div class="card">
+          <div class="card-h"><h3>Drawdown</h3><span class="m">peak to trough</span></div>
+          <div class="card-b" style="padding-bottom:0">
+            <svg viewBox="0 0 400 140" width="100%" height="118" preserveAspectRatio="none">
+              <line x1="0" y1="20" x2="400" y2="20" stroke="var(--rule-2)" vector-effect="non-scaling-stroke"/>
+              <line x1="0" y1="80" x2="400" y2="80" stroke="var(--rule)" vector-effect="non-scaling-stroke"/>
+              <line x1="0" y1="140" x2="400" y2="140" stroke="var(--tgt)" stroke-dasharray="4 4" stroke-opacity=".8" vector-effect="non-scaling-stroke"/>
+              <polygon fill="var(--warn)" fill-opacity=".14" points="4,20 40,24.8 76,34.4 112,65.6 148,33.2 184,23.6 220,54.8 256,29.6 292,20 328,36.8 364,27.2 396,24 396,20"/>
+              <polyline fill="none" stroke="var(--warn)" stroke-width="1.5" vector-effect="non-scaling-stroke" points="4,20 40,24.8 76,34.4 112,65.6 148,33.2 184,23.6 220,54.8 256,29.6 292,20 328,36.8 364,27.2 396,24"/>
+            </svg>
+            <div style="display:flex;justify-content:space-between;margin:3px 0 10px">
+              <span class="mm">0 / &minus;5 / <span class="tgt">limit &minus;10%</span></span><span class="mm warn">max &minus;3.80% &#183; 18 Apr</span>
+            </div>
+          </div>
+          <div class="rk" style="border-top:1px solid var(--rule)">
+            <div><div class="l">Vol (ann.)</div><div class="v">14.60%</div><div class="s">band 10&ndash;18 &#183; in tolerance</div></div>
+            <div><div class="l">Sharpe</div><div class="v ok">1.42</div><div class="s">min 1.00 &#183; above</div></div>
+            <div><div class="l">Sortino</div><div class="v ok">2.08</div><div class="s">min 1.50 &#183; above</div></div>
+            <div><div class="l">Beta &#183; JCI</div><div class="v">0.71</div><div class="s">target &#8804;0.80 &#183; in tolerance</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sh"><h2>Positions</h2><span class="m">7 open &#183; all books</span><span class="fill"></span>
+        <span class="act"><button class="btn on">IDR</button><button class="btn">USD</button></span></div>
+      <div class="card">
+        <table>
+          <thead><tr>
+            <th>Ticker</th><th>Book</th><th class="r">Qty</th><th class="r">Avg entry</th><th class="r">Last</th><th class="r">Day</th>
+            <th class="r">Market value</th><th class="r">Unrealised</th><th class="r">%</th><th class="r">% NAV</th>
+            <th style="text-align:center">Weight vs target</th><th class="r">Drift</th>
+          </tr></thead>
+          <tbody>
+            <tr><td class="tk">BBRI<small>Bank Rakyat</small></td><td class="dim">Inv</td><td class="n">4,200,000</td><td class="n">4,185</td><td class="n">4,510</td>
+              <td class="n ok">&#9650; 1.24%</td><td class="n">18,942,000,000</td><td class="n ok">&#9650; 1,365,000,000</td><td class="n ok">&#9650; 7.76%</td><td class="n">24.20%</td>
+              <td style="text-align:center"><span class="dband"><i class="" style="width:96.8%"></i><span class="t" style="left:100%"></span></span></td><td class="n dim">&minus;0.80</td></tr>
+            <tr><td class="tk">ADRO<small>Alamtri</small></td><td class="dim">Inv</td><td class="n">6,800,000</td><td class="n">2,310</td><td class="n">2,655</td>
+              <td class="n ok">&#9650; 2.08%</td><td class="n">18,054,000,000</td><td class="n ok">&#9650; 2,346,000,000</td><td class="n ok">&#9650; 14.94%</td><td class="n">23.00%</td>
+              <td style="text-align:center"><span class="dband"><i style="width:92%"></i><span class="t" style="left:80%"></span></span></td><td class="n cau">+3.00</td></tr>
+            <tr><td class="tk">PTBA<small>Bukit Asam</small></td><td class="dim">IDX</td><td class="n">3,900,000</td><td class="n">2,640</td><td class="n">2,810</td>
+              <td class="n ok">&#9650; 0.72%</td><td class="n">10,959,000,000</td><td class="n ok">&#9650; 663,000,000</td><td class="n ok">&#9650; 6.44%</td><td class="n">14.00%</td>
+              <td style="text-align:center"><span class="dband"><i style="width:56%"></i><span class="t" style="left:48%"></span></span></td><td class="n cau">+2.00</td></tr>
+            <tr class="sel"><td class="tk">MDKA<small>Merdeka Copper</small></td><td class="dim">Inv</td><td class="n">4,200,000</td><td class="n">2,480</td><td class="n">2,392</td>
+              <td class="n warn">&#9660; 0.83%</td><td class="n">10,046,400,000</td><td class="n warn">&#9660; 369,600,000</td><td class="n warn">&#9660; 3.55%</td><td class="n">12.80%</td>
+              <td style="text-align:center"><span class="dband"><i style="width:51.2%"></i><span class="t" style="left:60%"></span></span></td><td class="n cau">&minus;2.20</td></tr>
+            <tr><td class="tk">HYPE<small>Hyperliquid &#183; perp</small></td><td class="dim">Cry</td><td class="n">12,000</td><td class="n">26.80</td><td class="n">34.12</td>
+              <td class="n ok">&#9650; 3.41%</td><td class="n">6,691,000,000</td><td class="n ok">&#9650; 1,435,000,000</td><td class="n ok">&#9650; 27.31%</td><td class="n">8.50%</td>
+              <td style="text-align:center"><span class="dband"><i style="width:34%"></i><span class="t" style="left:32%"></span></span></td><td class="n dim">+0.50</td></tr>
+            <tr><td class="tk">GOTO<small>GoTo Gojek</small></td><td class="dim">IDX</td><td class="n">92,000,000</td><td class="n">61</td><td class="n">58</td>
+              <td class="n warn">&#9660; 1.69%</td><td class="n">5,336,000,000</td><td class="n warn">&#9660; 276,000,000</td><td class="n warn">&#9660; 4.92%</td><td class="n">6.80%</td>
+              <td style="text-align:center"><span class="dband"><i style="width:27.2%"></i><span class="t" style="left:20%"></span></span></td><td class="n dim">+1.80</td></tr>
+            <tr><td class="tk">BTC<small>Bitcoin</small></td><td class="dim">Cry</td><td class="n">3.1500</td><td class="n">61,200</td><td class="n">68,940</td>
+              <td class="n ok">&#9650; 1.12%</td><td class="n">3,548,000,000</td><td class="n ok">&#9650; 398,400,000</td><td class="n ok">&#9650; 12.65%</td><td class="n">4.50%</td>
+              <td style="text-align:center"><span class="dband"><i style="width:18%"></i><span class="t" style="left:20%"></span></span></td><td class="n dim">&minus;0.50</td></tr>
+          </tbody>
+          <tfoot><tr><td colspan="6" class="lb">Total &#183; 7 positions</td>
+            <td class="n">73,576,400,000</td><td class="n ok">&#9650; 5,561,800,000</td><td class="n ok">&#9650; 8.19%</td><td class="n">93.80%</td>
+            <td style="text-align:center"><span class="mm">cash 6.20%</span></td><td class="n dim">&mdash;</td></tr></tfoot>
+        </table>
+      </div>
+
+      <div class="grid2" style="margin-top:18px;grid-template-columns:1.35fr 1fr;align-items:start">
+        <div class="card">
+          <div class="card-h"><h3>Needs attention</h3><span class="m">4 items</span>
+            <div class="r"><span class="chip chip-w">1 warning</span><span class="chip chip-c">2 caution</span></div></div>
+          <div class="fi"><span class="t">13:41</span><span><span class="chip chip-w">Breach</span></span>
+            <span class="b"><b>Coal 37.0% of book</b> across ADRO + PTBA &mdash; above the 25% single-sector rule. Newcastle thermal $122/t in range, structural China demand soft.</span></div>
+          <div class="fi"><span class="t">14:18</span><span><span class="chip chip-c">Caution</span></span>
+            <span class="b"><b>USD/IDR</b> broke 16,300 on BI non-intervention &mdash; rupiah weakness transmits to foreign selling across IDX blue chips. Watch BBRI flows.</span></div>
+          <div class="fi"><span class="t">11:55</span><span><span class="chip chip-c">Caution</span></span>
+            <span class="b"><b>MDKA</b> &minus;3.55% vs entry, 1.79% from stop at 2,350. Copper guidance re-iterated 130&ndash;160kt despite Tujuh Bukit ramp below mid-point.</span></div>
+          <div class="fi"><span class="t">09:02</span><span><span class="chip chip-r">Catalyst</span></span>
+            <span class="b"><b>BBRI Q3</b> earnings 22 Sep pre-market &mdash; T&minus;14 days. No memo on file since the June update.</span></div>
+        </div>
+        <div class="card">
+          <div class="card-h"><h3>Concentration</h3><span class="m">vs target weight</span></div>
+          <div class="card-b">
+            <div class="conc"><span class="n" style="text-align:left;font-weight:600">BBRI</span><span class="cb"><i class="a" style="width:96.8%"></i><span class="t" style="left:100%"></span><span class="lim" style="left:100%"></span></span><span class="mm">tgt 25.0</span><span class="n">24.20%</span></div>
+            <div class="conc"><span class="n" style="text-align:left;font-weight:600">ADRO</span><span class="cb"><i class="a" style="width:92%"></i><span class="t" style="left:80%"></span><span class="lim" style="left:100%"></span></span><span class="mm">tgt 20.0</span><span class="n">23.00%</span></div>
+            <div class="conc"><span class="n" style="text-align:left;font-weight:600">PTBA</span><span class="cb"><i style="width:56%"></i><span class="t" style="left:48%"></span><span class="lim" style="left:100%"></span></span><span class="mm">tgt 12.0</span><span class="n">14.00%</span></div>
+            <div class="conc"><span class="n" style="text-align:left;font-weight:600">MDKA</span><span class="cb"><i style="width:51.2%"></i><span class="t" style="left:60%"></span><span class="lim" style="left:100%"></span></span><span class="mm">tgt 15.0</span><span class="n">12.80%</span></div>
+            <div class="conc"><span class="n" style="text-align:left;font-weight:600">HYPE</span><span class="cb"><i style="width:34%"></i><span class="t" style="left:32%"></span><span class="lim" style="left:100%"></span></span><span class="mm">tgt 8.0</span><span class="n">8.50%</span></div>
+            <div class="conc"><span class="n" style="text-align:left;font-weight:600">GOTO</span><span class="cb"><i style="width:27.2%"></i><span class="t" style="left:20%"></span><span class="lim" style="left:100%"></span></span><span class="mm">tgt 5.0</span><span class="n">6.80%</span></div>
+            <div class="conc"><span class="n" style="text-align:left;font-weight:600">BTC</span><span class="cb"><i style="width:18%"></i><span class="t" style="left:20%"></span><span class="lim" style="left:100%"></span></span><span class="mm">tgt 5.0</span><span class="n">4.50%</span></div>
+            <div class="conc"><span class="n dim" style="text-align:left">Cash</span><span class="cb"><i style="width:24.8%;background:var(--fg-4)"></i></span><span class="mm">tgt 10.0</span><span class="n dim">6.20%</span></div>
+            <div style="margin-top:9px;display:flex;gap:14px;align-items:center">
+              <span class="mm"><span class="tgt">&#9612;</span> target weight</span>
+              <span class="mm"><span class="warn">&#9612;</span> 25% single-name limit</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sh"><h2>Correlation</h2><span class="m">90-day, pairwise</span><span class="fill"></span></div>
+      <div class="card"><div class="empty">
+        <div class="ic">&#9633;</div>
+        <p>Not enough overlapping history to compute.<br/>ADRO and PTBA share 41 sessions; 90 are required.</p>
+        <button class="btn" style="margin-top:11px">Lower the window to 30 days</button>
+      </div></div>
+    </div>
+  </div>
+</div>
+</body></html>
