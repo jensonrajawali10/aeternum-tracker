@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Aeternum — Direction B · Tape</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Martian+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ground:#080B10; --ground-2:#0C1118; --sunk:#05080C;
+  --fg:#D9E1EA; --fg-2:#93A2B1; --fg-3:#6C7B8A; --fg-4:#46535F;
+  --rule:#18212B; --rule-2:#27333F;
+  --accent:#57C9EA; --up:#33D68C; --down:#FF5C52; --caution:#F2C14E;
+  --f-chrome:"Martian Mono","IBM Plex Mono",monospace;
+  --f-data:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --row:22px;
+}
+[data-theme="light"]{
+  --ground:#F2F1ED; --ground-2:#E8E7E2; --sunk:#FBFAF8;
+  --fg:#0B0F14; --fg-2:#3B454F; --fg-3:#5E6A76; --fg-4:#8B959F;
+  --rule:#D2D0CA; --rule-2:#B4B2AB;
+  --accent:#0D6E8C; --up:#0F7A48; --down:#B92B20; --caution:#8A6410;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--ground);color:var(--fg);font-family:var(--f-data);font-size:12px;line-height:18px;
+  -webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1,"zero" 1}
+.n{font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.lb{font-family:var(--f-chrome);font-size:8.5px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:var(--fg-3)}
+.up{color:var(--up)} .down{color:var(--down)} .dim{color:var(--fg-3)} .acc{color:var(--accent)}
+
+/* reverse video — the selection idiom of this direction */
+.rv{background:var(--fg);color:var(--ground);padding:0 4px}
+.rv-a{background:var(--accent);color:var(--ground);padding:0 4px}
+.rv-u{background:var(--up);color:var(--ground);padding:0 4px}
+.rv-d{background:var(--down);color:var(--ground);padding:0 4px}
+.rv-c{background:var(--caution);color:var(--ground);padding:0 4px}
+
+.app{display:grid;grid-template-columns:23ch 1fr;min-height:100vh}
+.rail{border-right:1px solid var(--rule);display:flex;flex-direction:column;padding:0}
+.brand{padding:10px 0 10px 1ch;border-bottom:1px solid var(--rule)}
+.brand b{font-family:var(--f-chrome);font-size:11px;font-weight:600;letter-spacing:.02em}
+.brand span{display:block;font-size:9px;color:var(--fg-3);letter-spacing:.1em;margin-top:3px}
+nav{padding:8px 0;flex:1;font-size:11.5px;line-height:19px}
+.grp{margin-bottom:10px}
+.grp-h{color:var(--fg-3);padding-left:1ch;white-space:nowrap;overflow:hidden;font-size:11px}
+.ni{display:block;color:var(--fg-2);text-decoration:none;padding-left:1ch;white-space:nowrap}
+.ni i{color:var(--fg-3);font-style:normal}
+.ni:hover{color:var(--fg);background:var(--ground-2)}
+.ni.on{color:var(--ground);background:var(--fg)}
+.ni.on i{color:var(--ground)}
+.rail-ft{border-top:1px solid var(--rule);padding:7px 1ch;color:var(--fg-3);font-size:10px}
+
+.main{display:flex;flex-direction:column;min-width:0}
+.tape{height:20px;border-bottom:1px solid var(--rule);display:flex;align-items:center;gap:2ch;
+  padding:0 1ch;font-size:11px;overflow:hidden;white-space:nowrap;background:var(--sunk)}
+.tape .k{color:var(--fg-3)}
+.tape .r{margin-left:auto;display:flex;gap:2ch;align-items:center}
+.body{padding:0 1ch 40px;min-width:0}
+
+/* section rule: ── LABEL ─────────────────  */
+.sr{display:flex;align-items:center;gap:1ch;margin:16px 0 6px;color:var(--fg-3);white-space:nowrap}
+.sr .t{font-family:var(--f-chrome);font-size:8.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--fg-2)}
+.sr .m{font-size:10.5px;color:var(--fg-3)}
+.sr .fill{flex:1;height:1px;background:var(--rule);min-width:2ch}
+.sr .act{display:flex;gap:1ch;font-size:10.5px}
+.sr .act b{font-weight:400;color:var(--fg-3);cursor:pointer}
+.sr .act b:hover{color:var(--fg)}
+
+.hdr{display:flex;align-items:center;gap:2ch;padding:9px 0 8px;border-bottom:1px solid var(--rule-2)}
+.hdr h1{font-family:var(--f-chrome);font-size:14px;font-weight:600;letter-spacing:-.01em}
+.hdr .sub{color:var(--fg-3);font-size:11.5px}
+.hdr .r{margin-left:auto;color:var(--fg-3);font-size:11px}
+
+/* KPI: a strip of labelled cells split by │ — no boxes */
+.pulse{display:grid;grid-template-columns:repeat(6,1fr);border-bottom:1px solid var(--rule)}
+.kp{padding:8px 1ch 9px;border-right:1px solid var(--rule);min-width:0}
+.kp:last-child{border-right:0}
+.kp:hover{background:var(--ground-2)}
+.kp .v{font-size:19px;line-height:22px;font-weight:500;letter-spacing:-.02em;margin-top:5px}
+.kp .d{font-size:11px;margin-top:2px}
+.kp .x{font-size:10px;color:var(--fg-3);margin-top:1px}
+.kp svg{display:block;margin-top:5px;width:100%;height:15px}
+
+/* books: three ruled lines */
+.bk{display:grid;grid-template-columns:20ch 16ch 10ch 1fr 3ch;align-items:center;gap:1ch;
+  height:24px;text-decoration:none;color:inherit;border-bottom:1px solid var(--rule);padding-left:1ch}
+.bk:hover{background:var(--ground-2)}
+.bk:hover .a{color:var(--accent)}
+.bk .nm{font-weight:500}
+.bk .a{color:var(--fg-3);text-align:right}
+
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead th{font-family:var(--f-chrome);font-size:8.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;
+  color:var(--fg-3);text-align:left;padding:5px 1ch;border-bottom:1px solid var(--rule-2);white-space:nowrap}
+thead th.r{text-align:right}
+tbody td{height:var(--row);padding:0 1ch;border-bottom:1px solid var(--rule);white-space:nowrap}
+tbody tr:hover td{background:var(--ground-2)}
+tbody tr.sel td{background:var(--fg);color:var(--ground)}
+tbody tr.sel td .up,tbody tr.sel td .down,tbody tr.sel td .dim{color:var(--ground)}
+tfoot td{height:24px;padding:0 1ch;border-top:1px solid var(--rule-2);font-weight:600}
+.tk{font-weight:700;letter-spacing:.04em}
+
+/* tick flash — the one motion this direction allows on data */
+@keyframes flash-up{0%,88%{background:transparent}90%{background:color-mix(in srgb,var(--up) 34%,transparent)}100%{background:transparent}}
+.tick{animation:flash-up 4s steps(1,end) infinite}
+@media (prefers-reduced-motion:reduce){.tick{animation:none}}
+
+.feed{border-bottom:1px solid var(--rule)}
+.fi{display:grid;grid-template-columns:6ch 9ch 1fr;gap:1ch;padding:6px 1ch 7px;border-bottom:1px solid var(--rule);align-items:start}
+.fi:last-child{border-bottom:0}
+.fi:hover{background:var(--ground-2)}
+.fi .t{color:var(--fg-3);font-size:11px}
+.fi .b{font-size:11.5px;line-height:17px;color:var(--fg-2)}
+.fi .b b{color:var(--fg);font-weight:600}
+
+.conc{display:grid;grid-template-columns:7ch 1fr 7ch;gap:1ch;align-items:center;height:19px}
+.cb{height:7px;background:var(--ground-2);position:relative;border:1px solid var(--rule)}
+.cb i{position:absolute;inset:0 auto 0 0;background:var(--fg-2)}
+.cb i.warn{background:var(--caution)}
+.cb i.hot{background:var(--down)}
+.cb .lim{position:absolute;top:-3px;bottom:-3px;width:1px;background:var(--down)}
+
+.two{display:grid;grid-template-columns:1.6fr 1fr;gap:0;border-bottom:1px solid var(--rule)}
+.two>*{padding:8px 1ch 12px;min-width:0}
+.two>*:first-child{border-right:1px solid var(--rule);padding-left:0}
+.leg{display:flex;gap:2ch;font-size:10.5px;color:var(--fg-3);margin-bottom:6px;flex-wrap:wrap}
+
+.rk{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--rule)}
+.rk div{padding:6px 1ch 6px 0;border-bottom:1px solid var(--rule)}
+.rk .l{font-family:var(--f-chrome);font-size:8.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--fg-3)}
+.rk .v{font-size:15px;margin-top:2px}
+
+.empty{padding:18px 0;color:var(--fg-3);font-size:11.5px;line-height:18px}
+.empty pre{color:var(--fg-3);font-size:11px;line-height:15px;margin-bottom:8px}
+.btn{font-family:var(--f-data);font-size:11px;padding:2px 1ch;border:1px solid var(--rule-2);
+  background:transparent;color:var(--fg-2);cursor:pointer}
+.btn:hover{background:var(--fg);color:var(--ground);border-color:var(--fg)}
+.btn.on{background:var(--fg);color:var(--ground);border-color:var(--fg)}
+
+/* tmux-style status line pinned to the bottom */
+.status{position:sticky;bottom:0;display:flex;align-items:center;gap:1ch;height:20px;font-size:10.5px;
+  background:var(--ground-2);border-top:1px solid var(--rule-2);padding:0;white-space:nowrap;overflow:hidden}
+.status .seg{padding:0 1ch;color:var(--fg-3)}
+.status .r{margin-left:auto;display:flex}
+</style></head>
+<body>
+<div class="app">
+  <aside class="rail">
+    <div class="brand"><b>AETERNUM</b><span>CIO COCKPIT v0.9</span></div>
+    <nav>
+      <div class="grp">
+        <div class="grp-h">&#9484;&#9472; FIRM &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;</div>
+        <a class="ni on" href="#"><i>&#9474;</i> 1 COMMAND CENTER</a>
+        <a class="ni" href="#"><i>&#9474;</i> 2 CAPITAL</a>
+        <a class="ni" href="#"><i>&#9474;</i> 3 FIRM RISK</a>
+        <a class="ni" href="#"><i>&#9474;</i> 4 JOURNAL</a>
+        <a class="ni" href="#"><i>&#9474;</i> 5 MEMOS</a>
+        <a class="ni" href="#"><i>&#9474;</i> 6 CATALYSTS</a>
+      </div>
+      <div class="grp">
+        <div class="grp-h">&#9500;&#9472; BOOKS &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;</div>
+        <a class="ni" href="#"><i>&#9474;</i> i INVESTING</a>
+        <a class="ni" href="#"><i>&#9474;</i> x IDX TRADING</a>
+        <a class="ni" href="#"><i>&#9474;</i> c CRYPTO TRADING</a>
+      </div>
+      <div class="grp">
+        <div class="grp-h">&#9500;&#9472; TOOLS &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;</div>
+        <a class="ni" href="#"><i>&#9474;</i> w WATCHLIST</a>
+        <a class="ni" href="#"><i>&#9474;</i> a ALERTS</a>
+        <a class="ni" href="#"><i>&#9474;</i> n NEWS</a>
+        <a class="ni" href="#"><i>&#9474;</i> e EARNINGS</a>
+        <a class="ni" href="#"><i>&#9474;</i> g ANALYSTS</a>
+        <a class="ni" href="#"><i>&#9474;</i> , SETTINGS</a>
+      </div>
+      <div class="grp-h">&#9492;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;</div>
+    </nav>
+    <div class="rail-ft">SYNC 14:32:07<br/>7 MARKS LIVE</div>
+  </aside>
+
+  <div class="main">
+    <div class="tape">
+      <span><span class="k">USDIDR</span> 16,342 <span class="up">&#9650;0.04</span></span>
+      <span><span class="k">JCI</span> 7,284.10 <span class="down">&#9660;0.21</span></span>
+      <span><span class="k">SPX</span> 6,118.44 <span class="up">&#9650;0.33</span></span>
+      <span><span class="k">BRENT</span> 74.20 <span class="down">&#9660;0.62</span></span>
+      <span><span class="k">NEWC</span> 122.00 <span class="dim">&#183;0.00</span></span>
+      <span><span class="k">BTC</span> 68,940 <span class="up">&#9650;1.12</span></span>
+      <div class="r"><span class="rv-u">IDX OPEN</span><span>14:32:07 WIB</span></div>
+    </div>
+
+    <div class="body">
+      <div class="hdr">
+        <h1>COMMAND CENTER</h1>
+        <span class="sub">&#9474; all books &#9474; IDR</span>
+        <div class="r">08 SEP 2026 &#183; 14:32:07 WIB &#183; <span class="acc">&#8984;K</span></div>
+      </div>
+
+      <div class="pulse">
+        <div class="kp"><div class="lb">NAV</div>
+          <div class="v">78.41<span class="dim" style="font-size:11px"> BN</span></div>
+          <div class="d up">&#9650; +0.98% TODAY</div>
+          <div class="x">78,412,660,144</div></div>
+        <div class="kp"><div class="lb">DAY P&amp;L</div>
+          <div class="v up">+765.2<span style="font-size:11px"> M</span></div>
+          <div class="d up">&#9650; +0.98% OF NAV</div>
+          <div class="x">7/7 MARKS LIVE</div></div>
+        <div class="kp"><div class="lb">UNREALISED</div>
+          <div class="v up">+5.56<span style="font-size:11px"> BN</span></div>
+          <div class="d up">&#9650; +8.19% ON COST</div>
+          <div class="x">RLZD YTD +2.31 BN</div></div>
+        <div class="kp"><div class="lb">RETURN YTD</div>
+          <div class="v up">+14.20%</div>
+          <div class="d"><span class="up">&#9650; +12.10</span> <span class="dim">VS JCI</span></div>
+          <svg viewBox="0 0 120 15" preserveAspectRatio="none"><polyline fill="none" stroke="var(--up)" stroke-width="1" vector-effect="non-scaling-stroke" points="0,13 12,11.6 24,10.2 36,11 48,8.2 60,6.8 72,7.5 84,4.2 96,2.8 108,1.4 120,1"/></svg></div>
+        <div class="kp"><div class="lb">GROSS EXP</div>
+          <div class="v">93.80%</div>
+          <div class="d dim">NET 93.80 &#183; NO SHORTS</div>
+          <div class="x">CASH 6.20%</div></div>
+        <div class="kp"><div class="lb">MAX DD</div>
+          <div class="v down">&minus;3.80%</div>
+          <div class="d dim">TROUGH 18 APR</div>
+          <div class="x">VOL 14.60 ANN</div></div>
+      </div>
+
+      <div class="sr"><span class="t">BOOKS</span><span class="m">3 arms</span><span class="fill"></span></div>
+      <div>
+        <a class="bk" href="#"><span class="nm">INVESTING</span><span class="n">47,042,400,000</span>
+          <span class="n up">&#9650;16.40%</span><span class="n up">&#9650; +3,341,400,000 &#183; <span class="dim">60% budget &#183; 3 pos</span></span><span class="a">&#8250;</span></a>
+        <a class="bk" href="#"><span class="nm">IDX TRADING</span><span class="n">16,295,000,000</span>
+          <span class="n up">&#9650;8.10%</span><span class="n up">&#9650; +387,000,000 &#183; <span class="dim">25% budget &#183; 2 pos</span></span><span class="a">&#8250;</span></a>
+        <a class="bk" href="#"><span class="nm">CRYPTO TRADING</span><span class="n">10,239,000,000</span>
+          <span class="n up">&#9650;22.70%</span><span class="n up">&#9650; +1,833,000,000 &#183; <span class="dim">15% budget &#183; 2 pos</span></span><span class="a">&#8250;</span></a>
+      </div>
+
+      <div class="sr"><span class="t">PERFORMANCE</span><span class="m">rebased 100 &#183; firm</span><span class="fill"></span>
+        <span class="act"><b>1M</b><b>3M</b><b class="rv">YTD</b><b>ALL</b></span></div>
+      <div class="two">
+        <div>
+          <div class="leg">
+            <span>&#9472;&#9472; NAV <b class="up">+14.20%</b></span>
+            <span class="dim">&#9476;&#9476; JCI <b class="up">+2.10%</b></span>
+            <span class="dim">&#183;&#183;&#183; SPX <b class="up">+6.80%</b></span>
+          </div>
+          <svg viewBox="0 0 900 228" width="100%" height="196" preserveAspectRatio="none">
+            <g stroke="var(--rule)" stroke-width="1" vector-effect="non-scaling-stroke">
+              <line x1="0" y1="40" x2="900" y2="40"/><line x1="0" y1="93.3" x2="900" y2="93.3"/><line x1="0" y1="146.7" x2="900" y2="146.7"/>
+            </g>
+            <line x1="0" y1="200" x2="900" y2="200" stroke="var(--rule-2)" vector-effect="non-scaling-stroke"/>
+            <polyline fill="none" stroke="var(--fg-3)" stroke-width="1" stroke-dasharray="1 3" vector-effect="non-scaling-stroke" points="8,200 97,187.2 186,174.4 275,188.3 364,165.9 453,156.3 542,163.7 631,148.8 720,140.3 809,133.9 892,127.5"/>
+            <polyline fill="none" stroke="var(--fg-3)" stroke-width="1" stroke-dasharray="5 3" vector-effect="non-scaling-stroke" points="8,200 97,190.4 186,182.9 275,195.7 364,188.3 453,174.4 542,187.2 631,193.6 720,180.8 809,172.3 892,177.6"/>
+            <polyline fill="none" stroke="var(--fg)" stroke-width="1.6" vector-effect="non-scaling-stroke" points="8,200 97,180.8 186,165.9 275,172.3 364,145.6 453,131.7 542,138.1 631,105.1 720,91.2 809,65.6 892,48.5"/>
+          </svg>
+          <div style="display:flex;justify-content:space-between;color:var(--fg-3);font-size:10px;margin-top:2px">
+            <span>+15%</span><span>JAN</span><span>MAR</span><span>MAY</span><span>JUL</span><span>SEP</span><span>NOW</span>
+          </div>
+        </div>
+        <div>
+          <div class="lb" style="margin-bottom:5px">DRAWDOWN FROM PEAK</div>
+          <svg viewBox="0 0 400 150" width="100%" height="130" preserveAspectRatio="none">
+            <line x1="0" y1="20" x2="400" y2="20" stroke="var(--rule-2)" vector-effect="non-scaling-stroke"/>
+            <line x1="0" y1="80" x2="400" y2="80" stroke="var(--rule)" vector-effect="non-scaling-stroke"/>
+            <line x1="0" y1="140" x2="400" y2="140" stroke="var(--rule)" vector-effect="non-scaling-stroke"/>
+            <polygon fill="var(--down)" fill-opacity=".16" points="4,20 40,24.8 76,34.4 112,65.6 148,33.2 184,23.6 220,54.8 256,29.6 292,20 328,36.8 364,27.2 396,24 396,20"/>
+            <polyline fill="none" stroke="var(--down)" stroke-width="1.3" vector-effect="non-scaling-stroke" points="4,20 40,24.8 76,34.4 112,65.6 148,33.2 184,23.6 220,54.8 256,29.6 292,20 328,36.8 364,27.2 396,24"/>
+            <line x1="112" y1="65.6" x2="112" y2="20" stroke="var(--down)" stroke-dasharray="2 2" vector-effect="non-scaling-stroke"/>
+          </svg>
+          <div style="display:flex;justify-content:space-between;color:var(--fg-3);font-size:10px;margin-top:2px">
+            <span>0 / &minus;5 / &minus;10%</span><span class="down">MAX &minus;3.80% 18APR</span>
+          </div>
+          <div class="rk" style="margin-top:8px">
+            <div><div class="l">VOL ANN</div><div class="v">14.60%</div></div>
+            <div><div class="l">SHARPE</div><div class="v">1.42</div></div>
+            <div><div class="l">SORTINO</div><div class="v">2.08</div></div>
+            <div><div class="l">BETA JCI</div><div class="v">0.71</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sr"><span class="t">POSITIONS</span><span class="m">7 open &#183; marks 14:32:07</span><span class="fill"></span>
+        <span class="act"><b class="rv">IDR</b><b>USD</b></span></div>
+      <table>
+        <thead><tr>
+          <th>TKR</th><th>BK</th><th class="r">QTY</th><th class="r">AVG</th><th class="r">LAST</th><th class="r">DAY</th>
+          <th class="r">MKT VALUE</th><th class="r">UNREAL</th><th class="r">UNREAL%</th><th class="r">%NAV</th><th class="r">STOP</th>
+        </tr></thead>
+        <tbody>
+          <tr><td class="tk">BBRI</td><td class="dim">INV</td><td class="n">4,200,000</td><td class="n">4,185</td><td class="n">4,510</td>
+            <td class="n up">&#9650; +1.24%</td><td class="n">18,942,000,000</td><td class="n up">&#9650; +1,365,000,000</td><td class="n up">&#9650; +7.76%</td><td class="n">24.20%</td><td class="n dim">3,980</td></tr>
+          <tr><td class="tk">ADRO</td><td class="dim">INV</td><td class="n">6,800,000</td><td class="n">2,310</td><td class="n">2,655</td>
+            <td class="n up">&#9650; +2.08%</td><td class="n">18,054,000,000</td><td class="n up">&#9650; +2,346,000,000</td><td class="n up">&#9650; +14.94%</td><td class="n">23.00%</td><td class="n dim">2,190</td></tr>
+          <tr><td class="tk">PTBA</td><td class="dim">IDX</td><td class="n">3,900,000</td><td class="n">2,640</td><td class="n">2,810</td>
+            <td class="n up">&#9650; +0.72%</td><td class="n">10,959,000,000</td><td class="n up">&#9650; +663,000,000</td><td class="n up">&#9650; +6.44%</td><td class="n">14.00%</td><td class="n dim">2,505</td></tr>
+          <tr class="sel"><td class="tk">MDKA</td><td>INV</td><td class="n">4,200,000</td><td class="n">2,480</td><td class="n">2,392</td>
+            <td class="n">&#9660; &minus;0.83%</td><td class="n">10,046,400,000</td><td class="n">&#9660; &minus;369,600,000</td><td class="n">&#9660; &minus;3.55%</td><td class="n">12.80%</td><td class="n">2,350</td></tr>
+          <tr><td class="tk">HYPE</td><td class="dim">CRY</td><td class="n">12,000</td><td class="n">26.80</td><td class="n">34.12</td>
+            <td class="n up tick">&#9650; +3.41%</td><td class="n">6,691,000,000</td><td class="n up">&#9650; +1,435,000,000</td><td class="n up">&#9650; +27.31%</td><td class="n">8.50%</td><td class="n dim">28.00</td></tr>
+          <tr><td class="tk">GOTO</td><td class="dim">IDX</td><td class="n">92,000,000</td><td class="n">61</td><td class="n">58</td>
+            <td class="n down">&#9660; &minus;1.69%</td><td class="n">5,336,000,000</td><td class="n down">&#9660; &minus;276,000,000</td><td class="n down">&#9660; &minus;4.92%</td><td class="n">6.80%</td><td class="n dim">54</td></tr>
+          <tr><td class="tk">BTC</td><td class="dim">CRY</td><td class="n">3.1500</td><td class="n">61,200</td><td class="n">68,940</td>
+            <td class="n up">&#9650; +1.12%</td><td class="n">3,548,000,000</td><td class="n up">&#9650; +398,400,000</td><td class="n up">&#9650; +12.65%</td><td class="n">4.50%</td><td class="n dim">58,000</td></tr>
+        </tbody>
+        <tfoot><tr><td colspan="6" class="lb" style="color:var(--fg-3)">TOTAL &#183; 7 POSITIONS</td>
+          <td class="n">73,576,400,000</td><td class="n up">&#9650; +5,561,800,000</td><td class="n up">&#9650; +8.19%</td><td class="n">93.80%</td><td></td></tr></tfoot>
+      </table>
+
+      <div class="sr"><span class="t">NEEDS ATTENTION</span><span class="m">4 items</span><span class="fill"></span></div>
+      <div class="feed">
+        <div class="fi"><span class="t">13:41</span><span><span class="rv-d">BREACH</span></span>
+          <span class="b"><b>COAL 37.0% OF BOOK</b> across ADRO + PTBA &#8212; above the 25% single-sector rule. Newcastle thermal $122/t in range, structural China demand soft.</span></div>
+        <div class="fi"><span class="t">14:18</span><span><span class="rv-c">WATCH</span></span>
+          <span class="b"><b>USDIDR</b> broke 16,300 on BI non-intervention &#8212; rupiah weakness transmits to foreign selling across IDX blue chips. Watch BBRI flows.</span></div>
+        <div class="fi"><span class="t">11:55</span><span><span class="rv-c">WATCH</span></span>
+          <span class="b"><b>MDKA</b> &minus;3.55% vs entry, 1.79% from stop 2,350. Copper guidance re-iterated 130&#8211;160kt despite Tujuh Bukit ramp below mid-point.</span></div>
+        <div class="fi"><span class="t">09:02</span><span><span class="rv-a">CATALYST</span></span>
+          <span class="b"><b>BBRI Q3</b> earnings 22 SEP pre-market &#8212; T&minus;14d. No memo on file since the June update.</span></div>
+      </div>
+
+      <div class="sr"><span class="t">CONCENTRATION</span><span class="m">by ticker &#183; limit 25% single name</span><span class="fill"></span></div>
+      <div class="two">
+        <div>
+          <div class="conc"><span>BBRI</span><span class="cb"><i class="warn" style="width:96.8%"></i><span class="lim" style="left:100%"></span></span><span class="n">24.20%</span></div>
+          <div class="conc"><span>ADRO</span><span class="cb"><i style="width:92.0%"></i><span class="lim" style="left:100%"></span></span><span class="n">23.00%</span></div>
+          <div class="conc"><span>PTBA</span><span class="cb"><i style="width:56.0%"></i><span class="lim" style="left:100%"></span></span><span class="n">14.00%</span></div>
+          <div class="conc"><span>MDKA</span><span class="cb"><i style="width:51.2%"></i><span class="lim" style="left:100%"></span></span><span class="n">12.80%</span></div>
+          <div class="conc"><span>HYPE</span><span class="cb"><i style="width:34.0%"></i><span class="lim" style="left:100%"></span></span><span class="n">8.50%</span></div>
+          <div class="conc"><span>GOTO</span><span class="cb"><i style="width:27.2%"></i><span class="lim" style="left:100%"></span></span><span class="n">6.80%</span></div>
+          <div class="conc"><span>BTC</span><span class="cb"><i style="width:18.0%"></i><span class="lim" style="left:100%"></span></span><span class="n">4.50%</span></div>
+          <div class="conc"><span class="dim">CASH</span><span class="cb"><i style="width:24.8%;background:var(--fg-4)"></i></span><span class="n dim">6.20%</span></div>
+          <div style="margin-top:7px;font-size:10.5px;color:var(--fg-3)">&#9474; marks the 25% single-name limit &#183; BBRI at 24.20% is 0.80pp from breach</div>
+        </div>
+        <div>
+          <div class="lb" style="margin-bottom:6px">CORRELATION &#183; 90D</div>
+          <div class="empty">
+<pre>&#9484;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9488;
+&#9474;  INSUFFICIENT OVERLAP        &#9474;
+&#9474;  ADRO&#8596;PTBA  41/90 sessions   &#9474;
+&#9492;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9496;</pre>
+            <button class="btn">LOWER WINDOW TO 30D</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="status">
+      <span class="rv-a" style="padding:0 1ch">FIRM</span>
+      <span class="seg">7 pos</span><span class="seg">1 breach</span><span class="seg">2 watch</span>
+      <span class="seg">NAV 78.41bn <span class="up">&#9650;0.98%</span></span>
+      <div class="r"><span class="seg">IDR</span><span class="seg">&#8984;K cmd</span><span class="rv" style="padding:0 1ch">14:32:07</span></div>
+    </div>
+  </div>
+</div>
+</body></html>

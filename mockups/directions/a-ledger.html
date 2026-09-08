@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Aeternum — Direction A · Ledger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F4F2EC; --sheet:#FBFAF7; --sunk:#E7E4DB;
+  --ink:#15140F; --ink-2:#4A4740; --ink-3:#726E64; --ink-4:#9C978B;
+  --rule:rgba(21,20,15,.16); --rule-2:rgba(21,20,15,.30); --rule-hair:rgba(21,20,15,.09);
+  --accent:#1F4B73; --accent-soft:rgba(31,75,115,.08);
+  --up:#186237; --down:#9B2A1E; --flat:#726E64; --caution:#7A5A0C;
+  --f-serif:"Newsreader",Georgia,"Times New Roman",serif;
+  --f-sans:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --row:27px;
+}
+[data-theme="dark"]{
+  --paper:#16150F; --sheet:#1E1C15; --sunk:#100F0A;
+  --ink:#EFEDE4; --ink-2:#BAB5A7; --ink-3:#928D80; --ink-4:#6B665C;
+  --rule:rgba(239,237,228,.18); --rule-2:rgba(239,237,228,.34); --rule-hair:rgba(239,237,228,.10);
+  --accent:#9CC5E6; --accent-soft:rgba(156,197,230,.10);
+  --up:#63CE8E; --down:#EE8073; --flat:#928D80; --caution:#DDAF45;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--paper);color:var(--ink);font-family:var(--f-sans);font-size:12.5px;line-height:1.45;
+  -webkit-font-smoothing:antialiased;font-feature-settings:"tnum" 1}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1,"zero" 1}
+.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1,"zero" 1;text-align:right;white-space:nowrap}
+.lbl{font-family:var(--f-sans);font-size:9.5px;font-weight:500;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-3)}
+.up{color:var(--up)} .down{color:var(--down)} .flat{color:var(--flat)}
+
+.app{display:grid;grid-template-columns:186px 1fr;min-height:100vh}
+.rail{border-right:1px solid var(--rule);background:var(--sheet);display:flex;flex-direction:column}
+.brand{padding:18px 18px 14px;border-bottom:1px solid var(--rule)}
+.brand-mark{font-family:var(--f-serif);font-size:17px;letter-spacing:.22em;text-transform:uppercase;line-height:1}
+.brand-sub{font-family:var(--f-mono);font-size:8.5px;letter-spacing:.24em;text-transform:uppercase;color:var(--ink-3);margin-top:7px}
+nav{padding:14px 0;flex:1}
+.nav-grp{margin-bottom:18px}
+.nav-grp-h{display:flex;align-items:baseline;gap:8px;padding:0 18px 6px}
+.nav-grp-h .rn{font-family:var(--f-serif);font-size:11px;font-style:italic;color:var(--ink-3);width:18px}
+.nav-grp-h .nm{font-size:9.5px;font-weight:500;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-3)}
+.nav-grp-h .ln{flex:1;height:1px;background:var(--rule-hair)}
+.nav-i{display:block;padding:4px 18px 4px 44px;color:var(--ink-2);text-decoration:none;font-size:12.5px;position:relative}
+.nav-i:hover{color:var(--ink);background:var(--accent-soft)}
+.nav-i.on{color:var(--ink);font-weight:500}
+.nav-i.on::before{content:"";position:absolute;left:26px;top:50%;transform:translateY(-50%);width:5px;height:5px;background:var(--accent)}
+.rail-ft{padding:12px 18px;border-top:1px solid var(--rule);font-family:var(--f-mono);font-size:9px;color:var(--ink-3);letter-spacing:.1em}
+
+.main{display:flex;flex-direction:column;min-width:0}
+.tape{display:flex;align-items:center;gap:24px;padding:0 24px;height:34px;border-bottom:1px solid var(--rule);background:var(--sheet);font-family:var(--f-mono);font-size:10.5px;overflow:hidden;white-space:nowrap}
+.tape b{font-weight:500;color:var(--ink-3);letter-spacing:.1em;margin-right:6px}
+.tape .sep{width:1px;height:12px;background:var(--rule)}
+.tape .right{margin-left:auto;display:flex;align-items:center;gap:14px;color:var(--ink-3)}
+.kbd{font-family:var(--f-mono);font-size:9.5px;border:1px solid var(--rule);padding:1px 5px;color:var(--ink-3)}
+.sheet{padding:26px 24px 60px;max-width:1400px;width:100%}
+
+.sec{margin-top:32px}
+.sec-h{display:flex;align-items:baseline;gap:12px;padding-bottom:7px;border-bottom:1px solid var(--rule-2)}
+.sec-h .rn{font-family:var(--f-serif);font-style:italic;font-size:13px;color:var(--ink-3);min-width:22px}
+.sec-h h2{font-family:var(--f-serif);font-size:17px;font-weight:400;letter-spacing:-.005em}
+.sec-h .note{font-size:11px;color:var(--ink-3);font-style:italic;font-family:var(--f-serif)}
+.sec-h .act{margin-left:auto;display:flex;gap:6px;align-items:center}
+
+.pg-h{display:flex;align-items:flex-end;gap:16px;padding-bottom:16px;border-bottom:2px solid var(--ink)}
+.pg-h h1{font-family:var(--f-serif);font-size:29px;font-weight:400;letter-spacing:-.015em;line-height:1}
+.pg-h .sub{font-family:var(--f-serif);font-style:italic;font-size:13.5px;color:var(--ink-3);margin-top:4px}
+.pg-h .rt{margin-left:auto;text-align:right}
+
+.pulse{display:grid;grid-template-columns:repeat(6,1fr);border-top:1px solid var(--rule)}
+.kpi{padding:13px 16px 14px;border-right:1px solid var(--rule-hair);position:relative}
+.kpi:last-child{border-right:0}
+.kpi:hover{background:var(--sheet)}
+.kpi .k-v{font-family:var(--f-mono);font-size:20px;font-weight:500;letter-spacing:-.02em;margin-top:7px;line-height:1.05}
+.kpi .k-d{font-family:var(--f-mono);font-size:10.5px;margin-top:5px;display:flex;align-items:center;gap:5px}
+.kpi .k-note{font-family:var(--f-serif);font-style:italic;font-size:10.5px;color:var(--ink-3);margin-top:3px}
+.spark{margin-top:8px;height:16px;width:100%;display:block;color:var(--up)}
+
+.books{border-top:1px solid var(--rule)}
+.bk{display:grid;grid-template-columns:1fr 150px 96px 150px 20px;align-items:center;gap:12px;
+  padding:11px 4px 11px 14px;border-bottom:1px solid var(--rule-hair);text-decoration:none;color:inherit;position:relative}
+.bk:hover{background:var(--sheet)}
+.bk::before{content:"";position:absolute;left:0;top:0;bottom:0;width:2px;background:transparent}
+.bk:hover::before{background:var(--accent)}
+.bk .b-n{font-family:var(--f-serif);font-size:15px}
+.bk .b-m{font-family:var(--f-mono);font-size:9.5px;letter-spacing:.1em;color:var(--ink-3);text-transform:uppercase;margin-top:2px}
+.bk .arw{color:var(--ink-3);text-align:right;font-size:12px}
+.bk:hover .arw{color:var(--accent)}
+
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead th{font-size:9.5px;font-weight:500;text-transform:uppercase;letter-spacing:.14em;
+  color:var(--ink-3);text-align:left;padding:9px 10px;border-bottom:1px solid var(--rule-2);white-space:nowrap}
+thead th.r{text-align:right}
+tbody td{padding:0 10px;height:var(--row);border-bottom:1px solid var(--rule-hair);vertical-align:middle}
+tbody tr:hover td{background:var(--sheet)}
+tbody tr:last-child td{border-bottom:1px solid var(--rule)}
+.tkr{font-family:var(--f-mono);font-weight:600;letter-spacing:.02em}
+.tkr-sub{font-family:var(--f-serif);font-style:italic;color:var(--ink-3);font-size:11px;margin-left:6px}
+tfoot td{padding:9px 10px;font-family:var(--f-mono);font-weight:600;border-top:2px solid var(--ink);font-size:12px}
+
+.tag{display:inline-block;font-family:var(--f-mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;
+  padding:1px 5px;border:1px solid var(--rule-2);color:var(--ink-3)}
+.tag-a{border-color:var(--accent);color:var(--accent)}
+.tag-w{border-color:var(--caution);color:var(--caution)}
+.tag-b{border-color:var(--down);color:var(--down)}
+
+.two{display:grid;grid-template-columns:1.62fr 1fr;border-top:1px solid var(--rule)}
+.two > *{padding:16px 20px;min-width:0}
+.two > *:first-child{border-right:1px solid var(--rule);padding-left:0}
+.chart-legend{display:flex;gap:18px;font-family:var(--f-mono);font-size:10px;color:var(--ink-3);margin-bottom:10px;flex-wrap:wrap}
+.chart-legend i{display:inline-block;width:14px;height:0;border-top-width:1.5px;border-top-style:solid;vertical-align:middle;margin-right:6px}
+
+.feed-i{display:grid;grid-template-columns:56px 1fr 74px;gap:14px;padding:11px 4px 11px 0;border-bottom:1px solid var(--rule-hair);align-items:baseline}
+.feed-i:hover{background:var(--sheet)}
+.feed-t{font-family:var(--f-mono);font-size:9.5px;color:var(--ink-3);letter-spacing:.06em}
+.feed-b{font-family:var(--f-serif);font-size:13.5px;line-height:1.42}
+.feed-b em{font-style:italic;color:var(--ink-2)}
+.feed-b .k{font-family:var(--f-mono);font-size:12px;font-weight:600}
+
+.conc-r{display:grid;grid-template-columns:56px 1fr 58px;gap:12px;align-items:center;padding:5px 0}
+.conc-bar{height:9px;background:var(--sunk);position:relative}
+.conc-bar i{position:absolute;left:0;top:0;bottom:0;background:var(--ink-2)}
+.conc-bar .lim{position:absolute;top:-3px;bottom:-3px;width:1px;background:var(--down)}
+
+.risk{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--rule-hair)}
+.risk div{padding:9px 12px 9px 0;border-bottom:1px solid var(--rule-hair)}
+.risk .rl{font-size:9.5px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-3)}
+.risk .rv{font-family:var(--f-mono);font-size:15px;margin-top:3px}
+
+.empty{padding:26px 0;text-align:center}
+.empty p{font-family:var(--f-serif);font-style:italic;font-size:13px;color:var(--ink-3);line-height:1.6}
+.btn{font-family:var(--f-sans);font-size:11px;font-weight:500;letter-spacing:.06em;padding:5px 13px;
+  border:1px solid var(--ink);background:transparent;color:var(--ink);cursor:pointer}
+.btn:hover{background:var(--ink);color:var(--paper)}
+.btn-q{border-color:var(--rule-2);color:var(--ink-2)}
+.btn-q:hover{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+</style></head>
+<body>
+<div class="app">
+  <aside class="rail">
+    <div class="brand"><div class="brand-mark">Aeternum</div><div class="brand-sub">CIO Cockpit</div></div>
+    <nav>
+      <div class="nav-grp">
+        <div class="nav-grp-h"><span class="rn">I.</span><span class="nm">Firm</span><span class="ln"></span></div>
+        <a class="nav-i on" href="#">Command Center</a><a class="nav-i" href="#">Capital</a>
+        <a class="nav-i" href="#">Firm Risk</a><a class="nav-i" href="#">Journal</a>
+        <a class="nav-i" href="#">Memos</a><a class="nav-i" href="#">Catalysts</a>
+      </div>
+      <div class="nav-grp">
+        <div class="nav-grp-h"><span class="rn">II.</span><span class="nm">Books</span><span class="ln"></span></div>
+        <a class="nav-i" href="#">Investing</a><a class="nav-i" href="#">IDX Trading</a><a class="nav-i" href="#">Crypto Trading</a>
+      </div>
+      <div class="nav-grp">
+        <div class="nav-grp-h"><span class="rn">III.</span><span class="nm">Tools</span><span class="ln"></span></div>
+        <a class="nav-i" href="#">Watchlist</a><a class="nav-i" href="#">Alerts</a><a class="nav-i" href="#">News</a>
+        <a class="nav-i" href="#">Earnings</a><a class="nav-i" href="#">Analysts</a><a class="nav-i" href="#">Settings</a>
+      </div>
+    </nav>
+    <div class="rail-ft">MMXXVI &middot; JAKARTA</div>
+  </aside>
+
+  <div class="main">
+    <div class="tape">
+      <span><b>USD/IDR</b><span class="mono">16,342</span> <span class="up mono">&#9650; 0.04%</span></span>
+      <span class="sep"></span>
+      <span><b>JCI</b><span class="mono">7,284.10</span> <span class="down mono">&#9660; 0.21%</span></span>
+      <span class="sep"></span>
+      <span><b>S&amp;P</b><span class="mono">6,118.44</span> <span class="up mono">&#9650; 0.33%</span></span>
+      <span class="sep"></span>
+      <span><b>BRENT</b><span class="mono">74.20</span> <span class="down mono">&#9660; 0.62%</span></span>
+      <div class="right"><span class="mono">IDX OPEN &middot; 14:32 WIB</span><span class="kbd">&#8984;K</span></div>
+    </div>
+
+    <div class="sheet">
+      <div class="pg-h">
+        <div>
+          <h1>Command Center</h1>
+          <div class="sub">Good afternoon, Jenson.</div>
+        </div>
+        <div class="rt">
+          <div class="lbl">As of</div>
+          <div class="mono" style="font-size:11.5px;margin-top:3px">08 Sep 2026 &middot; 14:32 WIB</div>
+        </div>
+      </div>
+
+      <div class="pulse">
+        <div class="kpi">
+          <div class="lbl">Net asset value</div>
+          <div class="k-v">78.41<span style="font-size:12px;color:var(--ink-3);margin-left:3px">bn</span></div>
+          <div class="k-d up">&#9650; 0.98% <span class="flat">today</span></div>
+          <div class="k-note">Rp 78,412,660,144</div>
+        </div>
+        <div class="kpi">
+          <div class="lbl">Day P&amp;L</div>
+          <div class="k-v up">+765.2<span style="font-size:12px;margin-left:3px">m</span></div>
+          <div class="k-d up">&#9650; 0.98% <span class="flat">of NAV</span></div>
+          <div class="k-note">7 of 7 marks live</div>
+        </div>
+        <div class="kpi">
+          <div class="lbl">Unrealised</div>
+          <div class="k-v up">+5.56<span style="font-size:12px;margin-left:3px">bn</span></div>
+          <div class="k-d up">&#9650; 8.19% <span class="flat">on cost</span></div>
+          <div class="k-note">Realised YTD +2.31 bn</div>
+        </div>
+        <div class="kpi">
+          <div class="lbl">Return YTD</div>
+          <div class="k-v up">+14.20%</div>
+          <div class="k-d"><span class="up">&#9650; 12.1</span> <span class="flat">vs JCI</span></div>
+          <svg class="spark" viewBox="0 0 120 16" preserveAspectRatio="none"><polyline fill="none" stroke="currentColor" stroke-width="1" vector-effect="non-scaling-stroke" points="0,14 12,12.5 24,11 36,11.8 48,8.9 60,7.4 72,8.1 84,4.6 96,3.1 108,1.6 120,1"/></svg>
+        </div>
+        <div class="kpi">
+          <div class="lbl">Gross exposure</div>
+          <div class="k-v">93.8%</div>
+          <div class="k-d flat">Net 93.8% &middot; no shorts</div>
+          <div class="k-note">Cash 6.2%</div>
+        </div>
+        <div class="kpi">
+          <div class="lbl">Max drawdown</div>
+          <div class="k-v down">&minus;3.80%</div>
+          <div class="k-d flat">Trough 18 Apr &middot; recovered</div>
+          <div class="k-note">Vol 14.6% annualised</div>
+        </div>
+      </div>
+
+      <div class="sec">
+        <div class="sec-h"><span class="rn">I.</span><h2>Books</h2><span class="note">three arms &middot; attribution to firm NAV</span></div>
+        <div class="books">
+          <a class="bk" href="#">
+            <div><div class="b-n">Investing</div><div class="b-m">Jenson &middot; 60% budget &middot; 3 positions</div></div>
+            <div class="num">47,042,400,000</div><div class="num up">&#9650; 16.4%</div>
+            <div class="num up">&#9650; 3,341,400,000</div><div class="arw">&rarr;</div>
+          </a>
+          <a class="bk" href="#">
+            <div><div class="b-n">IDX Trading</div><div class="b-m">Jenson &middot; 25% budget &middot; 2 positions</div></div>
+            <div class="num">16,295,000,000</div><div class="num up">&#9650; 8.1%</div>
+            <div class="num up">&#9650; 387,000,000</div><div class="arw">&rarr;</div>
+          </a>
+          <a class="bk" href="#">
+            <div><div class="b-n">Crypto Trading</div><div class="b-m">Jenson &middot; 15% budget &middot; 2 positions</div></div>
+            <div class="num">10,239,000,000</div><div class="num up">&#9650; 22.7%</div>
+            <div class="num up">&#9650; 1,833,000,000</div><div class="arw">&rarr;</div>
+          </a>
+        </div>
+      </div>
+
+      <div class="sec">
+        <div class="sec-h"><span class="rn">II.</span><h2>Performance</h2><span class="note">rebased to 100 &middot; firm-wide</span>
+          <div class="act"><button class="btn btn-q">1M</button><button class="btn btn-q">3M</button><button class="btn">YTD</button><button class="btn btn-q">ALL</button></div>
+        </div>
+        <div class="two">
+          <div>
+            <div class="chart-legend">
+              <span><i style="border-color:var(--ink)"></i>NAV <b class="mono up">+14.2%</b></span>
+              <span><i style="border-color:var(--ink-3);border-top-style:dashed"></i>JCI <b class="mono up">+2.1%</b></span>
+              <span><i style="border-color:var(--ink-3);border-top-style:dotted"></i>S&amp;P 500 <b class="mono up">+6.8%</b></span>
+            </div>
+            <svg viewBox="0 0 900 232" width="100%" height="212" preserveAspectRatio="none" style="overflow:visible">
+              <g stroke="var(--rule-hair)" stroke-width="1" vector-effect="non-scaling-stroke">
+                <line x1="44" y1="40" x2="890" y2="40"/><line x1="44" y1="93.3" x2="890" y2="93.3"/><line x1="44" y1="146.7" x2="890" y2="146.7"/>
+              </g>
+              <line x1="44" y1="200" x2="890" y2="200" stroke="var(--rule-2)" stroke-width="1" vector-effect="non-scaling-stroke"/>
+              <polyline fill="none" stroke="var(--ink-3)" stroke-width="1" stroke-dasharray="1 3" vector-effect="non-scaling-stroke" points="44,200 128,187.2 212,174.4 296,188.3 380,165.9 464,156.3 548,163.7 632,148.8 716,140.3 800,133.9 884,127.5"/>
+              <polyline fill="none" stroke="var(--ink-3)" stroke-width="1" stroke-dasharray="5 3" vector-effect="non-scaling-stroke" points="44,200 128,190.4 212,182.9 296,195.7 380,188.3 464,174.4 548,187.2 632,193.6 716,180.8 800,172.3 884,177.6"/>
+              <polyline fill="none" stroke="var(--ink)" stroke-width="1.75" vector-effect="non-scaling-stroke" points="44,200 128,180.8 212,165.9 296,172.3 380,145.6 464,131.7 548,138.1 632,105.1 716,91.2 800,65.6 884,48.5"/>
+            </svg>
+            <div style="display:flex;justify-content:space-between;font-family:var(--f-mono);font-size:9.5px;color:var(--ink-3);margin-top:2px">
+              <span>Jan</span><span>Mar</span><span>May</span><span>Jul</span><span>Sep</span><span>Now</span>
+            </div>
+          </div>
+          <div>
+            <div class="lbl" style="margin-bottom:9px">Drawdown from peak</div>
+            <svg viewBox="0 0 400 160" width="100%" height="140" preserveAspectRatio="none" style="overflow:visible">
+              <line x1="6" y1="20" x2="394" y2="20" stroke="var(--rule-2)" vector-effect="non-scaling-stroke"/>
+              <line x1="6" y1="80" x2="394" y2="80" stroke="var(--rule-hair)" vector-effect="non-scaling-stroke"/>
+              <line x1="6" y1="140" x2="394" y2="140" stroke="var(--rule-hair)" vector-effect="non-scaling-stroke"/>
+              <polygon fill="var(--down)" fill-opacity=".10" points="6,20 42,24.8 78,34.4 114,65.6 150,33.2 186,23.6 222,54.8 258,29.6 294,20 330,36.8 366,27.2 394,24 394,20"/>
+              <polyline fill="none" stroke="var(--down)" stroke-width="1.4" vector-effect="non-scaling-stroke" points="6,20 42,24.8 78,34.4 114,65.6 150,33.2 186,23.6 222,54.8 258,29.6 294,20 330,36.8 366,27.2 394,24"/>
+              <line x1="114" y1="65.6" x2="114" y2="20" stroke="var(--down)" stroke-width="1" stroke-dasharray="2 2" vector-effect="non-scaling-stroke"/>
+            </svg>
+            <div style="display:flex;justify-content:space-between;font-family:var(--f-mono);font-size:9.5px;color:var(--ink-3);margin-top:4px">
+              <span>0% &middot; &minus;5% &middot; &minus;10%</span><span class="down">Max &minus;3.80% &middot; 18 Apr</span>
+            </div>
+            <div class="risk" style="margin-top:14px">
+              <div><div class="rl">Vol (ann.)</div><div class="rv">14.6%</div></div>
+              <div><div class="rl">Sharpe</div><div class="rv">1.42</div></div>
+              <div><div class="rl">Sortino</div><div class="rv">2.08</div></div>
+              <div><div class="rl">Beta &middot; JCI</div><div class="rv">0.71</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sec">
+        <div class="sec-h"><span class="rn">III.</span><h2>Positions</h2><span class="note">seven open &middot; all books &middot; marks 14:32 WIB</span>
+          <div class="act"><span class="tag tag-a">IDR</span><button class="btn btn-q">USD</button></div>
+        </div>
+        <table>
+          <thead><tr>
+            <th>Ticker</th><th>Book</th><th class="r">Qty</th><th class="r">Avg entry</th><th class="r">Last</th>
+            <th class="r">Day</th><th class="r">Market value</th><th class="r">Unrealised</th><th class="r">%</th><th class="r">% NAV</th>
+          </tr></thead>
+          <tbody>
+            <tr><td><span class="tkr">BBRI</span><span class="tkr-sub">Bank Rakyat</span></td><td><span class="tag">inv</span></td>
+              <td class="num">4,200,000</td><td class="num">4,185</td><td class="num">4,510</td>
+              <td class="num up">&#9650; 1.24%</td><td class="num">18,942,000,000</td><td class="num up">&#9650; 1,365,000,000</td><td class="num up">&#9650; 7.76%</td><td class="num">24.2%</td></tr>
+            <tr><td><span class="tkr">ADRO</span><span class="tkr-sub">Alamtri</span></td><td><span class="tag">inv</span></td>
+              <td class="num">6,800,000</td><td class="num">2,310</td><td class="num">2,655</td>
+              <td class="num up">&#9650; 2.08%</td><td class="num">18,054,000,000</td><td class="num up">&#9650; 2,346,000,000</td><td class="num up">&#9650; 14.94%</td><td class="num">23.0%</td></tr>
+            <tr><td><span class="tkr">PTBA</span><span class="tkr-sub">Bukit Asam</span></td><td><span class="tag">idx</span></td>
+              <td class="num">3,900,000</td><td class="num">2,640</td><td class="num">2,810</td>
+              <td class="num up">&#9650; 0.72%</td><td class="num">10,959,000,000</td><td class="num up">&#9650; 663,000,000</td><td class="num up">&#9650; 6.44%</td><td class="num">14.0%</td></tr>
+            <tr><td><span class="tkr">MDKA</span><span class="tkr-sub">Merdeka Copper</span></td><td><span class="tag">inv</span></td>
+              <td class="num">4,200,000</td><td class="num">2,480</td><td class="num">2,392</td>
+              <td class="num down">&#9660; 0.83%</td><td class="num">10,046,400,000</td><td class="num down">&#9660; 369,600,000</td><td class="num down">&#9660; 3.55%</td><td class="num">12.8%</td></tr>
+            <tr><td><span class="tkr">HYPE</span><span class="tkr-sub">Hyperliquid &middot; perp</span></td><td><span class="tag">cry</span></td>
+              <td class="num">12,000</td><td class="num">26.80</td><td class="num">34.12</td>
+              <td class="num up">&#9650; 3.41%</td><td class="num">6,691,000,000</td><td class="num up">&#9650; 1,435,000,000</td><td class="num up">&#9650; 27.31%</td><td class="num">8.5%</td></tr>
+            <tr><td><span class="tkr">GOTO</span><span class="tkr-sub">GoTo Gojek</span></td><td><span class="tag">idx</span></td>
+              <td class="num">92,000,000</td><td class="num">61</td><td class="num">58</td>
+              <td class="num down">&#9660; 1.69%</td><td class="num">5,336,000,000</td><td class="num down">&#9660; 276,000,000</td><td class="num down">&#9660; 4.92%</td><td class="num">6.8%</td></tr>
+            <tr><td><span class="tkr">BTC</span><span class="tkr-sub">Bitcoin</span></td><td><span class="tag">cry</span></td>
+              <td class="num">3.1500</td><td class="num">61,200</td><td class="num">68,940</td>
+              <td class="num up">&#9650; 1.12%</td><td class="num">3,548,000,000</td><td class="num up">&#9650; 398,400,000</td><td class="num up">&#9650; 12.65%</td><td class="num">4.5%</td></tr>
+          </tbody>
+          <tfoot><tr>
+            <td colspan="6" style="font-family:var(--f-sans);font-weight:500;letter-spacing:.14em;font-size:9.5px;text-transform:uppercase">Total &middot; 7 positions</td>
+            <td class="num">73,576,400,000</td><td class="num up">&#9650; 5,561,800,000</td><td class="num up">&#9650; 8.19%</td><td class="num">93.8%</td>
+          </tr></tfoot>
+        </table>
+      </div>
+
+      <div class="sec">
+        <div class="sec-h"><span class="rn">IV.</span><h2>Needs attention</h2><span class="note">four items &middot; triage across all books</span></div>
+        <div>
+          <div class="feed-i">
+            <div class="feed-t">13:41</div>
+            <div class="feed-b"><span class="k">Coal concentration 37.0%</span> of book across <span class="k">ADRO</span> + <span class="k">PTBA</span> &mdash; above the <em>25% single-sector rule</em>. Newcastle thermal $122/t, in range, but structural China demand soft.</div>
+            <div><span class="tag tag-b">Breach</span></div>
+          </div>
+          <div class="feed-i">
+            <div class="feed-t">14:18</div>
+            <div class="feed-b"><span class="k">USD/IDR</span> broke 16,300 on BI non-intervention &mdash; rupiah weakness transmits to foreign selling across IDX blue chips. <em>Watch BBRI flows.</em></div>
+            <div><span class="tag tag-w">Watch</span></div>
+          </div>
+          <div class="feed-i">
+            <div class="feed-t">11:55</div>
+            <div class="feed-b"><span class="k">MDKA</span> &minus;3.55% against entry and 1.8% from your stop at <span class="k">2,350</span>. Copper guidance re-iterated 130&ndash;160kt despite Tujuh Bukit ramp slower than mid-point.</div>
+            <div><span class="tag tag-w">Watch</span></div>
+          </div>
+          <div class="feed-i">
+            <div class="feed-t">09:02</div>
+            <div class="feed-b"><span class="k">BBRI</span> Q3 earnings <em>22 Sep, pre-market</em> &mdash; fourteen days out. No memo on file since the June update.</div>
+            <div><span class="tag tag-a">Catalyst</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sec">
+        <div class="sec-h"><span class="rn">V.</span><h2>Concentration</h2><span class="note">by ticker &middot; limit 25% single name</span></div>
+        <div class="two">
+          <div>
+            <div class="conc-r"><span class="mono" style="font-size:11.5px">BBRI</span><div class="conc-bar"><i style="width:96.8%"></i><span class="lim" style="left:100%"></span></div><span class="num" style="font-size:11.5px">24.2%</span></div>
+            <div class="conc-r"><span class="mono" style="font-size:11.5px">ADRO</span><div class="conc-bar"><i style="width:92.0%"></i><span class="lim" style="left:100%"></span></div><span class="num" style="font-size:11.5px">23.0%</span></div>
+            <div class="conc-r"><span class="mono" style="font-size:11.5px">PTBA</span><div class="conc-bar"><i style="width:56.0%"></i><span class="lim" style="left:100%"></span></div><span class="num" style="font-size:11.5px">14.0%</span></div>
+            <div class="conc-r"><span class="mono" style="font-size:11.5px">MDKA</span><div class="conc-bar"><i style="width:51.2%"></i><span class="lim" style="left:100%"></span></div><span class="num" style="font-size:11.5px">12.8%</span></div>
+            <div class="conc-r"><span class="mono" style="font-size:11.5px">HYPE</span><div class="conc-bar"><i style="width:34.0%"></i><span class="lim" style="left:100%"></span></div><span class="num" style="font-size:11.5px">8.5%</span></div>
+            <div class="conc-r"><span class="mono" style="font-size:11.5px">GOTO</span><div class="conc-bar"><i style="width:27.2%"></i><span class="lim" style="left:100%"></span></div><span class="num" style="font-size:11.5px">6.8%</span></div>
+            <div class="conc-r"><span class="mono" style="font-size:11.5px">BTC</span><div class="conc-bar"><i style="width:18.0%"></i><span class="lim" style="left:100%"></span></div><span class="num" style="font-size:11.5px">4.5%</span></div>
+            <div class="conc-r"><span class="mono" style="font-size:11.5px;color:var(--ink-3)">Cash</span><div class="conc-bar"><i style="width:24.8%;background:var(--ink-4)"></i></div><span class="num" style="font-size:11.5px;color:var(--ink-3)">6.2%</span></div>
+            <div style="margin-top:10px;font-family:var(--f-serif);font-style:italic;font-size:11.5px;color:var(--ink-3)">The vertical rule marks the 25% single-name limit. Coal aggregate of 37.0% is in breach; see above.</div>
+          </div>
+          <div>
+            <div class="lbl" style="margin-bottom:10px">Correlation &middot; 90d</div>
+            <div class="empty">
+              <p>Not enough overlapping history.<br/>ADRO and PTBA share 41 sessions; ninety are required.</p>
+              <button class="btn" style="margin-top:12px">Lower the window to 30d</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body></html>
